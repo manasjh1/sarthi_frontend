@@ -1,0 +1,614 @@
+"use client"
+
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { SarthiLogo } from "@/components/sarthi-logo"
+import { SarthiButton } from "@/components/ui/sarthi-button"
+import { SarthiInput } from "@/components/ui/sarthi-input"
+import { CountrySelector } from "@/components/ui/country-selector"
+import { checkUserExists, validateInviteCode, sendOTP, verifyOTP, resendOTP } from "@/app/actions/auth"
+import { SarthiIcon } from "@/components/ui/sarthi-icon"
+
+type AuthStep = "entry" | "invite-code" | "otp-verification" | "success" | "welcome" | "redirecting"
+type UserType = "new" | "existing" | null
+type ContactType = "email" | "phone"
+
+interface Country {
+  name: string
+  code: string
+  dialCode: string
+  flag: string
+}
+
+const defaultCountry: Country = { name: "United States", code: "US", dialCode: "+1", flag: "🇺🇸" }
+
+export default function AuthPage() {
+  const router = useRouter()
+  const [step, setStep] = useState<AuthStep>("entry")
+  const [userType, setUserType] = useState<UserType>(null)
+  const [contactType, setContactType] = useState<ContactType>("email")
+  const [email, setEmail] = useState("")
+  const [phoneNumber, setPhoneNumber] = useState("")
+  const [selectedCountry, setSelectedCountry] = useState<Country>(defaultCountry)
+  const [inviteCode, setInviteCode] = useState("")
+  const [otp, setOtp] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [currentContact, setCurrentContact] = useState("") // Store the contact used for OTP
+  const [redirectProgress, setRedirectProgress] = useState(0)
+
+  const getFullContact = () => {
+    if (contactType === "email") {
+      return email.trim()
+    } else {
+      return `${selectedCountry.dialCode}${phoneNumber.trim()}`
+    }
+  }
+
+  const isValidEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+  }
+
+  const isValidPhone = (phone: string) => {
+    return /^\d{7,15}$/.test(phone.trim())
+  }
+
+  const handleContinue = async () => {
+    console.log("handleContinue called")
+    console.log("contactType:", contactType)
+    console.log("email:", email)
+    console.log("phoneNumber:", phoneNumber)
+
+    const contact = getFullContact()
+    console.log("Full contact:", contact)
+
+    // Validation
+    if (contactType === "email") {
+      if (!email.trim()) {
+        setError("Please enter your email address")
+        return
+      }
+      if (!isValidEmail(email)) {
+        setError("Please enter a valid email address")
+        return
+      }
+    } else {
+      if (!phoneNumber.trim()) {
+        setError("Please enter your phone number")
+        return
+      }
+      if (!isValidPhone(phoneNumber)) {
+        setError("Please enter a valid phone number")
+        return
+      }
+    }
+
+    setIsLoading(true)
+    setError("")
+
+    try {
+      console.log("Checking if user exists for:", contact)
+      const { exists } = await checkUserExists(contact)
+      console.log("User exists:", exists)
+
+      const newUserType = exists ? "existing" : "new"
+      setUserType(newUserType)
+      setCurrentContact(contact) // Store the contact for OTP verification
+
+      console.log("Sending OTP to:", contact)
+      await sendOTP(contact, !exists)
+
+      console.log("Moving to OTP verification step")
+      setStep("otp-verification")
+    } catch (err) {
+      console.error("Error in handleContinue:", err)
+      setError("Something went wrong. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleInviteCode = async () => {
+    if (!inviteCode.trim()) {
+      setError("Please enter your invite code")
+      return
+    }
+
+    setIsLoading(true)
+    setError("")
+
+    try {
+      const { valid } = await validateInviteCode(inviteCode)
+
+      if (valid) {
+        // Show success message for invite code validation
+        setStep("success")
+        setTimeout(() => {
+          setStep("entry")
+          setInviteCode("")
+          setError("")
+        }, 2000)
+      } else {
+        setError("That code doesn't seem to be valid. Please check it and try again.")
+      }
+    } catch (err) {
+      setError("Something went wrong. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Enhanced OTP verification with smooth transition
+  const handleOtpVerification = async () => {
+    console.log("handleOtpVerification called")
+    console.log("OTP entered:", otp)
+    console.log("Current contact:", currentContact)
+    console.log("User type:", userType)
+
+    if (!otp.trim()) {
+      setError("Please enter the verification code")
+      return
+    }
+
+    setIsLoading(true)
+    setError("")
+
+    try {
+      console.log("Verifying OTP...")
+      const { success, error: otpError, redirectTo } = await verifyOTP(currentContact, otp, userType === "new")
+      console.log("OTP verification result:", { success, otpError, redirectTo })
+
+      if (success) {
+        console.log("OTP verification successful, starting smooth transition")
+
+        // Show success state
+        setStep("success")
+
+        // After showing success, start the redirecting animation
+        setTimeout(() => {
+          setStep("redirecting")
+
+          // Animate progress bar
+          const progressInterval = setInterval(() => {
+            setRedirectProgress((prev) => {
+              if (prev >= 100) {
+                clearInterval(progressInterval)
+                // Use Next.js router for smooth client-side navigation to onboarding
+                router.push(redirectTo || "/onboarding")
+                return 100
+              }
+              return prev + 2
+            })
+          }, 30)
+        }, 1000)
+      } else {
+        setError(otpError || "The code doesn't match. Please check and try again.")
+      }
+    } catch (err) {
+      console.error("Error in handleOtpVerification:", err)
+      setError("Something went wrong. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleResendOTP = async () => {
+    setIsLoading(true)
+    try {
+      await resendOTP(currentContact) // Use stored contact
+      setError("")
+    } catch (err) {
+      setError("Failed to resend code. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const resetToEntry = () => {
+    setStep("entry")
+    setEmail("")
+    setPhoneNumber("")
+    setOtp("")
+    setError("")
+    setCurrentContact("")
+    setUserType(null)
+  }
+
+  const renderEntryStep = () => (
+    <div className="w-full max-w-md space-y-8">
+      <div className="text-center space-y-2 sarthi-fade-in">
+        <h1 className="text-3xl font-medium">Welcome to your space</h1>
+        <p className="text-[#cbd5e1]">Say what's been on your mind</p>
+      </div>
+
+      <div className="sarthi-card p-6 space-y-6">
+        {/* Contact Type Toggle */}
+        <div className="flex bg-[#2a2a2a] rounded-[16px] p-1">
+          <button
+            type="button"
+            onClick={() => {
+              console.log("Switching to email")
+              setContactType("email")
+              setError("")
+            }}
+            className={`flex-1 py-2 px-4 rounded-[12px] text-sm font-medium transition-all ${
+              contactType === "email" ? "bg-white text-[#0f0f0f]" : "text-[#cbd5e1] hover:text-white hover:bg-white/10"
+            }`}
+          >
+            Email
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              console.log("Switching to phone")
+              setContactType("phone")
+              setError("")
+            }}
+            className={`flex-1 py-2 px-4 rounded-[12px] text-sm font-medium transition-all ${
+              contactType === "phone" ? "bg-white text-[#0f0f0f]" : "text-[#cbd5e1] hover:text-white hover:bg-white/10"
+            }`}
+          >
+            Phone
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="contact" className="block text-sm text-[#cbd5e1]">
+              {contactType === "email" ? "Email address" : "Phone number"}
+            </label>
+
+            {contactType === "email" ? (
+              <SarthiInput
+                id="contact"
+                type="email"
+                placeholder="Enter your email address"
+                value={email}
+                onChange={(e) => {
+                  console.log("Email changed to:", e.target.value)
+                  setEmail(e.target.value)
+                  setError("")
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    console.log("Enter pressed on email input")
+                    handleContinue()
+                  }
+                }}
+              />
+            ) : (
+              <CountrySelector
+                selectedCountry={selectedCountry}
+                onCountrySelect={setSelectedCountry}
+                phoneNumber={phoneNumber}
+                onPhoneNumberChange={(phone) => {
+                  console.log("Phone changed to:", phone)
+                  setPhoneNumber(phone)
+                  setError("")
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    console.log("Enter pressed on phone input")
+                    handleContinue()
+                  }
+                }}
+              />
+            )}
+          </div>
+        </div>
+
+        {error && <div className="text-red-400 text-sm text-center">{error}</div>}
+
+        <div className="pt-2">
+          <SarthiButton
+            className="w-full"
+            onClick={() => {
+              console.log("Continue button clicked")
+              handleContinue()
+            }}
+            disabled={isLoading}
+          >
+            {isLoading ? "Please wait..." : "Continue"}
+          </SarthiButton>
+        </div>
+
+        <div className="text-center text-sm text-[#cbd5e1]">
+          <p>Take a deep breath. Ready when you are.</p>
+        </div>
+      </div>
+
+      <div className="text-center">
+        <button
+          onClick={() => setStep("invite-code")}
+          className="text-[#cbd5e1] hover:text-white transition-colors text-sm underline"
+        >
+          Have an invite code?
+        </button>
+      </div>
+    </div>
+  )
+
+  const renderOtpStep = () => (
+    <div className="w-full max-w-md space-y-8">
+      <div className="text-center space-y-2 sarthi-fade-in">
+        <h1 className="text-3xl font-medium">
+          {userType === "existing" ? "Welcome back" : "Let's create your private space"}
+        </h1>
+        <p className="text-[#cbd5e1]">
+          A secure code has been sent to <span className="text-white">{currentContact}</span>{" "}
+          {userType === "existing" ? "to log you in" : "to begin"}
+        </p>
+      </div>
+
+      <div className="sarthi-card p-6 space-y-6">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="otp" className="block text-sm text-[#cbd5e1]">
+              Verification code
+            </label>
+            <SarthiInput
+              id="otp"
+              type="text"
+              placeholder="Enter the 6-digit code (Dev: 141414)"
+              value={otp}
+              onChange={(e) => {
+                console.log("OTP changed to:", e.target.value)
+                setOtp(e.target.value)
+                setError("")
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  console.log("Enter pressed on OTP input")
+                  handleOtpVerification()
+                }
+              }}
+              maxLength={6}
+            />
+          </div>
+        </div>
+
+        {error && <div className="text-red-400 text-sm text-center">{error}</div>}
+
+        <div className="pt-2">
+          <SarthiButton
+            className="w-full"
+            onClick={() => {
+              console.log("Verify button clicked")
+              handleOtpVerification()
+            }}
+            disabled={isLoading}
+          >
+            {isLoading ? "Verifying..." : "Verify and continue"}
+          </SarthiButton>
+        </div>
+
+        <div className="text-center">
+          <button
+            onClick={handleResendOTP}
+            disabled={isLoading}
+            className="text-[#cbd5e1] hover:text-white transition-colors text-sm disabled:opacity-50"
+          >
+            Didn't receive it yet? Try again
+          </button>
+        </div>
+      </div>
+
+      <div className="text-center">
+        <button onClick={resetToEntry} className="text-[#cbd5e1] hover:text-white transition-colors text-sm">
+          Use a different {contactType === "email" ? "email" : "phone number"}
+        </button>
+      </div>
+    </div>
+  )
+
+  const renderSuccessStep = () => (
+    <div className="w-full max-w-md space-y-8">
+      <div className="text-center space-y-6 sarthi-fade-in">
+        {/* Success Animation with new S-only icon */}
+        <div className="relative mx-auto">
+          <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto animate-pulse">
+            <div className="w-16 h-16 bg-green-500/30 rounded-full flex items-center justify-center">
+              <SarthiIcon size="md" />
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <h1 className="text-3xl font-medium text-green-400">
+            {userType ? "Authentication successful!" : "Invite code accepted!"}
+          </h1>
+          <p className="text-[#cbd5e1]">
+            {userType
+              ? userType === "existing"
+                ? "Welcome back to your space"
+                : "Your account has been created successfully"
+              : "Your invite is accepted. Welcome"}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+
+  // Enhanced redirecting step with new S icon
+  const renderRedirectingStep = () => (
+    <div className="w-full max-w-md space-y-8">
+      <div className="text-center space-y-6 sarthi-fade-in">
+        {/* Sarthi S Logo with enhanced glow animation */}
+        <div className="relative mx-auto">
+          {/* Outer glow */}
+          <div
+            className="absolute rounded-full animate-gentle-pulse"
+            style={{
+              width: 120,
+              height: 120,
+              top: -10,
+              left: -10,
+              background: "radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%)",
+            }}
+          ></div>
+
+          {/* Inner glow */}
+          <div
+            className="absolute rounded-full animate-gentle-pulse"
+            style={{
+              width: 100,
+              height: 100,
+              top: 0,
+              left: 0,
+              background: "radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%)",
+              animationDelay: "0.5s",
+            }}
+          ></div>
+
+          {/* Logo container with new S-only icon */}
+          <div className="relative w-24 h-24 mx-auto bg-[#1A1A1A] rounded-full border border-[#2A2A2A] flex items-center justify-center">
+            <SarthiIcon size="lg" />
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <h1 className="text-3xl font-medium text-white">Setting up your space...</h1>
+          <p className="text-[#cbd5e1]">
+            {userType === "existing"
+              ? "Welcome back. Preparing your reflections..."
+              : "Creating your personal sanctuary..."}
+          </p>
+        </div>
+
+        {/* Progress bar */}
+        <div className="space-y-3">
+          <div className="w-full bg-[#2a2a2a] rounded-full h-2 overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-white/60 to-white transition-all duration-300 ease-out"
+              style={{ width: `${redirectProgress}%` }}
+            ></div>
+          </div>
+          <p className="text-sm text-[#cbd5e1]">{Math.round(redirectProgress)}% complete</p>
+        </div>
+
+        {/* Loading dots */}
+        <div className="flex items-center justify-center space-x-2">
+          <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce"></div>
+          <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
+          <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderWelcomeStep = () => (
+    <div className="w-full max-w-md space-y-8">
+      <div className="text-center space-y-4 sarthi-fade-in">
+        <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center mx-auto">
+          <SarthiIcon size="md" />
+        </div>
+        <h1 className="text-3xl font-medium">
+          {userType === "existing" ? "Welcome back to your space" : "Your private space is ready"}
+        </h1>
+        <p className="text-[#cbd5e1]">
+          {userType === "existing"
+            ? "Your reflections are waiting for you"
+            : "This is a safe space. Say what's on your mind"}
+        </p>
+      </div>
+
+      <div className="sarthi-card p-6 space-y-6">
+        <SarthiButton className="w-full" onClick={() => router.push("/chat")}>
+          {userType === "existing" ? "Continue to your reflections" : "Start your first reflection"}
+        </SarthiButton>
+
+        <div className="text-center text-sm text-[#cbd5e1]">
+          <p>You don't have to be perfect, just honest</p>
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderInviteCodeStep = () => (
+    <div className="w-full max-w-md space-y-8">
+      <div className="flex items-center space-x-2 mb-4">
+        <button onClick={() => setStep("entry")} className="text-[#cbd5e1] hover:text-white transition-colors">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="m12 19-7-7 7-7" />
+            <path d="M19 12H5" />
+          </svg>
+        </button>
+        <span className="text-[#cbd5e1] text-sm">Back</span>
+      </div>
+
+      <div className="text-center space-y-2 sarthi-fade-in">
+        <h1 className="text-3xl font-medium">Enter your invite code</h1>
+        <p className="text-[#cbd5e1]">We're honored to have you here</p>
+      </div>
+
+      <div className="sarthi-card p-6 space-y-6">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="inviteCode" className="block text-sm text-[#cbd5e1]">
+              Invite code
+            </label>
+            <SarthiInput
+              id="inviteCode"
+              type="text"
+              placeholder="Enter your invite code"
+              value={inviteCode}
+              onChange={(e) => setInviteCode(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleInviteCode()}
+            />
+          </div>
+        </div>
+
+        {error && <div className="text-red-400 text-sm text-center">{error}</div>}
+
+        <div className="pt-2">
+          <SarthiButton className="w-full" onClick={handleInviteCode} disabled={isLoading}>
+            {isLoading ? "Validating..." : "Apply"}
+          </SarthiButton>
+        </div>
+      </div>
+    </div>
+  )
+
+  // Debug info (remove in production)
+  console.log("Current state:", {
+    step,
+    contactType,
+    email,
+    phoneNumber,
+    currentContact,
+    userType,
+    otp,
+    isLoading,
+    error,
+    redirectProgress,
+  })
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <header className="p-6">
+        <button onClick={() => window.location.reload()} className="hover:opacity-80 transition-opacity">
+          <SarthiLogo size="md" />
+        </button>
+      </header>
+
+      <div className="flex-1 flex flex-col items-center justify-center p-4">
+        {step === "entry" && renderEntryStep()}
+        {step === "invite-code" && renderInviteCodeStep()}
+        {step === "otp-verification" && renderOtpStep()}
+        {step === "success" && renderSuccessStep()}
+        {step === "redirecting" && renderRedirectingStep()}
+        {step === "welcome" && renderWelcomeStep()}
+      </div>
+    </div>
+  )
+}
