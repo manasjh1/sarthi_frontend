@@ -6,7 +6,7 @@ import { SarthiIcon } from "@/components/ui/sarthi-icon"
 import { SarthiButton } from "@/components/ui/sarthi-button"
 import { SarthiInput } from "@/components/ui/sarthi-input"
 import { ApologyIcon } from "@/components/icons/apology-icon"
-import { Heart, MessageCircle } from "lucide-react"
+import { Heart, MessageCircle, User, UserX } from "lucide-react"
 
 type OnboardingStep = "success" | "name-entry" | "space-setup" | "reflection-prompt" | "complete"
 
@@ -194,60 +194,93 @@ export default function OnboardingPage() {
             <div className="absolute top-4 right-4 text-xs text-white/40">Step 2 of 3</div>
 
             <div className="space-y-6" style={{ paddingTop: "24px" }}>
-              <div className="space-y-2">
-                <label htmlFor="name" className="block text-sm text-[#cbd5e1] text-left">
-                  Your first name
-                </label>
-                <SarthiInput
-                  id="name"
-                  type="text"
-                  placeholder={isAnonymous ? "Anonymous" : "Your first name"}
-                  value={name}
-                  onChange={(e) => {
-                    setName(e.target.value)
+              {/* Name Option Card */}
+              <div className="space-y-4">
+                <button
+                  onClick={() => {
+                    setIsAnonymous(false)
                     setNameError("")
                   }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !isAnonymous) {
-                      handleNameSubmit()
-                    }
-                  }}
-                  disabled={isAnonymous}
-                  className={`auth-input ${isAnonymous ? "opacity-50 cursor-not-allowed" : ""}`}
-                />
-                {nameError && <div className="text-red-400 text-sm">{nameError}</div>}
+                  className={`w-full p-4 rounded-2xl border transition-all text-left group min-h-[44px] ${
+                    !isAnonymous
+                      ? "border-white/30 bg-white/10"
+                      : "border-white/10 hover:border-white/20 hover:bg-white/5"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex-shrink-0 w-8 h-8 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/15 transition-colors">
+                      <User className="h-4 w-4 text-white/80" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-white font-medium">Use my name</h3>
+                      <p className="text-white/60 text-sm">Sign reflections with your name</p>
+                    </div>
+                    <div
+                      className={`w-4 h-4 rounded-full border-2 transition-colors ${
+                        !isAnonymous ? "border-white bg-white" : "border-white/40"
+                      }`}
+                    >
+                      {!isAnonymous && <div className="w-full h-full rounded-full bg-[#0f0f0f] scale-50"></div>}
+                    </div>
+                  </div>
+                </button>
+
+                {/* Name Input - only show when "Use my name" is selected */}
+                {!isAnonymous && (
+                  <div className="space-y-2 pl-11">
+                    <SarthiInput
+                      id="name"
+                      type="text"
+                      placeholder="Your first name"
+                      value={name}
+                      onChange={(e) => {
+                        setName(e.target.value)
+                        setNameError("")
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          handleNameSubmit()
+                        }
+                      }}
+                      className="auth-input"
+                      autoFocus
+                    />
+                    {nameError && <div className="text-red-400 text-sm">{nameError}</div>}
+                  </div>
+                )}
               </div>
 
-              <div className="space-y-4" style={{ paddingBottom: "32px" }}>
-                {/* Anonymous Toggle */}
-                <div className="flex items-center justify-between">
-                  <span className="text-white/80 text-sm">Anonymous</span>
-                  <button
-                    onClick={() => {
-                      setIsAnonymous(!isAnonymous)
-                      if (!isAnonymous) {
-                        setName("")
-                        setNameError("")
-                      }
-                    }}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-white/20 min-h-[44px] min-w-[44px] p-2 ${
-                      isAnonymous ? "bg-white" : "bg-[#2a2a2a]"
+              {/* Anonymous Option Card */}
+              <button
+                onClick={() => {
+                  setIsAnonymous(true)
+                  setName("")
+                  setNameError("")
+                }}
+                className={`w-full p-4 rounded-2xl border transition-all text-left group min-h-[44px] ${
+                  isAnonymous ? "border-white/30 bg-white/10" : "border-white/10 hover:border-white/20 hover:bg-white/5"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/15 transition-colors">
+                    <UserX className="h-4 w-4 text-white/80" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-white font-medium">Stay anonymous</h3>
+                    <p className="text-white/60 text-sm">Don't include your name</p>
+                  </div>
+                  <div
+                    className={`w-4 h-4 rounded-full border-2 transition-colors ${
+                      isAnonymous ? "border-white bg-white" : "border-white/40"
                     }`}
-                    role="switch"
-                    aria-checked={isAnonymous}
-                    aria-label="Toggle anonymous mode"
                   >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-150 ${
-                        isAnonymous ? "translate-x-6 bg-[#0f0f0f]" : "translate-x-1"
-                      }`}
-                    />
-                  </button>
+                    {isAnonymous && <div className="w-full h-full rounded-full bg-[#0f0f0f] scale-50"></div>}
+                  </div>
                 </div>
-              </div>
+              </button>
             </div>
 
-            <div className="pt-2">
+            <div className="pt-6">
               <SarthiButton
                 className="w-full auth-button rounded-[16px]"
                 onClick={handleNameSubmit}
