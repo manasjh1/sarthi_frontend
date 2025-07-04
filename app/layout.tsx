@@ -3,12 +3,13 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
+import { SidebarLayout } from "@/components/sidebar-layout"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Sarthi - Find the words you've been holding back",
-  description: "A safe space for reflection and emotional support",
+  title: "Sarthi - Emotional Reflection & Communication",
+  description: "Express what matters most with thoughtful reflection and meaningful communication.",
     generator: 'v0.dev'
 }
 
@@ -19,12 +20,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${inter.className} bg-[#0f0f0f] text-white antialiased`}
-        style={{ "--font-inter": inter.style.fontFamily } as React.CSSProperties}
-      >
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
-          <div className="min-h-screen">{children}</div>
+      <body className={inter.className}>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+          <SidebarLayout>{children}</SidebarLayout>
         </ThemeProvider>
       </body>
     </html>

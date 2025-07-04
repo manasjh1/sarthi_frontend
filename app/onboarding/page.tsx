@@ -295,7 +295,7 @@ export default function OnboardingPage() {
     )
   }
 
-  // STEP 4: Reflection Prompt Selector
+  // STEP 4: Reflection Prompt Selector (now with sidebar from root layout)
   if (step === "reflection-prompt") {
     return (
       <div className="min-h-screen bg-[#0f0f0f] flex flex-col items-center justify-center p-4">
