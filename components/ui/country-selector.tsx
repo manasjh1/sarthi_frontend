@@ -110,7 +110,7 @@ export function CountrySelector({
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="bg-[#1b1b1b] border border-[#2a2a2a] rounded-l-[16px] px-3 py-3 text-white hover:border-[#3a3a3a] transition-all duration-200 flex items-center space-x-2 min-w-[80px]"
+          className="bg-[#1f1f1f] border border-[#2a2a2a] rounded-l-[16px] px-3 py-3 text-white hover:bg-[#242424] hover:border-[#3a3a3a] focus:bg-[#242424] focus:border-[#3a3a3a] focus:outline-none focus:ring-2 focus:ring-white/10 transition-all duration-150 flex items-center space-x-2 min-w-[80px] shadow-inner"
         >
           <span className="text-lg">{selectedCountry.flag}</span>
           <span className="text-sm">{selectedCountry.dialCode}</span>
@@ -133,11 +133,11 @@ export function CountrySelector({
         {/* Phone Number Input */}
         <input
           type="tel"
-          placeholder="Phone number"
+          placeholder="+1 123 456 7890"
           value={phoneNumber}
           onChange={(e) => onPhoneNumberChange(e.target.value)}
           onKeyDown={onKeyDown}
-          className="bg-[#1b1b1b] border border-l-0 border-[#2a2a2a] rounded-r-[16px] px-4 py-3 text-white flex-1 focus:border-[#3a3a3a] focus:outline-none transition-all duration-200"
+          className="bg-[#1f1f1f] hover:bg-[#242424] focus:bg-[#242424] border border-l-0 border-[#2a2a2a] rounded-r-[16px] px-4 py-3 text-white flex-1 focus:border-[#3a3a3a] focus:outline-none focus:ring-2 focus:ring-white/10 transition-all duration-150 shadow-inner placeholder:text-[#9ca3af]"
         />
       </div>
 
@@ -167,7 +167,7 @@ export function CountrySelector({
                     setIsOpen(false)
                     setSearchQuery("")
                   }}
-                  className="w-full px-4 py-3 text-left hover:bg-[#2a2a2a] transition-colors flex items-center space-x-3"
+                  className="w-full px-4 py-3 text-left hover:bg-[#2a2a2a] focus:bg-[#2a2a2a] focus:outline-none transition-colors flex items-center space-x-3 min-h-[44px]"
                 >
                   <span className="text-lg">{country.flag}</span>
                   <span className="text-sm text-[#cbd5e1]">{country.dialCode}</span>

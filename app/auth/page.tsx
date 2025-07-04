@@ -36,6 +36,7 @@ export default function AuthPage() {
   const [error, setError] = useState("")
   const [currentContact, setCurrentContact] = useState("") // Store the contact used for OTP
   const [redirectProgress, setRedirectProgress] = useState(0)
+  const [showSuccessToast, setShowSuccessToast] = useState(false)
 
   const getFullContact = () => {
     if (contactType === "email") {
@@ -91,12 +92,22 @@ export default function AuthPage() {
       const { exists } = await checkUserExists(contact)
       console.log("User exists:", exists)
 
+      if (!exists) {
+        // Show the specific "no account found" error message
+        setError("I can't find an account with that contact. If this is your first time, use your invite code.")
+        setIsLoading(false)
+        return
+      }
+
       const newUserType = exists ? "existing" : "new"
       setUserType(newUserType)
       setCurrentContact(contact) // Store the contact for OTP verification
 
       console.log("Sending OTP to:", contact)
       await sendOTP(contact, !exists)
+
+      setShowSuccessToast(true)
+      setTimeout(() => setShowSuccessToast(false), 3000) // Auto-dismiss after 3 seconds
 
       console.log("Moving to OTP verification step")
       setStep("otp-verification")
@@ -216,12 +227,15 @@ export default function AuthPage() {
 
   const renderEntryStep = () => (
     <div className="w-full max-w-md space-y-8">
-      <div className="text-center space-y-2 sarthi-fade-in">
-        <h1 className="text-3xl font-medium">Welcome to your space</h1>
-        <p className="text-[#cbd5e1]">Say what's been on your mind</p>
+      <div className="text-center sarthi-fade-in">
+        <h1 className="text-3xl font-medium mb-8">I'm Sarthi, your personal confidant</h1>
+        <p className="text-[#cbd5e1] mb-6">
+          To get started, enter the email or phone where you received your message. I'll send you a one-time code to
+          sign in.
+        </p>
       </div>
 
-      <div className="sarthi-card p-6 space-y-6">
+      <div className="sarthi-card p-6 space-y-6 rounded-[16px]">
         {/* Contact Type Toggle */}
         <div className="flex bg-[#2a2a2a] rounded-[16px] p-1">
           <button
@@ -231,7 +245,7 @@ export default function AuthPage() {
               setContactType("email")
               setError("")
             }}
-            className={`flex-1 py-2 px-4 rounded-[12px] text-sm font-medium transition-all ${
+            className={`flex-1 py-2 px-4 rounded-[12px] text-sm font-medium transition-all duration-150 ${
               contactType === "email" ? "bg-white text-[#0f0f0f]" : "text-[#cbd5e1] hover:text-white hover:bg-white/10"
             }`}
           >
@@ -244,7 +258,7 @@ export default function AuthPage() {
               setContactType("phone")
               setError("")
             }}
-            className={`flex-1 py-2 px-4 rounded-[12px] text-sm font-medium transition-all ${
+            className={`flex-1 py-2 px-4 rounded-[12px] text-sm font-medium transition-all duration-150 ${
               contactType === "phone" ? "bg-white text-[#0f0f0f]" : "text-[#cbd5e1] hover:text-white hover:bg-white/10"
             }`}
           >
@@ -254,7 +268,7 @@ export default function AuthPage() {
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <label htmlFor="contact" className="block text-sm text-[#cbd5e1]">
+            <label htmlFor="contact" className="block text-sm text-[#cbd5e1] text-left">
               {contactType === "email" ? "Email address" : "Phone number"}
             </label>
 
@@ -262,7 +276,7 @@ export default function AuthPage() {
               <SarthiInput
                 id="contact"
                 type="email"
-                placeholder="Enter your email address"
+                placeholder="name@example.com"
                 value={email}
                 onChange={(e) => {
                   console.log("Email changed to:", e.target.value)
@@ -275,6 +289,7 @@ export default function AuthPage() {
                     handleContinue()
                   }
                 }}
+                className="auth-input"
               />
             ) : (
               <CountrySelector
@@ -294,37 +309,72 @@ export default function AuthPage() {
                 }}
               />
             )}
+
+            {/* Helper text */}
+            <p className="text-xs text-[#9ca3af]">
+              You'll receive a one-time code at this {contactType === "email" ? "address" : "number"}.
+            </p>
           </div>
         </div>
 
-        {error && <div className="text-red-400 text-sm text-center">{error}</div>}
+        {error && (
+          <div className="text-red-400 text-sm" role="alert" aria-live="polite" tabIndex={-1}>
+            {error}
+          </div>
+        )}
 
         <div className="pt-2">
           <SarthiButton
-            className="w-full"
+            className="w-full auth-button rounded-[16px]"
             onClick={() => {
-              console.log("Continue button clicked")
+              console.log("Send my code button clicked")
               handleContinue()
             }}
             disabled={isLoading}
           >
-            {isLoading ? "Please wait..." : "Continue"}
+            {isLoading ? "Looking up your account…" : "Send my code"}
           </SarthiButton>
         </div>
 
         <div className="text-center text-sm text-[#cbd5e1]">
-          <p>Take a deep breath. Ready when you are.</p>
+          <p>Take a deep breath. I'm here when you are.</p>
         </div>
       </div>
 
-      <div className="text-center">
+      <div className="text-center mt-6">
         <button
           onClick={() => setStep("invite-code")}
-          className="text-[#cbd5e1] hover:text-white transition-colors text-sm underline"
+          className="text-[#cbd5e1] hover:text-white transition-colors text-sm underline min-h-[44px] min-w-[44px] px-4 py-2 rounded-lg hover:bg-white/5 focus:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/20"
         >
           Have an invite code?
         </button>
       </div>
+
+      {/* Success Toast */}
+      {showSuccessToast && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-green-500/20 border border-green-500/30 text-green-400 px-6 py-3 rounded-[16px] backdrop-blur-sm shadow-lg animate-in slide-in-from-top duration-300">
+          <div className="flex items-center gap-3">
+            <svg
+              className="h-5 w-5 flex-shrink-0"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              viewBox="0 0 24 24"
+            >
+              <path d="M5 13l4 4L19 7" />
+            </svg>
+            <p className="text-sm">Great! I've sent your code. I'll be right here when you enter it.</p>
+            <button
+              onClick={() => setShowSuccessToast(false)}
+              className="ml-2 text-green-400/60 hover:text-green-400 transition-colors min-h-[24px] min-w-[24px]"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 
@@ -340,10 +390,10 @@ export default function AuthPage() {
         </p>
       </div>
 
-      <div className="sarthi-card p-6 space-y-6">
+      <div className="sarthi-card p-6 space-y-6 rounded-[16px]">
         <div className="space-y-4">
           <div className="space-y-2">
-            <label htmlFor="otp" className="block text-sm text-[#cbd5e1]">
+            <label htmlFor="otp" className="block text-sm text-[#cbd5e1] text-left">
               Verification code
             </label>
             <SarthiInput
@@ -363,15 +413,20 @@ export default function AuthPage() {
                 }
               }}
               maxLength={6}
+              className="auth-input"
             />
           </div>
         </div>
 
-        {error && <div className="text-red-400 text-sm text-center">{error}</div>}
+        {error && (
+          <div className="text-red-400 text-sm text-center" role="alert" aria-live="polite">
+            {error}
+          </div>
+        )}
 
         <div className="pt-2">
           <SarthiButton
-            className="w-full"
+            className="w-full auth-button rounded-[16px]"
             onClick={() => {
               console.log("Verify button clicked")
               handleOtpVerification()
@@ -386,7 +441,7 @@ export default function AuthPage() {
           <button
             onClick={handleResendOTP}
             disabled={isLoading}
-            className="text-[#cbd5e1] hover:text-white transition-colors text-sm disabled:opacity-50"
+            className="text-[#cbd5e1] hover:text-white transition-colors text-sm disabled:opacity-50 min-h-[44px] min-w-[44px] px-4 py-2 rounded-lg hover:bg-white/5 focus:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/20"
           >
             Didn't receive it yet? Try again
           </button>
@@ -394,7 +449,10 @@ export default function AuthPage() {
       </div>
 
       <div className="text-center">
-        <button onClick={resetToEntry} className="text-[#cbd5e1] hover:text-white transition-colors text-sm">
+        <button
+          onClick={resetToEntry}
+          className="text-[#cbd5e1] hover:text-white transition-colors text-sm min-h-[44px] min-w-[44px] px-4 py-2 rounded-lg hover:bg-white/5 focus:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/20"
+        >
           Use a different {contactType === "email" ? "email" : "phone number"}
         </button>
       </div>
@@ -512,8 +570,8 @@ export default function AuthPage() {
         </p>
       </div>
 
-      <div className="sarthi-card p-6 space-y-6">
-        <SarthiButton className="w-full" onClick={() => router.push("/chat")}>
+      <div className="sarthi-card p-6 space-y-6 rounded-[16px]">
+        <SarthiButton className="w-full auth-button rounded-[16px]" onClick={() => router.push("/chat")}>
           {userType === "existing" ? "Continue to your reflections" : "Start your first reflection"}
         </SarthiButton>
 
@@ -527,7 +585,10 @@ export default function AuthPage() {
   const renderInviteCodeStep = () => (
     <div className="w-full max-w-md space-y-8">
       <div className="flex items-center space-x-2 mb-4">
-        <button onClick={() => setStep("entry")} className="text-[#cbd5e1] hover:text-white transition-colors">
+        <button
+          onClick={() => setStep("entry")}
+          className="text-[#cbd5e1] hover:text-white transition-colors min-h-[44px] min-w-[44px] p-2 rounded-lg hover:bg-white/5 focus:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/20"
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="20"
@@ -551,10 +612,10 @@ export default function AuthPage() {
         <p className="text-[#cbd5e1]">We're honored to have you here</p>
       </div>
 
-      <div className="sarthi-card p-6 space-y-6">
+      <div className="sarthi-card p-6 space-y-6 rounded-[16px]">
         <div className="space-y-4">
           <div className="space-y-2">
-            <label htmlFor="inviteCode" className="block text-sm text-[#cbd5e1]">
+            <label htmlFor="inviteCode" className="block text-sm text-[#cbd5e1] text-left">
               Invite code
             </label>
             <SarthiInput
@@ -564,14 +625,19 @@ export default function AuthPage() {
               value={inviteCode}
               onChange={(e) => setInviteCode(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleInviteCode()}
+              className="auth-input"
             />
           </div>
         </div>
 
-        {error && <div className="text-red-400 text-sm text-center">{error}</div>}
+        {error && (
+          <div className="text-red-400 text-sm text-center" role="alert" aria-live="polite">
+            {error}
+          </div>
+        )}
 
         <div className="pt-2">
-          <SarthiButton className="w-full" onClick={handleInviteCode} disabled={isLoading}>
+          <SarthiButton className="w-full auth-button rounded-[16px]" onClick={handleInviteCode} disabled={isLoading}>
             {isLoading ? "Validating..." : "Apply"}
           </SarthiButton>
         </div>

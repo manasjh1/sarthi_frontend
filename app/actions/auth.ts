@@ -3,13 +3,10 @@
 import { cookies } from "next/headers"
 
 // Mock user database - in real app, this would be a proper database
-const mockUsers = [
-  { id: 1, email: "existing@example.com", phone: "+1234567890" },
-  { id: 2, email: "user@sarthi.me", phone: "+0987654321" },
-]
+const mockUsers = [{ id: 1, email: "welcome@example.com", phone: "+17503523923" }]
 
 // Mock invite codes - in real app, this would be in database
-const validInviteCodes = ["welcome2024", "beta2024", "earlyaccess"]
+const validInviteCodes = ["1234567"]
 
 export async function checkUserExists(contact: string) {
   // Simulate API delay

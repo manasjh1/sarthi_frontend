@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { SarthiIcon } from "@/components/ui/sarthi-icon"
 import { SarthiButton } from "@/components/ui/sarthi-button"
@@ -86,6 +86,21 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
   const [isEditingName, setIsEditingName] = useState(false)
   const [editedName, setEditedName] = useState(userName)
 
+  // Listen for name updates from onboarding
+  useEffect(() => {
+    const handleNameUpdate = (event: CustomEvent) => {
+      const newName = event.detail
+      onUserNameChange(newName)
+      setEditedName(newName)
+    }
+
+    window.addEventListener("sarthi-name-updated", handleNameUpdate as EventListener)
+
+    return () => {
+      window.removeEventListener("sarthi-name-updated", handleNameUpdate as EventListener)
+    }
+  }, [onUserNameChange])
+
   const handleStartNewReflection = () => {
     router.push("/onboarding")
   }
@@ -139,12 +154,15 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
                 {/* Desktop collapse button */}
                 <button
                   onClick={onToggle}
-                  className="hidden md:block p-2 hover:bg-white/10 rounded-lg transition-colors"
+                  className="hidden md:block p-2 hover:bg-white/10 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/20 rounded-lg transition-colors min-h-[44px] min-w-[44px]"
                 >
                   <X className="h-5 w-5 text-white/60" />
                 </button>
                 {/* Mobile close button */}
-                <button onClick={onToggle} className="md:hidden p-2 hover:bg-white/10 rounded-lg transition-colors">
+                <button
+                  onClick={onToggle}
+                  className="md:hidden p-2 hover:bg-white/10 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/20 rounded-lg transition-colors min-h-[44px] min-w-[44px]"
+                >
                   <X className="h-5 w-5 text-white/60" />
                 </button>
               </div>
@@ -164,17 +182,23 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
                       value={editedName}
                       onChange={(e) => setEditedName(e.target.value)}
                       placeholder="Your name"
-                      className="text-sm"
+                      className="text-sm auth-input"
                       onKeyDown={(e) => {
                         if (e.key === "Enter") handleSaveName()
                         if (e.key === "Escape") handleCancelEdit()
                       }}
                     />
                     <div className="flex space-x-2">
-                      <button onClick={handleSaveName} className="text-xs text-green-400 hover:text-green-300">
+                      <button
+                        onClick={handleSaveName}
+                        className="text-xs text-green-400 hover:text-green-300 transition-colors min-h-[32px] min-w-[32px] px-2 py-1 rounded focus:outline-none focus:ring-2 focus:ring-green-400/20"
+                      >
                         Save
                       </button>
-                      <button onClick={handleCancelEdit} className="text-xs text-white/60 hover:text-white/80">
+                      <button
+                        onClick={handleCancelEdit}
+                        className="text-xs text-white/60 hover:text-white/80 transition-colors min-h-[32px] min-w-[32px] px-2 py-1 rounded focus:outline-none focus:ring-2 focus:ring-white/20"
+                      >
                         Cancel
                       </button>
                     </div>
@@ -184,7 +208,7 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
                     <span className="text-white/80 text-sm">{userName || "Your name"}</span>
                     <button
                       onClick={() => setIsEditingName(true)}
-                      className="p-1 hover:bg-white/10 rounded transition-colors"
+                      className="p-1 hover:bg-white/10 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/20 rounded transition-colors min-h-[24px] min-w-[24px]"
                     >
                       <Edit3 className="h-3 w-3 text-white/60" />
                     </button>
@@ -196,7 +220,10 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
 
           {/* New Reflection Button */}
           <div className="p-6">
-            <SarthiButton onClick={handleStartNewReflection} className="w-full justify-start">
+            <SarthiButton
+              onClick={handleStartNewReflection}
+              className="w-full justify-start auth-button rounded-[16px]"
+            >
               <span className="text-lg mr-2">+</span>
               Start new reflection
             </SarthiButton>
@@ -211,7 +238,7 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
                   <button
                     key={reflection.id}
                     onClick={() => handleReflectionClick(reflection.id)}
-                    className="w-full text-left p-3 rounded-lg hover:bg-white/5 transition-colors group"
+                    className="w-full text-left p-3 rounded-lg hover:bg-white/5 focus:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/20 transition-colors group min-h-[44px]"
                   >
                     <div className="flex items-start space-x-3">
                       <div className="flex-shrink-0 w-8 h-8 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/15 transition-colors">
@@ -236,7 +263,7 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
           <div className="p-6 border-t border-white/10">
             <button
               onClick={handleSignOut}
-              className="flex items-center space-x-3 text-white/60 hover:text-white/80 transition-colors w-full"
+              className="flex items-center space-x-3 text-white/60 hover:text-white/80 focus:text-white/80 focus:outline-none focus:ring-2 focus:ring-white/20 transition-colors w-full min-h-[44px] p-2 rounded-lg"
             >
               <LogOut className="h-4 w-4" />
               <span className="text-sm">Sign out</span>

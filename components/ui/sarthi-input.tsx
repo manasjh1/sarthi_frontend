@@ -7,7 +7,9 @@ const SarthiInput = forwardRef<HTMLInputElement, SarthiInputProps>(({ className,
   return (
     <input
       className={cn(
-        "bg-[#1E1E1E] border border-[#2A2A2A] rounded-[16px] px-4 py-3 text-white w-full focus:border-white/20 focus:outline-none focus:ring-1 focus:ring-white/10 transition-all duration-300",
+        "bg-[#1E1E1E] border border-[#2A2A2A] rounded-[16px] px-4 py-3 text-white w-full transition-all duration-150",
+        "focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10",
+        "placeholder:text-[#9ca3af]",
         className,
       )}
       ref={ref}

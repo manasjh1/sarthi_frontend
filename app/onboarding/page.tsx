@@ -14,11 +14,12 @@ export default function OnboardingPage() {
   const router = useRouter()
   const [step, setStep] = useState<OnboardingStep>("success")
   const [name, setName] = useState("")
-  const [stayAnonymous, setStayAnonymous] = useState(false)
+  const [isAnonymous, setIsAnonymous] = useState(false)
   const [selectedReflection, setSelectedReflection] = useState<string | null>(null)
   const [setupProgress, setSetupProgress] = useState(0)
   const [nameError, setNameError] = useState("")
   const [isNavigating, setIsNavigating] = useState(false)
+  const [showSuccessToast, setShowSuccessToast] = useState(false)
 
   // Auto-progress from success to name entry
   useEffect(() => {
@@ -61,7 +62,17 @@ export default function OnboardingPage() {
   }
 
   const handleNameSubmit = () => {
-    if (stayAnonymous) {
+    if (isAnonymous) {
+      // Update sidebar with anonymous
+      if (typeof window !== "undefined") {
+        localStorage.setItem("sarthi-user-name", "Anonymous")
+        // Trigger sidebar update
+        window.dispatchEvent(new CustomEvent("sarthi-name-updated", { detail: "Anonymous" }))
+      }
+
+      setShowSuccessToast(true)
+      setTimeout(() => setShowSuccessToast(false), 3000)
+
       setStep("space-setup")
       return
     }
@@ -73,7 +84,18 @@ export default function OnboardingPage() {
     }
 
     setNameError("")
-    // In real app, save name to database/storage
+
+    // Update sidebar with the entered name
+    if (typeof window !== "undefined") {
+      localStorage.setItem("sarthi-user-name", name.trim())
+      // Trigger sidebar update
+      window.dispatchEvent(new CustomEvent("sarthi-name-updated", { detail: name.trim() }))
+    }
+
+    // Show success toast
+    setShowSuccessToast(true)
+    setTimeout(() => setShowSuccessToast(false), 3000)
+
     console.log("Saving name:", name.trim())
     setStep("space-setup")
   }
@@ -160,66 +182,109 @@ export default function OnboardingPage() {
     return (
       <div className="min-h-screen bg-[#0f0f0f] flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-md space-y-8 sarthi-fade-in">
-          <div className="text-center space-y-2">
-            <h1 className="text-3xl font-light text-white">What should we call you?</h1>
+          <div className="text-center space-y-4" style={{ marginTop: "48px" }}>
+            <h1 className="text-3xl font-light text-white">What should I call you?</h1>
+            <p className="text-white/60" style={{ marginTop: "16px" }}>
+              This name will appear when you sign your reflections.
+            </p>
           </div>
 
-          <div className="sarthi-card p-6 space-y-6">
-            <div className="space-y-4">
+          <div className="sarthi-card p-6 space-y-6 rounded-[16px] relative">
+            {/* Progress Indicator */}
+            <div className="absolute top-4 right-4 text-xs text-white/40">Step 2 of 3</div>
+
+            <div className="space-y-6" style={{ paddingTop: "24px" }}>
               <div className="space-y-2">
+                <label htmlFor="name" className="block text-sm text-[#cbd5e1] text-left">
+                  Your first name
+                </label>
                 <SarthiInput
+                  id="name"
                   type="text"
-                  placeholder="Your first name"
+                  placeholder={isAnonymous ? "Anonymous" : "Your first name"}
                   value={name}
                   onChange={(e) => {
                     setName(e.target.value)
                     setNameError("")
                   }}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && !stayAnonymous) {
+                    if (e.key === "Enter" && !isAnonymous) {
                       handleNameSubmit()
                     }
                   }}
-                  disabled={stayAnonymous}
-                  className={stayAnonymous ? "opacity-50" : ""}
+                  disabled={isAnonymous}
+                  className={`auth-input ${isAnonymous ? "opacity-50 cursor-not-allowed" : ""}`}
                 />
                 {nameError && <div className="text-red-400 text-sm">{nameError}</div>}
               </div>
 
-              <div className="flex items-center space-x-3">
-                <input
-                  type="checkbox"
-                  id="stay-anonymous"
-                  checked={stayAnonymous}
-                  onChange={(e) => {
-                    setStayAnonymous(e.target.checked)
-                    if (e.target.checked) {
-                      setName("")
-                      setNameError("")
-                    }
-                  }}
-                  className="rounded-sm bg-[#1b1b1b] border-[#2a2a2a] text-white focus:ring-white/20"
-                />
-                <label htmlFor="stay-anonymous" className="text-white/80 text-sm cursor-pointer">
-                  Stay anonymous
-                </label>
+              <div className="space-y-4" style={{ paddingBottom: "32px" }}>
+                {/* Anonymous Toggle */}
+                <div className="flex items-center justify-between">
+                  <span className="text-white/80 text-sm">Anonymous</span>
+                  <button
+                    onClick={() => {
+                      setIsAnonymous(!isAnonymous)
+                      if (!isAnonymous) {
+                        setName("")
+                        setNameError("")
+                      }
+                    }}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-white/20 min-h-[44px] min-w-[44px] p-2 ${
+                      isAnonymous ? "bg-white" : "bg-[#2a2a2a]"
+                    }`}
+                    role="switch"
+                    aria-checked={isAnonymous}
+                    aria-label="Toggle anonymous mode"
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-150 ${
+                        isAnonymous ? "translate-x-6 bg-[#0f0f0f]" : "translate-x-1"
+                      }`}
+                    />
+                  </button>
+                </div>
               </div>
-            </div>
-
-            <div className="text-center text-sm text-[#cbd5e1]">
-              <p>This name appears if you choose to sign messages with it.</p>
             </div>
 
             <div className="pt-2">
               <SarthiButton
-                className="w-full"
+                className="w-full auth-button rounded-[16px]"
                 onClick={handleNameSubmit}
-                disabled={!stayAnonymous && (!name.trim() || !!nameError)}
+                disabled={!isAnonymous && (!name.trim() || !!nameError)}
               >
-                Save and continue
+                Let's begin
               </SarthiButton>
             </div>
           </div>
+
+          {/* Success Toast */}
+          {showSuccessToast && (
+            <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-green-500/20 border border-green-500/30 text-green-400 px-6 py-3 rounded-[16px] backdrop-blur-sm shadow-lg animate-in slide-in-from-top duration-300">
+              <div className="flex items-center gap-3">
+                <svg
+                  className="h-5 w-5 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M5 13l4 4L19 7" />
+                </svg>
+                <p className="text-sm">
+                  Nice to meet you, {isAnonymous ? "friend" : name}! Your past reflections are waiting on the left.
+                </p>
+                <button
+                  onClick={() => setShowSuccessToast(false)}
+                  className="ml-2 text-green-400/60 hover:text-green-400 transition-colors min-h-[24px] min-w-[24px]"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     )
@@ -309,7 +374,7 @@ export default function OnboardingPage() {
             <button
               onClick={() => handleReflectionSelect("apologize")}
               disabled={isNavigating}
-              className={`w-full p-6 rounded-3xl border border-white/10 hover:border-white/20 hover:bg-white/5 transition-all text-left group ${
+              className={`w-full p-6 rounded-3xl border border-white/10 hover:border-white/20 hover:bg-white/5 focus:border-white/20 focus:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/20 transition-all text-left group min-h-[44px] ${
                 isNavigating ? "opacity-50 cursor-not-allowed" : ""
               } ${selectedReflection === "apologize" ? "border-white/30 bg-white/10" : ""}`}
             >
@@ -328,7 +393,7 @@ export default function OnboardingPage() {
             <button
               onClick={() => handleReflectionSelect("gratitude")}
               disabled={isNavigating}
-              className={`w-full p-6 rounded-3xl border border-white/10 hover:border-white/20 hover:bg-white/5 transition-all text-left group ${
+              className={`w-full p-6 rounded-3xl border border-white/10 hover:border-white/20 hover:bg-white/5 focus:border-white/20 focus:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/20 transition-all text-left group min-h-[44px] ${
                 isNavigating ? "opacity-50 cursor-not-allowed" : ""
               } ${selectedReflection === "gratitude" ? "border-white/30 bg-white/10" : ""}`}
             >
@@ -347,7 +412,7 @@ export default function OnboardingPage() {
             <button
               onClick={() => handleReflectionSelect("boundary")}
               disabled={isNavigating}
-              className={`w-full p-6 rounded-3xl border border-white/10 hover:border-white/20 hover:bg-white/5 transition-all text-left group ${
+              className={`w-full p-6 rounded-3xl border border-white/10 hover:border-white/20 hover:bg-white/5 focus:border-white/20 focus:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/20 transition-all text-left group min-h-[44px] ${
                 isNavigating ? "opacity-50 cursor-not-allowed" : ""
               } ${selectedReflection === "boundary" ? "border-white/30 bg-white/10" : ""}`}
             >
