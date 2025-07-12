@@ -1,6 +1,7 @@
 "use server"
 
 import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
 
 const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:8000"
 
@@ -37,6 +38,13 @@ interface UserProfileResponse {
   updated_at: string
 }
 
+interface LoginResponse {
+  access_token: string
+  token_type: string
+  user_id: string
+  message: string
+}
+
 // ==================== HELPER FUNCTIONS ====================
 
 async function makeAPICall(endpoint: string, options: RequestInit = {}): Promise<any> {
@@ -55,8 +63,8 @@ async function makeAPICall(endpoint: string, options: RequestInit = {}): Promise
 
     if (!response.ok) {
       if (response.status === 401) {
-        deleteCookie("sarthi_session")
-        deleteCookie("sarthi_user_id")
+        await deleteCookie("sarthi_session")
+        await deleteCookie("sarthi_user_id")
       }
 
       throw new Error(responseData.detail || responseData.message || `API call failed: ${response.status}`)
@@ -70,7 +78,8 @@ async function makeAPICall(endpoint: string, options: RequestInit = {}): Promise
 }
 
 async function setCookie(name: string, value: string, maxAge: number = 60 * 60 * 24 * 7) {
-  (await cookies()).set(name, value, {
+  const cookieStore = await cookies()
+  cookieStore.set(name, value, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -80,11 +89,13 @@ async function setCookie(name: string, value: string, maxAge: number = 60 * 60 *
 }
 
 async function getCookie(name: string): Promise<string | undefined> {
-  return (await cookies()).get(name)?.value
+  const cookieStore = await cookies()
+  return cookieStore.get(name)?.value
 }
 
 async function deleteCookie(name: string) {
-  (await cookies()).delete(name)
+  const cookieStore = await cookies()
+  cookieStore.delete(name)
 }
 
 // ==================== AUTH FUNCTIONS ====================
@@ -191,15 +202,15 @@ export async function verifyOTP(
     })
 
     if (response.success && response.access_token && response.user_id) {
-      setCookie("sarthi_session", response.access_token)
-      setCookie("sarthi_user_id", response.user_id)
+      await setCookie("sarthi_session", response.access_token)
+      await setCookie("sarthi_user_id", response.user_id)
 
       return {
         success: true,
         isNewUser: response.is_new_user,
         userId: response.user_id,
         message: response.message,
-        redirectTo: response.is_new_user ? "/onboarding" : "/dashboard"
+        redirectTo: response.is_new_user ? "/onboarding" : "/chat"
       }
     }
 
@@ -215,10 +226,82 @@ export async function verifyOTP(
   }
 }
 
+// NEW: Backend login function using email - SERVER ACTION
+export async function loginWithEmailAction(formData: FormData) {
+  const email = formData.get('email') as string
+  
+  try {
+    if (!email || email.trim().length === 0) {
+      throw new Error("Please enter your email address")
+    }
+
+    const response: LoginResponse = await makeAPICall("/api/login", {
+      method: "POST",
+      body: JSON.stringify({ email: email.trim().toLowerCase() }),
+    })
+
+    if (response.access_token && response.user_id) {
+      await setCookie("sarthi_session", response.access_token)
+      await setCookie("sarthi_user_id", response.user_id)
+      
+      // Redirect to chat after successful login
+      redirect("/chat")
+    } else {
+      throw new Error(response.message || "Login failed")
+    }
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : "Failed to login")
+  }
+}
+
+// Client-side compatible login function
+export async function loginWithEmail(email: string): Promise<{
+  success: boolean
+  userId?: string
+  message: string
+  redirectTo?: string
+}> {
+  try {
+    if (!email || email.trim().length === 0) {
+      return {
+        success: false,
+        message: "Please enter your email address"
+      }
+    }
+
+    const response: LoginResponse = await makeAPICall("/api/login", {
+      method: "POST",
+      body: JSON.stringify({ email: email.trim().toLowerCase() }),
+    })
+
+    if (response.access_token && response.user_id) {
+      await setCookie("sarthi_session", response.access_token)
+      await setCookie("sarthi_user_id", response.user_id)
+
+      return {
+        success: true,
+        userId: response.user_id,
+        message: response.message,
+        redirectTo: "/chat"
+      }
+    }
+
+    return {
+      success: false,
+      message: response.message || "Login failed"
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Failed to login"
+    }
+  }
+}
+
 export async function getCurrentUser(): Promise<UserProfileResponse | null> {
   try {
-    const sessionToken = getCookie("sarthi_session")
-    const userId = getCookie("sarthi_user_id")
+    const sessionToken = await getCookie("sarthi_session")
+    const userId = await getCookie("sarthi_user_id")
 
     if (!sessionToken || !userId) {
       return null
@@ -238,18 +321,18 @@ export async function getCurrentUser(): Promise<UserProfileResponse | null> {
 }
 
 export async function isAuthenticated(): Promise<boolean> {
-  const user = await getCurrentUser()
-  return user !== null
+  const sessionToken = await getCookie("sarthi_session")
+  return !!sessionToken
 }
 
 export async function logout(): Promise<{ success: boolean; message: string }> {
-  deleteCookie("sarthi_session")
-  deleteCookie("sarthi_user_id")
+  await deleteCookie("sarthi_session")
+  await deleteCookie("sarthi_user_id")
   return { success: true, message: "Logged out successfully" }
 }
 
 export async function getAuthHeaders(): Promise<{ Authorization: string } | null> {
-  const sessionToken = getCookie("sarthi_session")
+  const sessionToken = await getCookie("sarthi_session")
   if (!sessionToken) return null
   return { Authorization: `Bearer ${sessionToken}` }
 }
@@ -286,14 +369,7 @@ export async function authenticateUser(
   message: string
 }> {
   const result = await verifyOTP(contact, otp, inviteToken)
-  if (result.success) {
-    return result
-  } else {
-    return {
-      success: false,
-      message: result.message
-    }
-  }
+  return result
 }
 
 export async function checkEnvironment(): Promise<{

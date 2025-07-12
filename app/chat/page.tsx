@@ -7,16 +7,12 @@ import { SarthiInput } from "@/components/ui/sarthi-input"
 import { SarthiOrb } from "@/components/sarthi-orb"
 import { SarthiIcon } from "@/components/ui/sarthi-icon"
 import { SarthiThinking } from "@/components/sarthi-thinking"
-import { Edit3, Check, ArrowLeft, RotateCcw } from "lucide-react"
-import { CleanCardTemplate } from "@/components/message-templates/clean-card"
-import { HandwrittenTemplate } from "@/components/message-templates/handwritten"
-import { MinimalTemplate } from "@/components/message-templates/minimal"
-import { CountrySelector } from "@/components/ui/country-selector"
-import { RecipientAutocomplete } from "@/components/recipient-autocomplete"
+import { ArrowLeft } from "lucide-react"
+import { getCurrentUser, getAuthHeaders } from "@/app/actions/auth"
 
 // Backend API integration
 interface ApiRequest {
-  reflection_id?: string;
+  reflection_id: string | null;
   message: string;
   data: Array<{ [key: string]: any }>;
 }
@@ -38,200 +34,59 @@ interface ApiResponse {
 // API Service class
 class ApiService {
   private baseUrl: string = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-  private token: string | null = null;
 
-  constructor() {
-    if (typeof window !== 'undefined') {
-      this.token = localStorage.getItem('access_token');
-    }
-  }
-
-  async login(email: string) {
-    const response = await fetch(`${this.baseUrl}/api/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    });
-
-    if (!response.ok) throw new Error('Login failed');
-    
-    const data = await response.json();
-    this.token = data.access_token;
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('access_token', data.access_token);
-    }
-    return data;
+  async getAuthHeaders() {
+    return await getAuthHeaders();
   }
 
   async sendReflectionRequest(request: ApiRequest): Promise<ApiResponse> {
-    if (!this.token) throw new Error('Not authenticated');
+    console.log("Sending request to backend:", request);
+    
+    const authHeaders = await this.getAuthHeaders();
+    if (!authHeaders) throw new Error('Not authenticated');
 
     const response = await fetch(`${this.baseUrl}/api/reflection`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.token}`,
+        ...authHeaders,
       },
       body: JSON.stringify(request),
     });
 
     if (!response.ok) {
       if (response.status === 401) {
-        this.token = null;
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('access_token');
-        }
         throw new Error('Authentication expired');
       }
-      throw new Error('API request failed');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || errorData.message || 'API request failed');
     }
 
-    return await response.json();
+    const responseData = await response.json();
+    console.log("Backend response:", responseData);
+    return responseData;
   }
 
-  isAuthenticated(): boolean {
-    return !!this.token;
-  }
-
-  logout() {
-    this.token = null;
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('access_token');
-    }
+  async isAuthenticated(): Promise<boolean> {
+    const user = await getCurrentUser();
+    return user !== null;
   }
 }
 
 const apiService = new ApiService();
 
-// Intent to category mapping (matches your backend)
-const INTENT_TO_CATEGORY_MAP = {
-  "apologize": 1,
-  "gratitude": 2,
-  "boundary": 3
-};
-
-interface Country {
-  name: string
-  code: string
-  dialCode: string
-  flag: string
-}
-
-const defaultCountry: Country = { name: "United States", code: "US", dialCode: "+1", flag: "🇺🇸" }
-
 type ChatStep =
-  | "login"
-  | "greeting"
-  | "situation"
-  | "feelings"
-  | "impact"
-  | "responsibility"
-  | "commitment"
-  | "closure-share"
-  | "post-reflection"
+  | "loading"
+  | "auth-check"
   | "intent-selection"
-  | "recipient-input"
-  | "relationship-input"
   | "conversation"
-  | "template-selection"
-  | "sender-selection"
-  | "delivery-modal"
-  | "confirmation"
-  | "closure-feeling"
-  | "closure-response"
-  | "share-feeling"
   | "distress-detected"
 
 interface Message {
   id: string
   role: "user" | "assistant"
   content: string
-  step?: ChatStep
-  showFeedback?: boolean
-  isRegenerating?: boolean
-  emotion?: Emotion
   timestamp?: Date
-  buttons?: Array<{ text: string; action: () => void; variant?: "primary" | "secondary"; isSelected?: boolean }>
-  showInput?: boolean
-  inputField?: { placeholder: string; onSubmit: (value: string) => void; type?: "text" | "email" | "tel" }
-  showRecipientInput?: boolean
-}
-
-type Intent = "apologize" | "gratitude" | "boundary" | null
-type MessageTemplate = "clean-card" | "handwritten" | "minimal"
-type DeliveryMethod = "email" | "whatsapp" | "anonymous" | "keep-private" | null
-type ConversationFlow = {
-  exchanges: {
-    sarthiMessage: string
-    userOptions?: string[]
-    emotion?: Emotion
-  }[]
-}
-type Emotion = "neutral" | "empathetic" | "calm" | "supportive"
-
-const alternativeResponses: { [key: string]: string[] } = {
-  empathetic: [
-    "I understand this is difficult. Let's explore this further.",
-    "It's okay to feel this way. What else is on your mind?",
-    "I'm here to listen. Tell me more about what happened.",
-  ],
-  calm: [
-    "Let's take a deep breath and think this through.",
-    "It's important to stay calm in these situations. What are your options?",
-    "I'm here to help you find a solution. Let's start by...",
-  ],
-  supportive: [
-    "You're doing great. Keep going!",
-    "I believe in you. You can get through this.",
-    "I'm here to support you every step of the way.",
-  ],
-  "intent-selection": [
-    "I'm here to help you find the right words. What's on your mind today?",
-    "Let's start by identifying the intent of your message.",
-    "What do you want to achieve with this message?",
-  ],
-}
-
-const stepQuestions = {
-  greeting:
-    "Hi there! I'm Sarthi, and I'm here to help you reflect and find the right words. What's on your mind today?",
-  situation: "Can you tell me more about what happened? I'd like to understand the situation better.",
-  feelings: "How are you feeling about this situation? It's okay to take your time.",
-  impact: "How do you think this situation has affected you or others involved?",
-  responsibility:
-    "What role do you feel you played in this situation? Remember, this is a safe space for honest reflection.",
-  commitment:
-    "What would you like to do differently moving forward? What commitment would you like to make to yourself?",
-  "closure-share":
-    "You've done some meaningful reflection today. Would you like to share your thoughts with someone or keep them private for now?",
-}
-
-// Alternative message templates for regeneration
-const messageTemplates = {
-  apologize: [
-    (recipient: string, userInput: string, relationship: string) =>
-      `${recipient}, I wanted to reach out about something that's been on my mind. ${userInput} I value our ${relationship || "relationship"} and wanted to address this directly with you.`,
-    (recipient: string, userInput: string, relationship: string) =>
-      `Dear ${recipient}, I've been reflecting on our recent interaction and I owe you an apology. ${userInput} Your ${relationship ? `role as my ${relationship}` : "presence in my life"} means a lot to me, and I want to make things right.`,
-    (recipient: string, userInput: string, relationship: string) =>
-      `${recipient}, I need to apologize for something. ${userInput} I respect you and our ${relationship || "relationship"} too much to let this go unaddressed.`,
-  ],
-  gratitude: [
-    (recipient: string, userInput: string, relationship: string) =>
-      `${recipient}, I wanted to take a moment to express my heartfelt gratitude. ${userInput} Your ${relationship ? `support as my ${relationship}` : "support"} has meant so much to me.`,
-    (recipient: string, userInput: string, relationship: string) =>
-      `Dear ${recipient}, I've been thinking about how grateful I am for you. ${userInput} Having you as my ${relationship || "friend"} has made such a difference in my life.`,
-    (recipient: string, userInput: string, relationship: string) =>
-      `${recipient}, I wanted to share something with you. ${userInput} I'm so thankful for our ${relationship || "connection"} and everything you bring to my life.`,
-  ],
-  boundary: [
-    (recipient: string, userInput: string, relationship: string) =>
-      `${recipient}, I wanted to share some feedback with you. ${userInput} I hope we can work together to improve our ${relationship ? `${relationship} relationship` : "communication"} going forward.`,
-    (recipient: string, userInput: string, relationship: string) =>
-      `${recipient}, I'd like to discuss something important with you. ${userInput} I value our ${relationship || "relationship"} and believe open communication will help us both.`,
-    (recipient: string, userInput: string, relationship: string) =>
-      `${recipient}, I need to share something that's been on my mind. ${userInput} I hope we can find a way to move forward that works for both of us in our ${relationship || "relationship"}.`,
-  ],
 }
 
 export default function ChatPage() {
@@ -239,53 +94,16 @@ export default function ChatPage() {
   const searchParams = useSearchParams()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
-  const [currentStep, setCurrentStep] = useState<ChatStep>("login")
+  const [currentStep, setCurrentStep] = useState<ChatStep>("auth-check")
   const [isThinking, setIsThinking] = useState(false)
-  const [showShareOptions, setShowShareOptions] = useState(false)
-  const [selectedRecipients, setSelectedRecipients] = useState<string[]>([])
-  const [selectedCountry, setSelectedCountry] = useState<Country>(defaultCountry)
-  const [emailError, setEmailError] = useState("")
-  const [phoneError, setPhoneError] = useState("")
-  const [phoneNumber, setPhoneNumber] = useState("")
-  const [intent, setIntent] = useState<Intent>(null)
-  const [recipient, setRecipient] = useState("")
-  const [relationship, setRelationship] = useState("")
-  const [currentInput, setCurrentInput] = useState("")
-  const [isTyping, setIsTyping] = useState(false)
-  const [finalMessage, setFinalMessage] = useState("")
-  const [editedMessage, setEditedMessage] = useState("")
-  const [selectedTemplate, setSelectedTemplate] = useState<MessageTemplate | null>(null)
-  const [isEditingMessage, setIsEditingMessage] = useState(false)
-  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>(null)
-  const [currentFlow, setCurrentFlow] = useState<ConversationFlow | null>(null)
-  const [currentExchangeIndex, setCurrentExchangeIndex] = useState(0)
-  const [showConfetti, setShowConfetti] = useState(false)
-  const [emotionalState, setEmotionalState] = useState<"neutral" | "emotional">("neutral")
-  const [emailContact, setEmailContact] = useState("")
-  const [whatsappContact, setWhatsappContact] = useState("")
-  const [selectedIntentButton, setSelectedIntentButton] = useState<string | null>(null)
-  const [currentEmotion, setCurrentEmotion] = useState<Emotion>("neutral")
-  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null)
-  const [thinkingEmotion, setThinkingEmotion] = useState<Emotion>("neutral")
-  const [userName, setUserName] = useState("")
-  const [closureFeeling, setClosureFeeling] = useState<string | null>(null)
-  const [showClosureResponse, setShowClosureResponse] = useState(false)
-  const [senderType, setSenderType] = useState<"name" | "anonymous" | null>(null)
-  const [senderName, setSenderName] = useState("")
-  const [userInputForMessage, setUserInputForMessage] = useState("")
-  const [currentTemplateIndex, setCurrentTemplateIndex] = useState(0)
-  const [isRegeneratingMessage, setIsRegeneratingMessage] = useState(false)
-
-  // New backend-related state
-  const [reflectionId, setReflectionId] = useState<string | null>(null)
-  const [userEmail, setUserEmail] = useState("")
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
-  const [currentStage, setCurrentStage] = useState(0)
-  const [isInDistress, setIsInDistress] = useState(false)
+  const [reflectionId, setReflectionId] = useState<string | null>(null)
+  const [categories, setCategories] = useState<Array<{category_no: number, category_name: string}>>([])
+  const [progress, setProgress] = useState({ current_step: 1, total_step: 4, workflow_completed: false })
+  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -296,128 +114,87 @@ export default function ChatPage() {
   }, [messages])
 
   useEffect(() => {
-    // Check authentication on component mount
-    if (apiService.isAuthenticated()) {
-      setIsAuthenticated(true)
-      setCurrentStep("intent-selection")
-    } else {
-      setCurrentStep("login")
-    }
+    checkAuthentication()
   }, [])
 
-  useEffect(() => {
-    // Check if this is a new conversation or has intent from onboarding
-    const intentParam = searchParams.get("intent")
-    const isNew = searchParams.get("new")
-
-    if (intentParam && messages.length === 0 && !intent && isAuthenticated) {
-      handleIntentSelectionFromParam(intentParam as Intent)
-    } else if (isNew === "true" && !intentParam && !intent && isAuthenticated) {
-      setCurrentStep("intent-selection")
-      setMessages([])
-    }
-  }, [searchParams, messages.length, intent, currentStep, isAuthenticated])
-
-  // Handle login
-  const handleLogin = async () => {
-    if (!userEmail.trim()) {
-      setApiError("Please enter your email")
-      return
-    }
-
+  // Check authentication
+  const checkAuthentication = async () => {
     try {
-      setApiError(null)
-      setIsThinking(true)
-      await apiService.login(userEmail.trim())
-      setIsAuthenticated(true)
-      setCurrentStep("intent-selection")
-    } catch (error) {
-      setApiError("Login failed. Please try again.")
-      console.error("Login error:", error)
-    } finally {
-      setIsThinking(false)
-    }
-  }
-
-  // Handle intent selection from URL param
-  const handleIntentSelectionFromParam = async (selectedIntent: Intent) => {
-    try {
-      setIntent(selectedIntent)
-      setIsThinking(true)
-
-      // Create initial reflection and send category selection
-      const response = await apiService.sendReflectionRequest({
-        message: selectedIntent || "",
-        data: [{ 
-          category_no: INTENT_TO_CATEGORY_MAP[selectedIntent!], 
-          category_name: selectedIntent 
-        }]
-      })
-
-      setReflectionId(response.reflection_id)
-      setCurrentStage(response.current_stage)
+      console.log("Checking authentication...");
+      const authenticated = await apiService.isAuthenticated()
+      console.log("Authentication result:", authenticated);
       
-      await simulateThinkingAndResponse(
-        response.sarthi_message,
-        "empathetic",
-        undefined,
-        false,
-        undefined,
-        true,
-        1200,
-        25,
-      )
-      setCurrentStep("recipient-input")
+      setIsAuthenticated(authenticated)
+      
+      if (authenticated) {
+        console.log("User is authenticated, starting reflection...");
+        startNewReflection()
+      } else {
+        console.log("User not authenticated, redirecting to auth...");
+        router.push('/auth')
+      }
     } catch (error) {
-      console.error("Intent selection error:", error)
-      setApiError("Failed to process intent selection")
-    } finally {
-      setIsThinking(false)
+      console.error("Authentication check failed:", error)
+      router.push('/auth')
     }
   }
 
-  // API call wrapper with error handling
-  const makeApiCall = async (request: ApiRequest): Promise<ApiResponse | null> => {
+  // Start new reflection (Stage 0)
+  const startNewReflection = async () => {
     try {
-      setApiError(null)
+      console.log("Starting new reflection...");
+      setIsThinking(true)
+      setCurrentStep("loading")
+      
+      const request = {
+        reflection_id: null,
+        message: "",
+        data: [{ start_reflection: 1 }]
+      };
+      
+      console.log("Sending start reflection request:", request);
       const response = await apiService.sendReflectionRequest(request)
-      
-      // Check for distress response
-      if (!response.success || response.current_stage === -1) {
-        setIsInDistress(true)
+      console.log("Got response:", response);
+
+      if (!response.success && response.current_stage === -1) {
+        console.log("Distress detected, showing distress screen");
         setCurrentStep("distress-detected")
-        return response
+        return
       }
 
-      setCurrentStage(response.current_stage)
-      return response
+      console.log("Setting reflection data:", {
+        reflectionId: response.reflection_id,
+        currentStage: response.current_stage,
+        progress: response.progress,
+        categories: response.data
+      });
+
+      setReflectionId(response.reflection_id)
+      setProgress(response.progress)
+      setCategories(response.data || [])
+
+      // Add Sarthi's welcome message
+      await simulateThinkingAndResponse(response.sarthi_message)
+
+      setCurrentStep("intent-selection")
     } catch (error) {
-      console.error("API call error:", error)
-      setApiError("Something went wrong. Please try again.")
-      return null
+      console.error("Failed to start reflection:", error)
+      setApiError("Failed to start reflection. Please try again.")
+    } finally {
+      setIsThinking(false)
     }
   }
 
   const addMessage = (
     content: string,
     sender: "user" | "sarthi",
-    emotion: Emotion = "neutral",
-    buttons?: Array<{ text: string; action: () => void; variant?: "primary" | "secondary"; isSelected?: boolean }>,
-    showInput?: boolean,
-    inputField?: { placeholder: string; onSubmit: (value: string) => void; type?: "text" | "email" | "tel" },
-    showRecipientInput?: boolean,
     shouldStream = false,
   ) => {
     const newMessage: Message = {
       id: Date.now().toString(),
       content,
       role: sender === "user" ? "user" : "assistant",
-      emotion,
       timestamp: new Date(),
-      buttons,
-      showInput,
-      inputField,
-      showRecipientInput,
     }
 
     if (sender === "sarthi" && shouldStream) {
@@ -426,77 +203,15 @@ export default function ChatPage() {
     } else {
       setMessages((prev) => [...prev, newMessage])
     }
-
-    if (sender === "sarthi") {
-      setCurrentEmotion(emotion)
-    }
-  }
-
-  const handleMessageFeedback = async (messageId: string, type: "positive" | "negative" | "regenerate") => {
-    console.log(`Feedback for message ${messageId}: ${type}`)
-
-    if (type === "regenerate") {
-      const messageIndex = messages.findIndex((msg) => msg.id === messageId)
-      if (messageIndex === -1) return
-
-      const messageToRegenerate = messages[messageIndex]
-
-      setMessages((prev) => prev.map((msg) => (msg.id === messageId ? { ...msg, isRegenerating: true } : msg)))
-      setIsThinking(true)
-      setThinkingEmotion(messageToRegenerate.emotion || "neutral")
-
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-      setIsThinking(false)
-
-      let newContent = messageToRegenerate.content
-      const emotion = messageToRegenerate.emotion || "neutral"
-
-      if (alternativeResponses[emotion]) {
-        const alternatives = alternativeResponses[emotion]
-        const currentIndex = alternatives.findIndex((alt) => alt === messageToRegenerate.content)
-        const nextIndex = (currentIndex + 1) % alternatives.length
-        newContent = alternatives[nextIndex]
-      } else {
-        newContent = messageToRegenerate.content + " Let me know if you'd like to explore this differently."
-      }
-
-      setMessages((prev) =>
-        prev.map((msg) => (msg.id === messageId ? { ...msg, content: "", isRegenerating: false } : msg)),
-      )
-      setStreamingMessageId(messageId)
-
-      let currentIndex = 0
-      const streamInterval = setInterval(() => {
-        if (currentIndex < newContent.length) {
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === messageId ? { ...msg, content: newContent.substring(0, currentIndex + 1) } : msg,
-            ),
-          )
-          currentIndex++
-        } else {
-          clearInterval(streamInterval)
-          setStreamingMessageId(null)
-        }
-      }, 25)
-    }
   }
 
   const simulateThinkingAndResponse = async (
     content: string,
-    emotion: Emotion = "neutral",
-    buttons?: Array<{ text: string; action: () => void; variant?: "primary" | "secondary"; isSelected?: boolean }>,
-    showInput?: boolean,
-    inputField?: { placeholder: string; onSubmit: (value: string) => void; type?: "text" | "email" | "tel" },
-    showRecipientInput?: boolean,
     thinkingDuration = 1500,
     streamSpeed = 25,
   ) => {
     setIsThinking(true)
-    setThinkingEmotion(emotion)
-
     await new Promise((resolve) => setTimeout(resolve, thinkingDuration))
-
     setIsThinking(false)
 
     const messageId = Date.now().toString()
@@ -504,17 +219,11 @@ export default function ChatPage() {
       id: messageId,
       content: "",
       role: "assistant",
-      emotion,
       timestamp: new Date(),
-      buttons,
-      showInput,
-      inputField,
-      showRecipientInput,
     }
 
     setMessages((prev) => [...prev, newMessage])
     setStreamingMessageId(messageId)
-    setCurrentEmotion(emotion)
 
     let currentIndex = 0
     const streamInterval = setInterval(() => {
@@ -530,386 +239,122 @@ export default function ChatPage() {
     }, streamSpeed)
   }
 
-  const handleIntentSelection = async (selectedIntent: Intent) => {
-    if (!selectedIntent) return
+  const handleIntentSelection = async (categoryNo: number) => {
+    if (!reflectionId) return
 
-    setIntent(selectedIntent)
-    setSelectedIntentButton(selectedIntent)
+    const category = categories.find(cat => cat.category_no === categoryNo)
+    if (!category) return
 
-    const intentMessages = {
-      apologize: "Apologize",
-      gratitude: "Express gratitude",
-      boundary: "Set a boundary / give feedback",
-    }
-
-    addMessage(intentMessages[selectedIntent], "user")
+    console.log("Selected category:", category);
+    addMessage(category.category_name, "user")
 
     try {
       setIsThinking(true)
       
-      // Create initial reflection if none exists, otherwise send category selection
-      const request: ApiRequest = reflectionId ? {
+      const request = {
         reflection_id: reflectionId,
-        message: selectedIntent,
-        data: [{ 
-          category_no: INTENT_TO_CATEGORY_MAP[selectedIntent], 
-          category_name: selectedIntent 
-        }]
-      } : {
-        message: selectedIntent,
-        data: [{ 
-          category_no: INTENT_TO_CATEGORY_MAP[selectedIntent], 
-          category_name: selectedIntent 
-        }]
-      }
-
-      const response = await makeApiCall(request)
+        message: "",
+        data: [{ category_no: categoryNo }]
+      };
       
-      if (response && !isInDistress) {
-        setReflectionId(response.reflection_id)
-        await simulateThinkingAndResponse(
-          response.sarthi_message,
-          "empathetic",
-          undefined,
-          false,
-          undefined,
-          true,
-          1200,
-          25,
-        )
-        setCurrentStep("recipient-input")
+      console.log("Sending category selection:", request);
+      const response = await apiService.sendReflectionRequest(request)
+      console.log("Category selection response:", response);
+
+      if (!response.success && response.current_stage === -1) {
+        setCurrentStep("distress-detected")
+        return
+      }
+      
+      if (response && response.success) {
+        await simulateThinkingAndResponse(response.sarthi_message)
+        setCurrentStep("conversation")
       }
     } catch (error) {
       console.error("Intent selection error:", error)
+      setApiError("Failed to process selection. Please try again.")
     } finally {
       setIsThinking(false)
     }
   }
 
-  const handleRecipientSubmit = async (recipientName: string) => {
-    if (!recipientName.trim() || !reflectionId) return
-
-    setRecipient(recipientName)
-    addMessage(recipientName, "user")
-
-    setMessages((prev) =>
-      prev.map((msg) => {
-        if (msg.showRecipientInput) {
-          return { ...msg, showRecipientInput: false }
-        }
-        return msg
-      }),
-    )
-
-    try {
-      const response = await makeApiCall({
-        reflection_id: reflectionId,
-        message: recipientName,
-        data: []
-      })
-
-      if (response && !isInDistress) {
-        setCurrentStep("relationship-input")
-        await simulateThinkingAndResponse(
-          response.sarthi_message,
-          "calm",
-          undefined,
-          false,
-          undefined,
-          false,
-          1000,
-          25,
-        )
-      }
-    } catch (error) {
-      console.error("Recipient submit error:", error)
-    }
-  }
-
-  const handleRelationshipSubmit = async (relationshipValue: string) => {
-    if (!reflectionId) return
-
-    setRelationship(relationshipValue)
-
-    if (relationshipValue.trim()) {
-      addMessage(relationshipValue, "user")
-    } else {
-      addMessage("I'd prefer not to specify", "user")
-    }
-
-    try {
-      const response = await makeApiCall({
-        reflection_id: reflectionId,
-        message: relationshipValue || "prefer not to specify",
-        data: []
-      })
-
-      if (response && !isInDistress) {
-        await simulateThinkingAndResponse(
-          response.sarthi_message,
-          "empathetic",
-          undefined,
-          true,
-          undefined,
-          false,
-          1400,
-          25,
-        )
-        setCurrentStep("conversation")
-      }
-    } catch (error) {
-      console.error("Relationship submit error:", error)
-    }
-  }
-
-  const handleSkipRelationship = () => {
-    handleRelationshipSubmit("")
-  }
-
   const handleChatInput = async (inputMessage: string) => {
     if (!inputMessage.trim() || !reflectionId) return
 
+    console.log("Sending chat message:", inputMessage);
     addMessage(inputMessage, "user")
-    setUserInputForMessage(inputMessage)
 
     try {
-      const response = await makeApiCall({
+      setIsThinking(true)
+      
+      const request = {
         reflection_id: reflectionId,
         message: inputMessage,
         data: []
-      })
+      };
+      
+      console.log("Sending chat request:", request);
+      const response = await apiService.sendReflectionRequest(request)
+      console.log("Chat response:", response);
 
-      if (response && !isInDistress) {
-        // Check if conversation is complete (has summary)
-        const summaryItem = response.data.find(item => item.summary !== undefined)
+      if (!response.success && response.current_stage === -1) {
+        setCurrentStep("distress-detected")
+        return
+      }
+
+      if (response && response.success) {
+        await simulateThinkingAndResponse(response.sarthi_message)
         
+        // Check if we have a summary (conversation complete)
+        const summaryItem = response.data.find(item => item.summary !== undefined)
         if (summaryItem) {
-          setFinalMessage(summaryItem.summary)
-          setEditedMessage(summaryItem.summary)
-          
-          await simulateThinkingAndResponse(
-            response.sarthi_message,
-            "supportive",
-            undefined,
-            false,
-            undefined,
-            false,
-            1400,
-            25,
-          )
-
+          console.log("Conversation complete, summary:", summaryItem.summary);
+          // For now, just show the summary in a message
           setTimeout(() => {
-            setCurrentStep("template-selection")
+            addMessage(`Here's your reflection: ${summaryItem.summary}`, "sarthi")
           }, 2000)
-        } else {
-          // Continue conversation
-          await simulateThinkingAndResponse(
-            response.sarthi_message,
-            "empathetic",
-            undefined,
-            true,
-            undefined,
-            false,
-            1000,
-            25,
-          )
         }
       }
     } catch (error) {
       console.error("Chat input error:", error)
+      setApiError("Failed to send message. Please try again.")
+    } finally {
+      setIsThinking(false)
     }
   }
 
-  const handleEditMessage = () => {
-    setIsEditingMessage(true)
-    setEditedMessage(finalMessage)
-  }
-
-  const handleSaveEditedMessage = () => {
-    setFinalMessage(editedMessage)
-    setIsEditingMessage(false)
-  }
-
-  const handleCancelEdit = () => {
-    setIsEditingMessage(false)
-  }
-
-  const handleRegenerateMessage = async () => {
-    if (!intent || !userInputForMessage) return
-
-    setIsRegeneratingMessage(true)
-
-    // Simulate thinking
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-
-    const templates = messageTemplates[intent]
-    if (templates) {
-      // Get next template in rotation
-      const nextIndex = (currentTemplateIndex + 1) % templates.length
-      setCurrentTemplateIndex(nextIndex)
-
-      const newMessage = templates[nextIndex](recipient, userInputForMessage, relationship)
-      setFinalMessage(newMessage)
-      setEditedMessage(newMessage)
-    }
-
-    setIsRegeneratingMessage(false)
-  }
-
-  const handleTemplateSelect = (template: MessageTemplate) => {
-    setSelectedTemplate(template)
-  }
-
-  const handleContinueWithTemplate = () => {
-    setCurrentStep("sender-selection")
-  }
-
-  const handleSenderSelection = (type: "name" | "anonymous", name?: string) => {
-    setSenderType(type)
-    if (type === "name" && name) {
-      setSenderName(name)
-      setUserName(name)
-    } else if (type === "anonymous") {
-      setSenderName("Anonymous")
-    }
-    setCurrentStep("delivery-modal")
-  }
-
-  const isValidEmail = (email: string) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
-  }
-
-  const isValidPhone = (phone: string) => {
-    return /^\d{7,15}$/.test(phone.trim())
-  }
-
-  const validateEmail = (email: string) => {
-    if (!email.trim()) {
-      return "Email address is required"
-    }
-    if (!isValidEmail(email)) {
-      return "Please enter a valid email address"
-    }
-    return ""
-  }
-
-  const validatePhone = (phone: string) => {
-    if (!phone.trim()) {
-      return "Phone number is required"
-    }
-    if (!isValidPhone(phone)) {
-      return "Please enter a valid phone number (7-15 digits)"
-    }
-    return ""
-  }
-
-  const mapDeliveryMethod = (emailContact: string, phoneNumber: string, deliveryMethod: string | null): number => {
-    if (deliveryMethod === "keep-private") return 3;
-    
-    const hasEmail = emailContact && emailContact.trim() !== "";
-    const hasPhone = phoneNumber && phoneNumber.trim() !== "";
-    
-    if (hasEmail && hasPhone) return 2; // Both
-    if (hasEmail) return 0; // Email only
-    if (hasPhone) return 1; // WhatsApp only
-    
-    return 3; // Default to private
-  }
-
-  const handleDeliverySubmit = async () => {
-    // Validate inputs
-    let hasError = false
-
-    if (emailContact.trim()) {
-      const error = validateEmail(emailContact)
-      if (error) {
-        setEmailError(error)
-        hasError = true
-      }
-    }
-
-    if (phoneNumber.trim()) {
-      const error = validatePhone(phoneNumber)
-      if (error) {
-        setPhoneError(error)
-        hasError = true
-      }
-    }
-
-    // Check if at least one contact method is provided (unless keeping private)
-    if (deliveryMethod !== "keep-private" && !emailContact.trim() && !phoneNumber.trim()) {
-      setEmailError("Please provide at least one contact method")
-      hasError = true
-    }
-
-    if (hasError) return
-
-    try {
-      const deliveryModeNumber = mapDeliveryMethod(emailContact, phoneNumber, deliveryMethod)
-      
-      const response = await makeApiCall({
-        reflection_id: reflectionId!,
-        message: "Delivery preferences set",
-        data: [{ delivery_mode: deliveryModeNumber }]
-      })
-
-      if (response && !isInDistress) {
-        setCurrentStep("confirmation")
-      }
-    } catch (error) {
-      console.error("Delivery submit error:", error)
-    }
-  }
-
-  useEffect(() => {
-    if (currentStep === "confirmation") {
-      const timer = setTimeout(() => setCurrentStep("closure-feeling"), 3000)
-      return () => clearTimeout(timer)
-    }
-  }, [currentStep])
-
-  // Login Screen
-  if (currentStep === "login") {
+  // Authentication Check Screen
+  if (currentStep === "auth-check" || currentStep === "loading") {
     return (
       <div className="min-h-screen bg-[#121212] flex flex-col">
         <div className="flex-1 flex items-center justify-center p-4">
-          <div className="w-full max-w-md space-y-8 sarthi-fade-in">
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 mx-auto mb-6">
-                <SarthiIcon size="lg" />
-              </div>
-              <h1 className="text-3xl font-light text-white">Welcome to Sarthi</h1>
-              <p className="text-white/60 text-lg">Please enter your email to continue</p>
+          <div className="text-center space-y-8 max-w-md sarthi-fade-in">
+            <div className="w-20 h-20 mx-auto bg-white/10 rounded-full flex items-center justify-center animate-pulse">
+              <SarthiIcon size="lg" />
             </div>
-
             <div className="space-y-4">
-              <SarthiInput
-                type="email"
-                placeholder="Enter your email"
-                value={userEmail}
-                onChange={(e) => setUserEmail(e.target.value)}
-                className="w-full"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault()
-                    handleLogin()
-                  }
-                }}
-                autoFocus
-              />
-              
-              {apiError && (
-                <div className="text-red-400 text-sm text-center">{apiError}</div>
-              )}
-
-              <SarthiButton
-                onClick={handleLogin}
-                disabled={!userEmail.trim() || isThinking}
-                className="w-full"
-              >
-                {isThinking ? "Signing in..." : "Continue"}
-              </SarthiButton>
+              <h1 className="text-3xl font-light text-white">
+                {currentStep === "auth-check" ? "Connecting..." : "Starting your reflection..."}
+              </h1>
+              <p className="text-white/60 text-lg">
+                {currentStep === "auth-check" ? "Checking your session" : "Preparing your space"}
+              </p>
             </div>
+            
+            {apiError && (
+              <div className="text-red-400 text-sm text-center bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+                {apiError}
+                <button 
+                  onClick={() => {
+                    setApiError(null)
+                    checkAuthentication()
+                  }}
+                  className="block mx-auto mt-2 text-white/60 hover:text-white underline"
+                >
+                  Try again
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -947,9 +392,7 @@ export default function ChatPage() {
             <div className="space-y-4">
               <SarthiButton
                 onClick={() => {
-                  setIsInDistress(false)
-                  setCurrentStep("intent-selection")
-                  setMessages([])
+                  startNewReflection()
                 }}
                 className="w-full"
               >
@@ -958,9 +401,7 @@ export default function ChatPage() {
               
               <button
                 onClick={() => {
-                  apiService.logout()
-                  setIsAuthenticated(false)
-                  setCurrentStep("login")
+                  router.push('/auth')
                 }}
                 className="w-full p-3 text-white/60 hover:text-white transition-colors"
               >
@@ -975,4 +416,228 @@ export default function ChatPage() {
         </div>
       </div>
     )
-  }}
+  }
+
+  // Intent Selection Screen
+  if (currentStep === "intent-selection") {
+    return (
+      <div className="min-h-screen bg-[#121212] flex flex-col">
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-4xl mx-auto px-4 py-8">
+            <div className="space-y-8">
+              {/* Header */}
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 mx-auto mb-6">
+                  <SarthiOrb size="md" />
+                </div>
+                <h1 className="text-3xl font-light text-white">What would you like to reflect on today?</h1>
+                <p className="text-white/60 text-lg">Choose what feels right for you.</p>
+              </div>
+
+              {/* Categories from backend */}
+              <div className="space-y-4 max-w-2xl mx-auto">
+                {categories.map((category) => {
+                  const iconMap: Record<number, any> = {
+                    1: <svg className="h-6 w-6 text-white/80" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                        <path d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 0 1-.923 1.785A5.969 5.969 0 0 0 6 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337Z" />
+                      </svg>,
+                    2: <svg className="h-6 w-6 text-white/80" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                        <path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
+                      </svg>,
+                    3: <svg className="h-6 w-6 text-white/80" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                        <path d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.745 3.745 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" />
+                      </svg>
+                  }
+
+                  const titleMap: Record<number, string> = {
+                    1: "Feedback or Set a Boundary",
+                    2: "Gratitude",
+                    3: "Apology"
+                  }
+
+                  const descriptionMap: Record<number, string> = {
+                    1: "Share something hard, clearly and kindly.",
+                    2: "Thank someone for something that mattered.",
+                    3: "Say what you couldn't say before."
+                  }
+
+                  return (
+                    <button
+                      key={category.category_no}
+                      onClick={() => handleIntentSelection(category.category_no)}
+                      disabled={isThinking}
+                      className={`w-full p-6 rounded-3xl border border-white/10 hover:border-white/20 hover:bg-white/5 focus:border-white/20 focus:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/20 transition-all text-left group min-h-[44px] ${
+                        isThinking ? "opacity-50 cursor-not-allowed" : ""
+                      }`}
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="flex-shrink-0 w-12 h-12 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/15 transition-colors">
+                          {iconMap[category.category_no]}
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-xl font-medium text-white mb-2">
+                            {titleMap[category.category_no] || category.category_name}
+                          </h3>
+                          <p className="text-white/60 leading-relaxed">
+                            {descriptionMap[category.category_no] || "Reflect on this topic."}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Progress indicator */}
+              {progress && (
+                <div className="text-center text-sm text-white/40">
+                  Step {progress.current_step} of {progress.total_step}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Main Chat Interface
+  return (
+    <div className="h-screen bg-[#121212] flex flex-col">
+      {/* Header */}
+      <div className="border-b border-white/10 p-4">
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => router.push('/dashboard')} 
+            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5 text-white/60" />
+          </button>
+          <div className="flex items-center gap-3">
+            <SarthiOrb size="sm" />
+            <div>
+              <h1 className="text-white font-medium">Reflection Session</h1>
+              {progress && (
+                <p className="text-white/60 text-sm">
+                  Step {progress.current_step} of {progress.total_step}
+                  {progress.workflow_completed && " - Complete"}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-4">
+          <div className="max-w-4xl mx-auto space-y-6">
+            {messages.map((message) => (
+              <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "items-start gap-4"}`}>
+                {message.role === "assistant" && (
+                  <div className="mt-1">
+                    <SarthiOrb size="sm" />
+                  </div>
+                )}
+
+                <div className={`max-w-[85%] ${message.role === "user" ? "flex flex-col items-end" : ""}`}>
+                  <div
+                    className={`px-6 py-4 rounded-3xl ${
+                      message.role === "user" 
+                        ? "bg-[#1e1e1e] border border-[#2a2a2a]" 
+                        : "bg-[#2a2a2a] border border-[#3a3a3a]"
+                    }`}
+                  >
+                    <p className="text-white leading-relaxed">
+                      {message.content}
+                      {streamingMessageId === message.id && (
+                        <span className="inline-block w-2 h-5 bg-white/60 ml-1 animate-pulse"></span>
+                      )}
+                    </p>
+                  </div>
+
+                  <div className="mt-2 text-xs text-white/40">
+                    {message.timestamp?.toLocaleTimeString()}
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {/* Thinking indicator */}
+            {isThinking && (
+              <div className="flex items-start gap-4">
+                <div className="mt-1">
+                  <SarthiOrb size="sm" isThinking />
+                </div>
+                <div className="flex-1">
+                  <SarthiThinking />
+                </div>
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </div>
+        </div>
+      </div>
+
+      {/* Input Area */}
+      {currentStep === "conversation" && (
+        <div className="border-t border-white/10 p-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex gap-3">
+              <SarthiInput
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Share what's on your mind..."
+                className="flex-1"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault()
+                    handleChatInput(input)
+                    setInput("")
+                  }
+                }}
+                disabled={isThinking}
+              />
+              <SarthiButton
+                onClick={() => {
+                  handleChatInput(input)
+                  setInput("")
+                }}
+                disabled={!input.trim() || isThinking}
+              >
+                Send
+              </SarthiButton>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* API Error Display */}
+      {apiError && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-red-500/20 border border-red-500/30 text-red-400 px-6 py-3 rounded-[16px] backdrop-blur-sm shadow-lg">
+          <div className="flex items-center gap-3">
+            <svg
+              className="h-5 w-5 flex-shrink-0"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              viewBox="0 0 24 24"
+            >
+              <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <p className="text-sm">{apiError}</p>
+            <button
+              onClick={() => setApiError(null)}
+              className="ml-2 text-red-400/60 hover:text-red-400 transition-colors min-h-[24px] min-w-[24px]"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

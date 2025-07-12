@@ -9,7 +9,7 @@ import { CountrySelector } from "@/components/ui/country-selector"
 import { validateInviteCode, verifyOTP } from "@/app/actions/auth"
 import { SarthiIcon } from "@/components/ui/sarthi-icon"
 
-type AuthStep = "entry" | "invite-code" | "otp-verification" | "success" | "welcome" | "redirecting"
+type AuthStep = "entry" | "invite-code" | "otp-verification" | "success" | "redirecting"
 type UserType = "new" | "existing" | null
 type ContactType = "email" | "phone"
 
@@ -34,7 +34,7 @@ export default function AuthPage() {
   const [otp, setOtp] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
-  const [currentContact, setCurrentContact] = useState("") // Store the contact used for OTP
+  const [currentContact, setCurrentContact] = useState("")
   const [redirectProgress, setRedirectProgress] = useState(0)
   const [showSuccessToast, setShowSuccessToast] = useState(false)
   const [inviteToken, setInviteToken] = useState<string | undefined>(undefined)
@@ -54,11 +54,6 @@ export default function AuthPage() {
   const isValidPhone = (phone: string) => {
     return /^\d{7,15}$/.test(phone.trim())
   }
-
-  // Remove unused imports and mock functions since we're not using them
-  // const checkUserExists = async (contact: string) => {
-  //   return { exists: true }
-  // }
 
   // Test backend connection on component mount
   useEffect(() => {
@@ -81,12 +76,7 @@ export default function AuthPage() {
 
   const handleContinue = async () => {
     console.log("handleContinue called")
-    console.log("contactType:", contactType)
-    console.log("email:", email)
-    console.log("phoneNumber:", phoneNumber)
-
     const contact = getFullContact()
-    console.log("Full contact:", contact)
 
     // Validation
     if (contactType === "email") {
@@ -113,16 +103,12 @@ export default function AuthPage() {
     setError("")
 
     try {
-      // Since your backend doesn't have send-otp endpoint, we'll simulate sending OTP
-      // and go directly to verification step
-      setCurrentContact(contact) // Store the contact for OTP verification
-
-      console.log("Simulating OTP send - moving to verification step")
+      // Store contact and simulate OTP sent
+      setCurrentContact(contact)
       
       setShowSuccessToast(true)
-      setTimeout(() => setShowSuccessToast(false), 3000) // Auto-dismiss after 3 seconds
+      setTimeout(() => setShowSuccessToast(false), 3000)
 
-      console.log("Moving to OTP verification step")
       setStep("otp-verification")
     } catch (err) {
       console.error("Error in handleContinue:", err)
@@ -146,10 +132,7 @@ export default function AuthPage() {
       console.log("Invite validation result:", result)
 
       if (result.success && result.valid) {
-        // Store invite token for later use
         setInviteToken(result.inviteToken)
-        
-        // Show success message for invite code validation
         setStep("success")
         setTimeout(() => {
           setStep("entry")
@@ -167,14 +150,7 @@ export default function AuthPage() {
     }
   }
 
-  // Enhanced OTP verification with smooth transition
   const handleOtpVerification = async () => {
-    console.log("handleOtpVerification called")
-    console.log("OTP entered:", otp)
-    console.log("Current contact:", currentContact)
-    console.log("User type:", userType)
-    console.log("Invite token:", inviteToken)
-
     if (!otp.trim()) {
       setError("Please enter the verification code")
       return
@@ -189,7 +165,7 @@ export default function AuthPage() {
       console.log("OTP verification result:", result)
 
       if (result.success) {
-        console.log("OTP verification successful, starting smooth transition")
+        console.log("OTP verification successful")
         
         // Update user type based on response
         if (result.isNewUser !== undefined) {
@@ -199,7 +175,7 @@ export default function AuthPage() {
         // Show success state
         setStep("success")
 
-        // After showing success, start the redirecting animation
+        // Start the redirecting animation after 1 second
         setTimeout(() => {
           setStep("redirecting")
 
@@ -208,8 +184,10 @@ export default function AuthPage() {
             setRedirectProgress((prev) => {
               if (prev >= 100) {
                 clearInterval(progressInterval)
-                // Use Next.js router for smooth client-side navigation
-                router.push(result.redirectTo || "/onboarding")
+                // Redirect based on user type
+                const redirectTo = result.redirectTo || (result.isNewUser ? "/onboarding" : "/chat")
+                console.log("Redirecting to:", redirectTo)
+                router.push(redirectTo)
                 return 100
               }
               return prev + 2
@@ -230,7 +208,6 @@ export default function AuthPage() {
   const handleResendOTP = async () => {
     setIsLoading(true)
     try {
-      // Since your backend doesn't have send-otp endpoint, just simulate success
       console.log("Simulating OTP resend for:", currentContact)
       
       setError("")
@@ -271,7 +248,6 @@ export default function AuthPage() {
           <button
             type="button"
             onClick={() => {
-              console.log("Switching to email")
               setContactType("email")
               setError("")
             }}
@@ -284,7 +260,6 @@ export default function AuthPage() {
           <button
             type="button"
             onClick={() => {
-              console.log("Switching to phone")
               setContactType("phone")
               setError("")
             }}
@@ -309,13 +284,11 @@ export default function AuthPage() {
                 placeholder="name@example.com"
                 value={email}
                 onChange={(e) => {
-                  console.log("Email changed to:", e.target.value)
                   setEmail(e.target.value)
                   setError("")
                 }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
-                    console.log("Enter pressed on email input")
                     handleContinue()
                   }
                 }}
@@ -327,20 +300,17 @@ export default function AuthPage() {
                 onCountrySelect={setSelectedCountry}
                 phoneNumber={phoneNumber}
                 onPhoneNumberChange={(phone) => {
-                  console.log("Phone changed to:", phone)
                   setPhoneNumber(phone)
                   setError("")
                 }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
-                    console.log("Enter pressed on phone input")
                     handleContinue()
                   }
                 }}
               />
             )}
 
-            {/* Helper text */}
             <p className="text-xs text-[#9ca3af]">
               You'll receive a one-time code at this {contactType === "email" ? "address" : "number"}.
             </p>
@@ -356,11 +326,7 @@ export default function AuthPage() {
         <div className="pt-2">
           <SarthiButton
             className="w-full auth-button rounded-[16px]"
-            onClick={(e) => {
-              e.preventDefault()
-              console.log("Send my code button clicked")
-              handleContinue()
-            }}
+            onClick={handleContinue}
             disabled={isLoading}
           >
             {isLoading ? "Sending code…" : "Send my code"}
@@ -374,10 +340,7 @@ export default function AuthPage() {
 
       <div className="text-center mt-6">
         <button
-          onClick={(e) => {
-            e.preventDefault()
-            setStep("invite-code")
-          }}
+          onClick={() => setStep("invite-code")}
           className="text-[#cbd5e1] hover:text-white transition-colors text-sm underline min-h-[44px] min-w-[44px] px-4 py-2 rounded-lg hover:bg-white/5 focus:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/20"
         >
           Have an invite code?
@@ -436,13 +399,11 @@ export default function AuthPage() {
               placeholder="Enter the 6-digit code (Dev: 141414)"
               value={otp}
               onChange={(e) => {
-                console.log("OTP changed to:", e.target.value)
                 setOtp(e.target.value)
                 setError("")
               }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
-                  console.log("Enter pressed on OTP input")
                   handleOtpVerification()
                 }
               }}
@@ -461,11 +422,7 @@ export default function AuthPage() {
         <div className="pt-2">
           <SarthiButton
             className="w-full auth-button rounded-[16px]"
-            onClick={(e) => {
-              e.preventDefault()
-              console.log("Verify button clicked")
-              handleOtpVerification()
-            }}
+            onClick={handleOtpVerification}
             disabled={isLoading}
           >
             {isLoading ? "Verifying..." : "Verify and continue"}
@@ -474,10 +431,7 @@ export default function AuthPage() {
 
         <div className="text-center">
           <button
-            onClick={(e) => {
-              e.preventDefault()
-              handleResendOTP()
-            }}
+            onClick={handleResendOTP}
             disabled={isLoading}
             className="text-[#cbd5e1] hover:text-white transition-colors text-sm disabled:opacity-50 min-h-[44px] min-w-[44px] px-4 py-2 rounded-lg hover:bg-white/5 focus:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/20"
           >
@@ -488,10 +442,7 @@ export default function AuthPage() {
 
       <div className="text-center">
         <button
-          onClick={(e) => {
-            e.preventDefault()
-            resetToEntry()
-          }}
+          onClick={resetToEntry}
           className="text-[#cbd5e1] hover:text-white transition-colors text-sm min-h-[44px] min-w-[44px] px-4 py-2 rounded-lg hover:bg-white/5 focus:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/20"
         >
           Use a different {contactType === "email" ? "email" : "phone number"}
@@ -503,7 +454,6 @@ export default function AuthPage() {
   const renderSuccessStep = () => (
     <div className="w-full max-w-md space-y-8">
       <div className="text-center space-y-6 sarthi-fade-in">
-        {/* Success Animation with new S-only icon */}
         <div className="relative mx-auto">
           <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto animate-pulse">
             <div className="w-16 h-16 bg-green-500/30 rounded-full flex items-center justify-center">
@@ -528,13 +478,10 @@ export default function AuthPage() {
     </div>
   )
 
-  // Enhanced redirecting step with new S icon
   const renderRedirectingStep = () => (
     <div className="w-full max-w-md space-y-8">
       <div className="text-center space-y-6 sarthi-fade-in">
-        {/* Sarthi S Logo with enhanced glow animation */}
         <div className="relative mx-auto">
-          {/* Outer glow */}
           <div
             className="absolute rounded-full animate-gentle-pulse"
             style={{
@@ -546,7 +493,6 @@ export default function AuthPage() {
             }}
           ></div>
 
-          {/* Inner glow */}
           <div
             className="absolute rounded-full animate-gentle-pulse"
             style={{
@@ -559,7 +505,6 @@ export default function AuthPage() {
             }}
           ></div>
 
-          {/* Logo container with new S-only icon */}
           <div className="relative w-24 h-24 mx-auto bg-[#1A1A1A] rounded-full border border-[#2A2A2A] flex items-center justify-center">
             <SarthiIcon size="lg" />
           </div>
@@ -574,7 +519,6 @@ export default function AuthPage() {
           </p>
         </div>
 
-        {/* Progress bar */}
         <div className="space-y-3">
           <div className="w-full bg-[#2a2a2a] rounded-full h-2 overflow-hidden">
             <div
@@ -585,7 +529,6 @@ export default function AuthPage() {
           <p className="text-sm text-[#cbd5e1]">{Math.round(redirectProgress)}% complete</p>
         </div>
 
-        {/* Loading dots */}
         <div className="flex items-center justify-center space-x-2">
           <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce"></div>
           <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
@@ -595,42 +538,11 @@ export default function AuthPage() {
     </div>
   )
 
-  const renderWelcomeStep = () => (
-    <div className="w-full max-w-md space-y-8">
-      <div className="text-center space-y-4 sarthi-fade-in">
-        <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center mx-auto">
-          <SarthiIcon size="md" />
-        </div>
-        <h1 className="text-3xl font-medium">
-          {userType === "existing" ? "Welcome back to your space" : "Your private space is ready"}
-        </h1>
-        <p className="text-[#cbd5e1]">
-          {userType === "existing"
-            ? "Your reflections are waiting for you"
-            : "This is a safe space. Say what's on your mind"}
-        </p>
-      </div>
-
-      <div className="sarthi-card p-6 space-y-6 rounded-[16px]">
-        <SarthiButton className="w-full auth-button rounded-[16px]" onClick={() => router.push("/chat")}>
-          {userType === "existing" ? "Continue to your reflections" : "Start your first reflection"}
-        </SarthiButton>
-
-        <div className="text-center text-sm text-[#cbd5e1]">
-          <p>You don't have to be perfect, just honest</p>
-        </div>
-      </div>
-    </div>
-  )
-
   const renderInviteCodeStep = () => (
     <div className="w-full max-w-md space-y-8">
       <div className="flex items-center space-x-2 mb-4">
         <button
-          onClick={(e) => {
-            e.preventDefault()
-            setStep("entry")
-          }}
+          onClick={() => setStep("entry")}
           className="text-[#cbd5e1] hover:text-white transition-colors min-h-[44px] min-w-[44px] p-2 rounded-lg hover:bg-white/5 focus:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/20"
         >
           <svg
@@ -683,10 +595,7 @@ export default function AuthPage() {
         <div className="pt-2">
           <SarthiButton 
             className="w-full auth-button rounded-[16px]" 
-            onClick={(e) => {
-              e.preventDefault()
-              handleInviteCode()
-            }} 
+            onClick={handleInviteCode} 
             disabled={isLoading}
           >
             {isLoading ? "Validating..." : "Apply"}
@@ -696,7 +605,7 @@ export default function AuthPage() {
     </div>
   )
 
-  // Debug info (remove in production)
+  // Debug logging
   console.log("Current state:", {
     step,
     contactType,
@@ -724,7 +633,6 @@ export default function AuthPage() {
         {step === "otp-verification" && renderOtpStep()}
         {step === "success" && renderSuccessStep()}
         {step === "redirecting" && renderRedirectingStep()}
-        {step === "welcome" && renderWelcomeStep()}
       </div>
     </div>
   )
