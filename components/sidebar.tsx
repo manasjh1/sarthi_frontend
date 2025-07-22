@@ -7,6 +7,7 @@ import { SarthiButton } from "@/components/ui/sarthi-button"
 import { SarthiInput } from "@/components/ui/sarthi-input"
 import { ApologyIcon } from "@/components/icons/apology-icon"
 import { Heart, MessageCircle, User, Edit3, LogOut, X } from "lucide-react"
+import { getCookie } from "@/app/actions/auth"
 
 interface SidebarProps {
   isOpen: boolean
@@ -16,44 +17,17 @@ interface SidebarProps {
 }
 
 interface Reflection {
-  id: string
-  recipient: string
-  type: "gratitude" | "apology" | "boundary"
-  preview: string
-  date: string
+  reflection_id: string
+  name: string
+  relation: string
+  category: string
+  summary: string
+  created_at: string
+  stage: number
 }
 
-// Mock data for past reflections
-const mockReflections: Reflection[] = [
-  {
-    id: "1",
-    recipient: "Sarah",
-    type: "gratitude",
-    preview: "Thank you for always being there...",
-    date: "15/01/2024",
-  },
-  {
-    id: "2",
-    recipient: "Mom",
-    type: "apology",
-    preview: "I'm sorry for missing your birthday...",
-    date: "10/01/2024",
-  },
-  {
-    id: "3",
-    recipient: "Alex",
-    type: "boundary",
-    preview: "I wanted to talk about our project...",
-    date: "08/01/2024",
-  },
-  {
-    id: "4",
-    recipient: "Dad",
-    type: "gratitude",
-    preview: "I've been thinking about all the w...",
-    date: "05/01/2024",
-  },
-]
+
+
 
 const getReflectionIcon = (type: string) => {
   switch (type) {
@@ -85,6 +59,61 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
   const router = useRouter()
   const [isEditingName, setIsEditingName] = useState(false)
   const [editedName, setEditedName] = useState(userName)
+  const [reflections, setReflections] = useState<Reflection[]>([])
+const [loading, setLoading] = useState(true)
+const [error, setError] = useState<string | null>(null)
+
+useEffect(() => {
+  const fetchReflections = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch("/api/reflections", {
+        method: "POST",
+        body: JSON.stringify({ data: { mode: "get_reflections" } }),
+      })
+      const json = await res.json()
+      if (json.success) {
+        setReflections(json.data.reflections)
+      } else {
+        setError(json.message || "Failed to fetch reflections.")
+      }
+    } catch {
+      setError("Something went wrong")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  fetchReflections()
+}, [])
+
+
+
+
+  const renderReflection = (reflection: Reflection) => (
+  <button
+    key={reflection.reflection_id}
+    onClick={() => handleReflectionClick(reflection.reflection_id)}
+    className="w-full text-left p-3 rounded-lg hover:bg-white/5 focus:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/20 transition-colors group min-h-[44px]"
+  >
+    <div className="flex items-start space-x-3">
+      <div className="flex-shrink-0 w-8 h-8 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/15 transition-colors">
+        {getReflectionIcon(reflection.category.toLowerCase())}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center space-x-2 mb-1">
+          <span className="text-white text-sm font-medium">{reflection.name}</span>
+          <span className="text-white/40 text-xs">{getReflectionTypeLabel(reflection.relation.toLowerCase())}</span>
+        </div>
+        <p className="text-white/60 text-sm truncate">{reflection.summary}</p>
+        <p className="text-white/40 text-xs mt-1">
+          {new Date(reflection.created_at).toLocaleDateString("en-IN")}
+        </p>
+      </div>
+    </div>
+  </button>
+)
+
 
   // Listen for name updates from onboarding
   useEffect(() => {
@@ -108,13 +137,26 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
   const handleReflectionClick = (reflectionId: string) => {
     router.push(`/reflection/${reflectionId}`)
   }
+const handleSignOut = async () => {
+   try {
+    const response = await fetch("/api/auth/signout", {
+      method: "POST",
+      credentials: "include",
+    })
 
-  const handleSignOut = () => {
-    // Clear any stored data
-    localStorage.removeItem("sarthi-user-name")
-    // Redirect to auth page
-    router.push("/auth")
+    if (!response.ok) {
+      throw new Error("Sign out failed")
+    }
+
+    console.log("Successfully signed out.")
+  } catch (error) {
+    console.warn("Error signing out:", error)
+  } finally {
+    localStorage.clear()
+    sessionStorage.clear()
+    window.location.href = "/auth" 
   }
+};
 
   const handleSaveName = () => {
     onUserNameChange(editedName.trim())
@@ -229,35 +271,38 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
             </SarthiButton>
           </div>
 
-          {/* Past Reflections */}
-          <div className="flex-1 overflow-y-auto">
-            <div className="px-6 pb-4">
-              <h3 className="text-white/60 text-sm font-medium mb-4">Past reflections</h3>
-              <div className="space-y-3">
-                {mockReflections.map((reflection) => (
-                  <button
-                    key={reflection.id}
-                    onClick={() => handleReflectionClick(reflection.id)}
-                    className="w-full text-left p-3 rounded-lg hover:bg-white/5 focus:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/20 transition-colors group min-h-[44px]"
-                  >
-                    <div className="flex items-start space-x-3">
-                      <div className="flex-shrink-0 w-8 h-8 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/15 transition-colors">
-                        {getReflectionIcon(reflection.type)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <span className="text-white text-sm font-medium">{reflection.recipient}</span>
-                          <span className="text-white/40 text-xs">{getReflectionTypeLabel(reflection.type)}</span>
-                        </div>
-                        <p className="text-white/60 text-sm truncate">{reflection.preview}</p>
-                        <p className="text-white/40 text-xs mt-1">{reflection.date}</p>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
+      
+        {/* Past Reflections */}
+<div className="flex-1 overflow-y-auto">
+  <div className="px-6 pb-4">
+    <h3 className="text-white/60 text-sm font-medium mb-4">Your Reflections</h3>
+
+    {loading ? (
+      <p className="text-white/50 text-sm">Loading...</p>
+    ) : error ? (
+      <p className="text-red-400 text-sm">{error}</p>
+    ) : reflections.length === 0 ? (
+      <p className="text-white/40 text-sm">No reflections yet.</p>
+    ) : (
+      <>
+        {/* Current reflection */}
+        <div className="mb-6">
+          <p className="text-white text-sm font-semibold mb-2">Current Reflection</p>
+          {renderReflection(reflections[0])}
+        </div>
+
+        {/* Past reflections */}
+        {reflections.length > 1 && (
+          <div className="space-y-3">
+            <p className="text-white/60 text-sm font-medium mb-2">Past Reflections</p>
+            {reflections.slice(1).map(renderReflection)}
           </div>
+        )}
+      </>
+    )}
+  </div>
+</div>
+
 
           {/* Sign Out */}
           <div className="p-6 border-t border-white/10">
@@ -273,4 +318,9 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
       </div>
     </>
   )
+
+
+  
 }
+
+
