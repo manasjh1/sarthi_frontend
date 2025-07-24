@@ -88,7 +88,7 @@ async function setCookie(name: string, value: string, maxAge: number = 60 * 60 *
   })
 }
 
-async function getCookie(name: string): Promise<string | undefined> {
+export async function getCookie(name: string): Promise<string | undefined> {
   const cookieStore = await cookies()
   return cookieStore.get(name)?.value
 }

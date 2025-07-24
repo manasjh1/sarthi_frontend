@@ -74,49 +74,63 @@ export default function AuthPage() {
     testConnection();
   }, []);
 
-  const handleContinue = async () => {
-    console.log("handleContinue called")
-    const contact = getFullContact()
-
-    // Validation
-    if (contactType === "email") {
-      if (!email.trim()) {
-        setError("Please enter your email address")
-        return
-      }
-      if (!isValidEmail(email)) {
-        setError("Please enter a valid email address")
-        return
-      }
-    } else {
-      if (!phoneNumber.trim()) {
-        setError("Please enter your phone number")
-        return
-      }
-      if (!isValidPhone(phoneNumber)) {
-        setError("Please enter a valid phone number")
-        return
-      }
+const handleContinue = async () => {
+  const contact = getFullContact();
+  if (contactType === "email") {
+    if (!email.trim()) {
+      setError("Please enter your email address");
+      return;
     }
-
-    setIsLoading(true)
-    setError("")
-
-    try {
-      // Store contact and simulate OTP sent
-      setCurrentContact(contact)
-      
-      setShowSuccessToast(true)
-      setTimeout(() => setShowSuccessToast(false), 3000)
-
-      setStep("otp-verification")
-    } catch (err) {
-      console.error("Error in handleContinue:", err)
-      setError("Something went wrong. Please try again.")
-    } finally {
-      setIsLoading(false)
+    if (!isValidEmail(email)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+  } else {
+    if (!phoneNumber.trim()) {
+      setError("Please enter your phone number");
+      return;
+    }
+    if (!isValidPhone(phoneNumber)) {
+      setError("Please enter a valid phone number");
+      return;
     }
   }
+
+  setIsLoading(true);
+  setError("");
+
+  try {
+
+    const response = await fetch("http://localhost:8000/api/auth/send-otp", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contact: contact,
+        invite_token: "string", 
+      }),
+    });
+
+    const result = await response.json();
+    console.log("OTP Send Result:", result);
+
+    if (result.success) {
+      setCurrentContact(contact);
+      setShowSuccessToast(true);
+      setTimeout(() => setShowSuccessToast(false), 3000);
+      setStep("otp-verification");
+    } else {
+      setError(result.message || "Failed to send OTP.");
+    }
+  } catch (err) {
+    console.error("Error sending OTP:", err);
+    setError("Something went wrong. Please try again.");
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   const handleInviteCode = async () => {
     if (!inviteCode.trim()) {
