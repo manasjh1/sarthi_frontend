@@ -302,9 +302,11 @@ export default function ChatPage() {
         return
       }
 
+      
+
       if (response && response.success) {
         await simulateThinkingAndResponse(response.sarthi_message)
-        
+        await setProgress(response.progress);
         // Check if we have a summary (conversation complete)
         const summaryItem = response.data.find(item => item.summary !== undefined)
         if (summaryItem) {
@@ -312,7 +314,9 @@ export default function ChatPage() {
           // For now, just show the summary in a message
           setTimeout(() => {
             addMessage(`Here's your reflection: ${summaryItem.summary}`, "sarthi")
+            router.push(`/api/reflections/preview/${response.reflection_id}`);
           }, 2000)
+          
         }
       }
     } catch (error) {
