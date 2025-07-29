@@ -7,6 +7,7 @@ import { SarthiButton } from "@/components/ui/sarthi-button"
 import { SarthiInput } from "@/components/ui/sarthi-input"
 import { CountrySelector } from "@/components/ui/country-selector" 
 import { validateEmail, validatePhone} from "@/lib/validators"  
+import { authFetch } from "@/lib/api"
 
 type Country = {
   name: string
@@ -32,39 +33,84 @@ export default function DeliveryMethodPage() {
 })
   const [deliveryMethod, setDeliveryMethod] = useState<"keep-private" | "send">("send")
 
-  const handleNext = () => {
-    let hasError = false
+const handleNext = async () => {
+  let hasError = false;
 
-    if (emailContact.trim()) {
-      const error = validateEmail(emailContact)
-      if (error) {
-        setEmailError(error)
-        hasError = true
-      }
-    }
-
-    if (phoneNumber.trim()) {
-      const error = validatePhone(phoneNumber)
-      if (error) {
-        setPhoneError(error)
-        hasError = true
-      }
-    }
-
-    if (deliveryMethod !== "keep-private" && !emailContact.trim() && !phoneNumber.trim()) {
-      setEmailError("Please provide at least one contact method")
-      hasError = true
-    }
-
-    if (!hasError && deliveryMethod !== "keep-private" ) {
-      // Optionally pass deliveryMethod, email, phone to confirmation
-      router.push(`/reflections/share/${id}`)
-    }
-     if (!hasError && deliveryMethod == "keep-private" ) {
-      // Optionally pass deliveryMethod, email, phone to confirmation
-      router.push(`/reflections/confirm/${id}`)
+  // Validate email
+  if (emailContact.trim()) {
+    const error = validateEmail(emailContact);
+    if (error) {
+      setEmailError(error);
+      hasError = true;
     }
   }
+
+  // Validate phone
+  if (phoneNumber.trim()) {
+    const error = validatePhone(phoneNumber);
+    if (error) {
+      setPhoneError(error);
+      hasError = true;
+    }
+  }
+
+  // Require at least one contact method if delivery is "send"
+  if (deliveryMethod !== "keep-private" && !emailContact.trim() && !phoneNumber.trim()) {
+    setEmailError("Please provide at least one contact method");
+    hasError = true;
+  }
+
+  if (hasError) return;
+
+  const reflectionId = id;
+  const payload: {
+    reflection_id: string;
+    message: string;
+    data: any[];
+  } = {
+    reflection_id: reflectionId,
+    message: "",
+    data: [],
+  };
+
+  if (emailContact.trim()) {
+    payload.data.push({ email: emailContact.trim() });
+  }
+
+  if (phoneNumber.trim()) {
+    payload.data.push({
+      phone: selectedCountry.dialCode + phoneNumber.trim(),
+    });
+  }
+
+if (deliveryMethod === "send") {
+  try {
+    await authFetch("/api/reflection", {
+      method: "POST",
+     
+      body: JSON.stringify(payload),
+    });
+  } catch (error) {
+    console.error("Error submitting delivery details:", error);
+    return;
+  }
+
+  // If ONLY email is submitted and no phone
+  if (emailContact.trim() && !phoneNumber.trim()) {
+    router.push(`/reflections/confirm/${id}?method=email`);
+  } else {
+    router.push(`/reflections/share/${id}`);
+  }
+}
+
+
+  // If delivery method is "keep-private"
+  if (deliveryMethod === "keep-private") {
+    router.push(`/reflections/confirm/${id}`);
+  }
+};
+
+
 
   return (
     <div className="h-screen bg-[#121212] flex flex-col">

@@ -1,5 +1,6 @@
 // app/api/reflections/route.ts
 import { cookies } from "next/headers"
+import { authFetch } from "@/lib/api"
 
 export async function POST(req: Request) {
   const cookieStore = await cookies()
@@ -7,7 +8,7 @@ export async function POST(req: Request) {
 
   const body = await req.json()
 
-  const res = await fetch("http://localhost:8000/api/reflection/history", {
+  const res = await authFetch("/api/reflection/history", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
