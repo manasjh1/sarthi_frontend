@@ -8,6 +8,7 @@ import { SarthiInput } from "@/components/ui/sarthi-input"
 import { CountrySelector } from "@/components/ui/country-selector"
 import { validateInviteCode, verifyOTP } from "@/app/actions/auth"
 import { SarthiIcon } from "@/components/ui/sarthi-icon"
+import { authFetch } from "@/lib/api";
 
 type AuthStep = "entry" | "invite-code" | "otp-verification" | "success" | "redirecting"
 type UserType = "new" | "existing" | null
@@ -58,18 +59,19 @@ export default function AuthPage() {
   // Test backend connection on component mount
   useEffect(() => {
     const testConnection = async () => {
-      try {
-        const response = await fetch('http://localhost:8000/health');
-        if (response.ok) {
-          const data = await response.json();
-          console.log('Backend connection successful:', data);
-        } else {
-          console.error('Backend health check failed:', response.status);
-        }
-      } catch (error) {
-        console.error('Backend connection failed:', error);
-      }
-    };
+  try {
+    const response = await authFetch("/health");
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log("Backend connection successful:", data);
+    } else {
+      console.error("Backend health check failed:", response.status);
+    }
+  } catch (error) {
+    console.error("Backend connection failed:", error);
+  }
+};
     
     testConnection();
   }, []);
@@ -101,16 +103,13 @@ const handleContinue = async () => {
 
   try {
 
-    const response = await fetch("http://localhost:8000/api/auth/send-otp", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        contact: contact,
-        invite_token: "string", 
-      }),
-    });
+  const response = await authFetch("/api/auth/send-otp", {
+  method: "POST",
+  body: JSON.stringify({
+    contact: contact,
+    invite_token: "ALPHA032",
+  }),
+});
 
     const result = await response.json();
     console.log("OTP Send Result:", result);

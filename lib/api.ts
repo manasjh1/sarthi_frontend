@@ -1,7 +1,7 @@
 // lib/api.ts
 import { getCookie } from "@/app/actions/auth"
 
-const API_BASE_URL = "http://localhost:8000"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL as string
 
 export async function authFetch(endpoint: string, options: RequestInit = {}) {
   const token = await getCookie("sarthi_session")

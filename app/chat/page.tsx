@@ -9,7 +9,7 @@ import { SarthiIcon } from "@/components/ui/sarthi-icon"
 import { SarthiThinking } from "@/components/sarthi-thinking"
 import { ArrowLeft } from "lucide-react"
 import { getCurrentUser, getAuthHeaders } from "@/app/actions/auth"
-
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL|| "http://localhost:8000"
 // Backend API integration
 interface ApiRequest {
   reflection_id: string | null;
@@ -33,7 +33,7 @@ interface ApiResponse {
 
 // API Service class
 class ApiService {
-  private baseUrl: string = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 
   async getAuthHeaders() {
     return await getAuthHeaders();
@@ -45,7 +45,7 @@ class ApiService {
     const authHeaders = await this.getAuthHeaders();
     if (!authHeaders) throw new Error('Not authenticated');
 
-    const response = await fetch(`${this.baseUrl}/api/reflection`, {
+    const response = await fetch(`${API_BASE_URL}/api/reflection`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -103,6 +103,8 @@ export default function ChatPage() {
   const [progress, setProgress] = useState({ current_step: 1, total_step: 4, workflow_completed: false })
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null)
 
+const intentParam = searchParams.get('intent');
+const feedback_type = intentParam ? parseInt(intentParam, 10) : null;
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
@@ -146,11 +148,14 @@ export default function ChatPage() {
       setIsThinking(true)
       setCurrentStep("loading")
       
-      const request = {
-        reflection_id: null,
-        message: "",
-        data: [{ start_reflection: 1 }]
-      };
+     const request = {
+  reflection_id: null,
+  message: "",
+  data: [
+    { start_reflection: 1 },
+   
+  ]
+};
       
       console.log("Sending start reflection request:", request);
       const response = await apiService.sendReflectionRequest(request)
@@ -302,9 +307,11 @@ export default function ChatPage() {
         return
       }
 
+      
+
       if (response && response.success) {
         await simulateThinkingAndResponse(response.sarthi_message)
-        
+        await setProgress(response.progress);
         // Check if we have a summary (conversation complete)
         const summaryItem = response.data.find(item => item.summary !== undefined)
         if (summaryItem) {
@@ -312,7 +319,9 @@ export default function ChatPage() {
           // For now, just show the summary in a message
           setTimeout(() => {
             addMessage(`Here's your reflection: ${summaryItem.summary}`, "sarthi")
+            router.push(`/api/reflections/preview/${response.reflection_id}`);
           }, 2000)
+          
         }
       }
     } catch (error) {
@@ -463,6 +472,7 @@ export default function ChatPage() {
 
                   return (
                     <button
+                      type="button"
                       key={category.category_no}
                       onClick={() => handleIntentSelection(category.category_no)}
                       disabled={isThinking}
