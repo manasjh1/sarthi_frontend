@@ -8,7 +8,7 @@ import { SarthiInput } from "@/components/ui/sarthi-input"
 import { ApologyIcon } from "@/components/icons/apology-icon"
 import { Heart, MessageCircle, User, Edit3, LogOut, X } from "lucide-react"
 import { getCookie } from "@/app/actions/auth"
-
+import { authFetch } from "@/lib/api"
 interface SidebarProps {
   isOpen: boolean
   onToggle: () => void
@@ -65,27 +65,46 @@ const [error, setError] = useState<string | null>(null)
 
 useEffect(() => {
   const fetchReflections = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
+      // Fetch reflections
       const res = await fetch("/api/reflections", {
         method: "POST",
         body: JSON.stringify({ data: { mode: "get_reflections" } }),
-      })
-      const json = await res.json()
+      });
+      const json = await res.json();
       if (json.success) {
-        setReflections(json.data.reflections)
+        setReflections(json.data.reflections);
       } else {
-        setError(json.message || "Failed to fetch reflections.")
+        setError(json.message || "Failed to fetch reflections.");
       }
     } catch {
-      setError("Something went wrong")
+      setError("Something went wrong");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
 
-  fetchReflections()
-}, [])
+    // Additionally fetch user's name
+    try {
+      const res = await authFetch("/api/user/me", {
+        credentials: "include",
+      });
+      const user = await res.json();
+      if (user?.name) {
+        setEditedName(user.name);
+        onUserNameChange(user.name);
+        localStorage.setItem("sarthi-user-name", user.name);
+        window.dispatchEvent(new CustomEvent("sarthi-name-updated", { detail: user.name }));
+      }
+    } catch (err) {
+      console.error("Failed to fetch user name from /api/user/me:", err);
+    }
+  };
+
+  fetchReflections();
+}, []);
+
+
 
 
 
@@ -247,7 +266,7 @@ const handleSignOut = async () => {
                   </div>
                 ) : (
                   <div className="flex items-center space-x-2">
-                    <span className="text-white/80 text-sm">{userName || "Your name"}</span>
+                    <span className="text-white/80 text-sm">{editedName || "Your name"}</span>
                     <button
                       onClick={() => setIsEditingName(true)}
                       className="p-1 hover:bg-white/10 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/20 rounded transition-colors min-h-[24px] min-w-[24px]"
@@ -322,5 +341,3 @@ const handleSignOut = async () => {
 
   
 }
-
-

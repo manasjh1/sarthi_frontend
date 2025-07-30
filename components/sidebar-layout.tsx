@@ -6,6 +6,8 @@ import { useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
 import { Sidebar } from "./sidebar"
 import { Menu } from "lucide-react"
+import { authFetch } from "@/lib/api"
+
 
 interface SidebarLayoutProps {
   children: React.ReactNode
@@ -35,12 +37,27 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
   }, [])
 
   // Load user name from localStorage
-  useEffect(() => {
-    const savedName = localStorage.getItem("sarthi-user-name")
-    if (savedName) {
-      setUserName(savedName)
+// Load user name from API or fallback to localStorage
+useEffect(() => {
+  const fetchUserName = async () => {
+    try {
+      const res = await authFetch("/api/user/me")
+      const json = await res.json()
+
+      if (json?.name) {
+        setUserName(json.name)
+        localStorage.setItem("sarthi-user-name", json.name)
+        return
+      }
+    } catch (err) {
+      console.error("Failed to fetch user name from /api/user/me:", err)
     }
-  }, [])
+
+  }
+
+  fetchUserName()
+}, [])
+
 
   const handleUserNameChange = (name: string) => {
     setUserName(name)

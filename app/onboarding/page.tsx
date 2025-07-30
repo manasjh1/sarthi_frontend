@@ -7,6 +7,7 @@ import { SarthiButton } from "@/components/ui/sarthi-button"
 import { SarthiInput } from "@/components/ui/sarthi-input"
 import { ApologyIcon } from "@/components/icons/apology-icon"
 import { Heart, MessageCircle, User, UserX } from "lucide-react"
+import { authFetch } from "@/lib/api"
 
 type OnboardingStep = "success" | "name-entry" | "space-setup" | "reflection-prompt" | "complete"
 
@@ -21,15 +22,30 @@ export default function OnboardingPage() {
   const [isNavigating, setIsNavigating] = useState(false)
   const [showSuccessToast, setShowSuccessToast] = useState(false)
 
-  // Auto-progress from success to name entry
-  useEffect(() => {
-    if (step === "success") {
-      const timer = setTimeout(() => {
-        setStep("name-entry")
-      }, 2000)
-      return () => clearTimeout(timer)
+useEffect(() => {
+  const fetchUser = async () => {
+    try {
+      const res = await authFetch("/api/user/me");
+      const json = await res.json();
+     
+      if (json?.name) {
+           setTimeout(() => {
+      // Navigate to chat with the selected reflection type
+      router.push(`/chat`)
+    }, 0)
+      } else {
+        setStep("name-entry");
+      }
+    } catch (err) {
+      console.error("Error fetching user:", err);
+      setStep("name-entry"); // fallback in case of error
     }
-  }, [step])
+  };
+
+  fetchUser();
+}, []);
+
+
 
   // Space setup progress animation
   useEffect(() => {
@@ -61,44 +77,67 @@ export default function OnboardingPage() {
     return ""
   }
 
-  const handleNameSubmit = () => {
-    if (isAnonymous) {
-      // Update sidebar with anonymous
-      if (typeof window !== "undefined") {
-        localStorage.setItem("sarthi-user-name", "Anonymous")
-        // Trigger sidebar update
-        window.dispatchEvent(new CustomEvent("sarthi-name-updated", { detail: "Anonymous" }))
-      }
-
-      setShowSuccessToast(true)
-      setTimeout(() => setShowSuccessToast(false), 3000)
-
-      setStep("space-setup")
-      return
-    }
-
-    const error = validateName(name.trim())
-    if (error) {
-      setNameError(error)
-      return
-    }
-
-    setNameError("")
-
-    // Update sidebar with the entered name
+ const handleNameSubmit = async () => {
+  if (isAnonymous) {
+    // Save anonymous name in local storage
     if (typeof window !== "undefined") {
-      localStorage.setItem("sarthi-user-name", name.trim())
-      // Trigger sidebar update
-      window.dispatchEvent(new CustomEvent("sarthi-name-updated", { detail: name.trim() }))
+      localStorage.setItem("sarthi-user-name", "Anonymous")
+      window.dispatchEvent(new CustomEvent("sarthi-name-updated", { detail: "Anonymous" }))
     }
 
-    // Show success toast
-    setShowSuccessToast(true)
-    setTimeout(() => setShowSuccessToast(false), 3000)
+    // Send onboarding request for anonymous user
+    try {
+      await authFetch('/api/user/onboarding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          is_anonymous: true,
+          name: "Anonymous"
+        })
+      })
+    } catch (err) {
+      console.error("Onboarding error:", err)
+    }
 
-    console.log("Saving name:", name.trim())
+    setShowSuccessToast(true)
+    setTimeout(() => setShowSuccessToast(false), 0)
     setStep("space-setup")
+    return
   }
+
+  const error = validateName(name.trim())
+  if (error) {
+    setNameError(error)
+    return
+  }
+
+  setNameError("")
+
+  if (typeof window !== "undefined") {
+    localStorage.setItem("sarthi-user-name", name.trim())
+    window.dispatchEvent(new CustomEvent("sarthi-name-updated", { detail: name.trim() }))
+  }
+
+  // Send onboarding request for named user
+  try {
+    await authFetch('/api/user/onboarding', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        is_anonymous: false,
+        name: name.trim()
+      })
+    })
+  } catch (err) {
+    console.error("Onboarding error:", err)
+  }
+
+  setShowSuccessToast(true)
+  setTimeout(() => setShowSuccessToast(false), 0)
+  console.log("Saving name:", name.trim())
+  setStep("space-setup")
+}
+
 
   const handleReflectionSelect = (reflectionType: string) => {
     setSelectedReflection(reflectionType)
@@ -108,12 +147,28 @@ export default function OnboardingPage() {
     setTimeout(() => {
       // Navigate to chat with the selected reflection type
       router.push(`/chat?intent=${reflectionType}`)
-    }, 300)
+    }, 0)
   }
 
-  const handleContinueFromSuccess = () => {
-    setStep("name-entry")
+ const handleContinueFromSuccess = async () => {
+  try {
+    const res = await authFetch("/api/user/me");
+    const json = await res.json();
+    console.log("handleContinueFromSuccess Response:", json);
+
+    if (json?.success && json?.data?.name) {
+      setStep("space-setup");
+    } else {
+      setStep("name-entry");
+    }
+  } catch (err) {
+    console.error("Error in handleContinueFromSuccess:", err);
+    setStep("name-entry"); // fallback in case of error
   }
+};
+
+
+
 
   // STEP 1: Success Message
   if (step === "success") {

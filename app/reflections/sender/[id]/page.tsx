@@ -1,17 +1,36 @@
 'use client'
 
 import { useParams, useRouter } from "next/navigation"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ArrowLeft } from "lucide-react"
 import { SarthiButton } from "@/components/ui/sarthi-button"
 import { SarthiInput } from "@/components/ui/sarthi-input"
+import { authFetch } from "@/lib/api"
 
 export default function SenderSelectionPage() {
   const router = useRouter()
   const { id } = useParams() as { id: string }
 
   const [senderName, setSenderName] = useState("")
-  const userName = "You" // Replace with actual user name logic if available
+  const [userName, setUserName] = useState("")
+
+  useEffect(() => {
+    const fetchName = async () => {
+      try {
+        const res = await authFetch("/api/user/me")
+        const json = await res.json()
+
+        if (json?.name) {
+          setUserName(json.name)
+          setSenderName(json.name) // Set senderName by default
+        }
+      } catch (err) {
+        console.error("Failed to fetch user name:", err)
+      }
+    }
+
+    fetchName()
+  }, [])
 
   const handleSenderSelection = (mode: "name" | "anonymous", name?: string) => {
     console.log("Reflection ID:", id)
@@ -19,7 +38,7 @@ export default function SenderSelectionPage() {
     console.log("Sender Name:", name || "Anonymous")
 
     // Save to state / backend / route forward
-     router.push(`/reflections/delivery/${id}`)
+    router.push(`/reflections/delivery/${id}`)
   }
 
   return (
@@ -63,13 +82,13 @@ export default function SenderSelectionPage() {
                   <div className="space-y-3">
                     <div className="flex items-center gap-3">
                       <SarthiInput
-                        value={senderName || userName || ""}
+                        value={senderName}
                         onChange={(e) => setSenderName(e.target.value)}
                         placeholder="Your name"
                         className="flex-1"
                       />
                       <button
-                        onClick={() => setSenderName(userName || "")}
+                        onClick={() => setSenderName(userName)}
                         className="text-xs text-white/60 hover:text-white/80 transition-colors px-2"
                       >
                         Reset
@@ -77,8 +96,8 @@ export default function SenderSelectionPage() {
                     </div>
 
                     <SarthiButton
-                      onClick={() => handleSenderSelection("name", senderName || userName || "Your name")}
-                      disabled={!senderName?.trim() && !userName?.trim()}
+                      onClick={() => handleSenderSelection("name", senderName || userName)}
+                      disabled={!senderName?.trim()}
                       className="w-full"
                     >
                       Continue with this name
