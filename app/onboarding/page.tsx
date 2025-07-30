@@ -27,7 +27,7 @@ useEffect(() => {
     try {
       const res = await authFetch("/api/user/me");
       const json = await res.json();
-     
+     console.log("Fetched user:", json.name);
       if (json?.name) {
            setTimeout(() => {
       // Navigate to chat with the selected reflection type
@@ -156,7 +156,7 @@ useEffect(() => {
     const json = await res.json();
     console.log("handleContinueFromSuccess Response:", json);
 
-    if (json?.success && json?.data?.name) {
+    if (json.name) {
       setStep("space-setup");
     } else {
       setStep("name-entry");
