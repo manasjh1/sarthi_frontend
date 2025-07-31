@@ -9,7 +9,7 @@ import { SarthiIcon } from "@/components/ui/sarthi-icon"
 import { SarthiThinking } from "@/components/sarthi-thinking"
 import { ArrowLeft } from "lucide-react"
 import { getCurrentUser, getAuthHeaders } from "@/app/actions/auth"
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL|| "http://localhost:8000"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"
 // Backend API integration
 interface ApiRequest {
   reflection_id: string | null;
@@ -41,7 +41,7 @@ class ApiService {
 
   async sendReflectionRequest(request: ApiRequest): Promise<ApiResponse> {
     console.log("Sending request to backend:", request);
-    
+
     const authHeaders = await this.getAuthHeaders();
     if (!authHeaders) throw new Error('Not authenticated');
 
@@ -99,12 +99,14 @@ export default function ChatPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
   const [reflectionId, setReflectionId] = useState<string | null>(null)
-  const [categories, setCategories] = useState<Array<{category_no: number, category_name: string}>>([])
+  const [categories, setCategories] = useState<Array<{ category_no: number, category_name: string }>>([])
   const [progress, setProgress] = useState({ current_step: 1, total_step: 4, workflow_completed: false })
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null)
+ const inputRef = useRef<HTMLInputElement>(null)
 
-const intentParam = searchParams.get('intent');
-const feedback_type = intentParam ? parseInt(intentParam, 10) : null;
+
+  const intentParam = searchParams.get('intent');
+  const feedback_type = intentParam ? parseInt(intentParam, 10) : null;
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
@@ -125,9 +127,9 @@ const feedback_type = intentParam ? parseInt(intentParam, 10) : null;
       console.log("Checking authentication...");
       const authenticated = await apiService.isAuthenticated()
       console.log("Authentication result:", authenticated);
-      
+
       setIsAuthenticated(authenticated)
-      
+
       if (authenticated) {
         console.log("User is authenticated, starting reflection...");
         startNewReflection()
@@ -147,16 +149,16 @@ const feedback_type = intentParam ? parseInt(intentParam, 10) : null;
       console.log("Starting new reflection...");
       setIsThinking(true)
       setCurrentStep("loading")
-      
-     const request = {
-  reflection_id: null,
-  message: "",
-  data: [
-    { start_reflection: 1 },
-   
-  ]
-};
-      
+
+      const request = {
+        reflection_id: null,
+        message: "",
+        data: [
+          { start_reflection: 1 },
+
+        ]
+      };
+
       console.log("Sending start reflection request:", request);
       const response = await apiService.sendReflectionRequest(request)
       console.log("Got response:", response);
@@ -255,13 +257,13 @@ const feedback_type = intentParam ? parseInt(intentParam, 10) : null;
 
     try {
       setIsThinking(true)
-      
+
       const request = {
         reflection_id: reflectionId,
         message: "",
         data: [{ category_no: categoryNo }]
       };
-      
+
       console.log("Sending category selection:", request);
       const response = await apiService.sendReflectionRequest(request)
       console.log("Category selection response:", response);
@@ -270,7 +272,7 @@ const feedback_type = intentParam ? parseInt(intentParam, 10) : null;
         setCurrentStep("distress-detected")
         return
       }
-      
+
       if (response && response.success) {
         await simulateThinkingAndResponse(response.sarthi_message)
         setCurrentStep("conversation")
@@ -291,13 +293,13 @@ const feedback_type = intentParam ? parseInt(intentParam, 10) : null;
 
     try {
       setIsThinking(true)
-      
+
       const request = {
         reflection_id: reflectionId,
         message: inputMessage,
         data: []
       };
-      
+
       console.log("Sending chat request:", request);
       const response = await apiService.sendReflectionRequest(request)
       console.log("Chat response:", response);
@@ -307,7 +309,7 @@ const feedback_type = intentParam ? parseInt(intentParam, 10) : null;
         return
       }
 
-      
+
 
       if (response && response.success) {
         await simulateThinkingAndResponse(response.sarthi_message)
@@ -321,7 +323,7 @@ const feedback_type = intentParam ? parseInt(intentParam, 10) : null;
             addMessage(`Here's your reflection: ${summaryItem.summary}`, "sarthi")
             router.push(`/api/reflections/preview/${response.reflection_id}`);
           }, 2000)
-          
+
         }
       }
     } catch (error) {
@@ -349,11 +351,11 @@ const feedback_type = intentParam ? parseInt(intentParam, 10) : null;
                 {currentStep === "auth-check" ? "Checking your session" : "Preparing your space"}
               </p>
             </div>
-            
+
             {apiError && (
               <div className="text-red-400 text-sm text-center bg-red-500/10 border border-red-500/20 rounded-lg p-3">
                 {apiError}
-                <button 
+                <button
                   onClick={() => {
                     setApiError(null)
                     checkAuthentication()
@@ -407,7 +409,7 @@ const feedback_type = intentParam ? parseInt(intentParam, 10) : null;
               >
                 Continue with Sarthi
               </SarthiButton>
-              
+
               <button
                 onClick={() => {
                   router.push('/auth')
@@ -448,14 +450,14 @@ const feedback_type = intentParam ? parseInt(intentParam, 10) : null;
                 {categories.map((category) => {
                   const iconMap: Record<number, any> = {
                     1: <svg className="h-6 w-6 text-white/80" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                        <path d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 0 1-.923 1.785A5.969 5.969 0 0 0 6 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337Z" />
-                      </svg>,
+                      <path d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 0 1-.923 1.785A5.969 5.969 0 0 0 6 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337Z" />
+                    </svg>,
                     2: <svg className="h-6 w-6 text-white/80" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                        <path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
-                      </svg>,
+                      <path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
+                    </svg>,
                     3: <svg className="h-6 w-6 text-white/80" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                        <path d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.745 3.745 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" />
-                      </svg>
+                      <path d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.745 3.745 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" />
+                    </svg>
                   }
 
                   const titleMap: Record<number, string> = {
@@ -476,9 +478,8 @@ const feedback_type = intentParam ? parseInt(intentParam, 10) : null;
                       key={category.category_no}
                       onClick={() => handleIntentSelection(category.category_no)}
                       disabled={isThinking}
-                      className={`w-full p-6 rounded-3xl border border-white/10 hover:border-white/20 hover:bg-white/5 focus:border-white/20 focus:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/20 transition-all text-left group min-h-[44px] ${
-                        isThinking ? "opacity-50 cursor-not-allowed" : ""
-                      }`}
+                      className={`w-full p-6 rounded-3xl border border-white/10 hover:border-white/20 hover:bg-white/5 focus:border-white/20 focus:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/20 transition-all text-left group min-h-[44px] ${isThinking ? "opacity-50 cursor-not-allowed" : ""
+                        }`}
                     >
                       <div className="flex items-start gap-4">
                         <div className="flex-shrink-0 w-12 h-12 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/15 transition-colors">
@@ -517,8 +518,8 @@ const feedback_type = intentParam ? parseInt(intentParam, 10) : null;
       {/* Header */}
       <div className="border-b border-white/10 p-4">
         <div className="flex items-center gap-3">
-          <button 
-            onClick={() => router.push('/dashboard')} 
+          <button
+            onClick={() => router.push('/dashboard')}
             className="p-2 hover:bg-white/10 rounded-lg transition-colors"
           >
             <ArrowLeft className="h-5 w-5 text-white/60" />
@@ -552,11 +553,10 @@ const feedback_type = intentParam ? parseInt(intentParam, 10) : null;
 
                 <div className={`max-w-[85%] ${message.role === "user" ? "flex flex-col items-end" : ""}`}>
                   <div
-                    className={`px-6 py-4 rounded-3xl ${
-                      message.role === "user" 
-                        ? "bg-[#1e1e1e] border border-[#2a2a2a]" 
-                        : "bg-[#2a2a2a] border border-[#3a3a3a]"
-                    }`}
+                    className={`px-6 py-4 rounded-3xl ${message.role === "user"
+                      ? "bg-[#1e1e1e] border border-[#2a2a2a]"
+                      : "bg-[#2a2a2a] border border-[#3a3a3a]"
+                      }`}
                   >
                     <p className="text-white leading-relaxed">
                       {message.content}
@@ -596,6 +596,7 @@ const feedback_type = intentParam ? parseInt(intentParam, 10) : null;
           <div className="max-w-4xl mx-auto">
             <div className="flex gap-3">
               <SarthiInput
+                ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Share what's on your mind..."
@@ -605,6 +606,7 @@ const feedback_type = intentParam ? parseInt(intentParam, 10) : null;
                     e.preventDefault()
                     handleChatInput(input)
                     setInput("")
+                    inputRef.current?.focus() 
                   }
                 }}
                 disabled={isThinking}
@@ -613,6 +615,7 @@ const feedback_type = intentParam ? parseInt(intentParam, 10) : null;
                 onClick={() => {
                   handleChatInput(input)
                   setInput("")
+                  inputRef.current?.focus() 
                 }}
                 disabled={!input.trim() || isThinking}
               >
