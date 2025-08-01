@@ -18,7 +18,7 @@ export default function ReflectionConfirmationPage() {
 
    const timer = setTimeout(() => {
       router.push(`/reflections/closure/${id}`)
-    }, 3000)
+    }, 100)
 
    return () => clearTimeout(timer)
   }, [searchParams, router, id])

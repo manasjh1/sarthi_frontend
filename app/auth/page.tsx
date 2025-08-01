@@ -117,7 +117,7 @@ const handleContinue = async () => {
     if (result.success) {
       setCurrentContact(contact);
       setShowSuccessToast(true);
-      setTimeout(() => setShowSuccessToast(false), 500);
+      setTimeout(() => setShowSuccessToast(false), 100);
       setStep("otp-verification");
     } else {
       setError(result.message || "Failed to send OTP.");
@@ -151,7 +151,7 @@ const handleContinue = async () => {
           setStep("entry")
           setInviteCode("")
           setError("")
-        }, 500)
+        }, 100)
       } else {
         setError(result.message || "That code doesn't seem to be valid. Please check it and try again.")
       }
@@ -206,7 +206,7 @@ const handleContinue = async () => {
               return prev + 2
             })
           }, 30)
-        }, 500)
+        }, 100)
       } else {
         setError(result.message || "The code doesn't match. Please check and try again.")
       }
@@ -225,7 +225,7 @@ const handleContinue = async () => {
       
       setError("")
       setShowSuccessToast(true)
-      setTimeout(() => setShowSuccessToast(false), 500)
+      setTimeout(() => setShowSuccessToast(false), 100)
     } catch (err) {
       console.error("Error in handleResendOTP:", err)
       setError("Failed to resend code. Please try again.")
