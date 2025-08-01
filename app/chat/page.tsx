@@ -214,8 +214,8 @@ export default function ChatPage() {
 
   const simulateThinkingAndResponse = async (
     content: string,
-    thinkingDuration = 1500,
-    streamSpeed = 25,
+    thinkingDuration = 0,
+    streamSpeed = 5,
   ) => {
     setIsThinking(true)
     await new Promise((resolve) => setTimeout(resolve, thinkingDuration))
@@ -322,7 +322,7 @@ export default function ChatPage() {
           setTimeout(() => {
             addMessage(`Here's your reflection: ${summaryItem.summary}`, "sarthi")
             router.push(`/api/reflections/preview/${response.reflection_id}`);
-          }, 2000)
+          }, 100)
 
         }
       }

@@ -14,7 +14,7 @@ export default function JournalPage() {
   const handleSave = () => {
     // In real app, save to database
     setIsSaved(true)
-    setTimeout(() => setIsSaved(false), 3000)
+    setTimeout(() => setIsSaved(false), 100)
   }
 
   return (

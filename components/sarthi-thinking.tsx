@@ -14,7 +14,7 @@ export function SarthiThinking({
   emotion = "neutral",
   thinkingText = "thinking",
   onComplete,
-  duration = 2000,
+  duration = 100,
 }: SarthiThinkingProps) {
   const [currentThought, setCurrentThought] = useState("")
   const [dotCount, setDotCount] = useState(0)
@@ -33,12 +33,12 @@ export function SarthiThinking({
     const phraseInterval = setInterval(() => {
       const randomPhrase = thinkingPhrases[Math.floor(Math.random() * thinkingPhrases.length)]
       setCurrentThought(randomPhrase)
-    }, 800)
+    }, 100)
 
     // Animate dots
     const dotInterval = setInterval(() => {
       setDotCount((prev) => (prev + 1) % 4)
-    }, 400)
+    }, 100)
 
     // Complete after duration
     const completeTimer = setTimeout(() => {

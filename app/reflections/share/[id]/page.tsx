@@ -31,7 +31,7 @@ export default function ShareFeelingPage() {
       case 'copy':
         navigator.clipboard.writeText(fullMessage)
         setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
+        setTimeout(() => setCopied(false), 100)
         break
     }
     router.push(`/reflections/closure/post?id=${id}`)
