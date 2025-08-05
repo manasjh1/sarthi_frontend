@@ -31,9 +31,9 @@ export default function ReflectionPage() {
             },
           }),
         })
-
+        
         const json = await res.json()
-
+          console.log("History Response:", json)
         if (json.success) {
           setReflection(json.data)
         } else {
@@ -162,10 +162,7 @@ export default function ReflectionPage() {
                 <p className="text-white/60">Type</p>
                 <p className="text-white">{getReflectionLabel(reflection.type)}</p>
               </div>
-              <div>
-                <p className="text-white/60">Stage</p>
-                <p className="text-white">{reflection.stage}</p>
-              </div>
+             
               <div>
                 <p className="text-white/60">Category</p>
                 <p className="text-white">{reflection.category}</p>

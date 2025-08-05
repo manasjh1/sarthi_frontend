@@ -25,14 +25,16 @@ export default function OnboardingPage() {
 useEffect(() => {
   const fetchUser = async () => {
     try {
-      const res = await authFetch("/api/user/me");
+       const res = await authFetch("/api/user/me", {
+          credentials: "include",
+        });
       const json = await res.json();
      console.log("Fetched user:", json.name);
       if (json?.name) {
            setTimeout(() => {
       // Navigate to chat with the selected reflection type
       router.push(`/chat`)
-    }, 0)
+    }, 100)
       } else {
         setStep("name-entry");
       }
