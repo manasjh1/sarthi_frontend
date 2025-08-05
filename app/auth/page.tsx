@@ -198,7 +198,7 @@ const handleContinue = async () => {
               if (prev >= 100) {
                 clearInterval(progressInterval)
                 // Redirect based on user type
-                const redirectTo = result.redirectTo || (result.isNewUser ? "/onboarding" : "/chat")
+                const redirectTo ="/onboarding";
                 console.log("Redirecting to:", redirectTo)
                 router.push(redirectTo)
                 return 100
@@ -218,21 +218,43 @@ const handleContinue = async () => {
     }
   }
 
-  const handleResendOTP = async () => {
-    setIsLoading(true)
-    try {
-      console.log("Simulating OTP resend for:", currentContact)
-      
-      setError("")
-      setShowSuccessToast(true)
-      setTimeout(() => setShowSuccessToast(false), 100)
-    } catch (err) {
-      console.error("Error in handleResendOTP:", err)
-      setError("Failed to resend code. Please try again.")
-    } finally {
-      setIsLoading(false)
-    }
+const handleResendOTP = async () => {
+  if (!currentContact) {
+    setError("Contact information missing.");
+    return;
   }
+
+  setIsLoading(true);
+  setError("");
+
+  try {
+    console.log("Resending OTP to:", currentContact);
+
+    const response = await authFetch("/api/auth/send-otp", {
+      method: "POST",
+      body: JSON.stringify({
+        contact: currentContact,
+        invite_token: inviteToken || 'string',
+      }),
+    });
+
+    const result = await response.json();
+    console.log("Resend OTP result:", result);
+
+    if (result.success) {
+      setShowSuccessToast(true);
+      setTimeout(() => setShowSuccessToast(false), 100);
+    } else {
+      setError(result.message || "Failed to resend OTP.");
+    }
+  } catch (err) {
+    console.error("Error in handleResendOTP:", err);
+    setError("Failed to resend code. Please try again.");
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   const resetToEntry = () => {
     setStep("entry")
