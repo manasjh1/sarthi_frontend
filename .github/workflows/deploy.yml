@@ -1,4 +1,4 @@
-name: Deploy Frontend to EC2
+name: Frontend Deployment
 
 on:
   push:
@@ -7,42 +7,44 @@ on:
 
 jobs:
   deploy:
-    name: Deploy to EC2
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.7.0
-        with:
-          ssh-private-key: ${{ secrets.FRONTEND_SSH_KEY }}
+      - name: Setup SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.FRONTEND_DEPLOY_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
       - name: Deploy via SSH
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.FRONTEND_EC2_USER }}@${{ secrets.FRONTEND_EC2_HOST }} << 'EOSSH'
-            set -e
-
-            # Clone or pull latest changes
-            if [ ! -d ~/sarthi_frontend ]; then
-              git clone https://github.com/manasjh1/sarthi_frontend.git ~/sarthi_frontend
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOSSH'
+            if [ ! -d "/opt/sarthi/sarthi_frontend/.git" ]; then
+              git clone git@github.com:manasjh1/sarthi_frontend.git /opt/sarthi/sarthi_frontend
+            else
+              cd /opt/sarthi/sarthi_frontend
+              git reset --hard
+              git pull origin main
             fi
 
-            cd ~/sarthi_frontend
-            git pull origin main
+            cd /opt/sarthi/sarthi_frontend
 
-            # Install dependencies
+            if ! command -v npm &> /dev/null; then
+              curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+              sudo apt-get install -y nodejs
+            fi
+
             npm install
-
-            # Build project
             npm run build
 
-            # Start or restart with PM2
             if ! command -v pm2 &> /dev/null; then
-              npm install -g pm2
+              sudo npm install -g pm2
             fi
 
             pm2 start npm --name sarthi-frontend -- run start || pm2 restart sarthi-frontend
             pm2 save
-          EOSSH
+EOSSH
