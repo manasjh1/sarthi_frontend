@@ -41,11 +41,20 @@ jobs:
             fi
 
             echo "🔄 Cloning/Updating frontend repo..."
-            if [ ! -d /opt/sarthi/sarthi_frontend ]; then
-              git clone https://github.com/manasjh1/sarthi_frontend.git /opt/sarthi/sarthi_frontend
-            else
+            if [ -d /opt/sarthi/sarthi_frontend ]; then
+              echo "Directory exists, updating..."
               cd /opt/sarthi/sarthi_frontend
-              git pull origin main
+              if [ -d .git ]; then
+                git pull origin main
+              else
+                echo "Not a git repo, removing and cloning fresh..."
+                cd /opt/sarthi
+                rm -rf sarthi_frontend
+                git clone https://github.com/manasjh1/sarthi_frontend.git sarthi_frontend
+              fi
+            else
+              echo "Directory does not exist, cloning..."
+              git clone https://github.com/manasjh1/sarthi_frontend.git /opt/sarthi/sarthi_frontend
             fi
 
             cd /opt/sarthi/sarthi_frontend
