@@ -13,23 +13,18 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.7.0
-        with:
-          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
-
-      - name: Add host to known hosts
+      - name: Setup SSH Key
         run: |
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+          mkdir -p ~/.ssh
+          echo "${{ secrets.FRONTEND_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.FRONTEND_EC2_HOST }} >> ~/.ssh/known_hosts
 
       - name: Deploy Frontend to EC2
-        env:
-          HOST: ${{ secrets.EC2_HOST }}
-          USER: ubuntu
         run: |
-          ssh $USER@$HOST '
+          ssh -i ~/.ssh/id_rsa ${{ secrets.FRONTEND_EC2_USER }}@${{ secrets.FRONTEND_EC2_HOST }} '
             set -e
-
+            
             echo "📁 Setting up frontend directory..."
             sudo mkdir -p /opt/sarthi
             sudo chown -R ubuntu:ubuntu /opt/sarthi
@@ -56,7 +51,7 @@ jobs:
             cd /opt/sarthi/sarthi_frontend
 
             echo "📦 Installing dependencies..."
-            npm ci
+            npm install
 
             echo "🏗️  Building application..."
             npm run build
@@ -65,13 +60,10 @@ jobs:
             pm2 stop sarthi-frontend 2>/dev/null || true
             pm2 start npm --name sarthi-frontend -- run start
             pm2 save
-            pm2 startup systemd -u ubuntu --hp /home/ubuntu || true
 
             echo "✅ Frontend deployment completed!"
           '
 
       - name: Verify Deployment
         run: |
-          echo "🔍 Verifying deployment..."
-          sleep 10
-          curl -f http://${{ secrets.EC2_HOST }}:3000 || echo "⚠️ Frontend might take a moment to start"
+          echo "🔍 Deployment finished. Frontend should be available at http://${{ secrets.FRONTEND_EC2_HOST }}:3000"
