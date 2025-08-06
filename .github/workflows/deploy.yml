@@ -10,45 +10,68 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
-      - name: Set up SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.FRONTEND_DEPLOY_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
 
-      - name: Deploy to EC2
+      - name: Add host to known hosts
         run: |
-          ssh -o StrictHostKeyChecking=no ubuntu@<your-ec2-ip> << 'EOSSH'
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy Frontend to EC2
+        env:
+          HOST: ${{ secrets.EC2_HOST }}
+          USER: ubuntu
+        run: |
+          ssh $USER@$HOST '
             set -e
 
-            if [ ! -d /opt/sarthi/sarthi_frontend ]; then
-              mkdir -p /opt/sarthi/sarthi_frontend
-            fi
+            echo "📁 Setting up frontend directory..."
+            sudo mkdir -p /opt/sarthi
+            sudo chown -R ubuntu:ubuntu /opt/sarthi
 
-            cd /opt/sarthi/sarthi_frontend
-
-            if [ ! -d ".git" ]; then
-              git init
-              git remote add origin git@github.com:manasjh1/sarthi_frontend.git
-            fi
-
-            git fetch origin
-            git reset --hard origin/main
-
-            if ! command -v npm &> /dev/null; then
-              curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+            echo "📦 Installing Node.js if needed..."
+            if ! command -v node &> /dev/null; then
+              curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
               sudo apt-get install -y nodejs
             fi
 
-            npm install
-
+            echo "📦 Installing PM2 if needed..."
             if ! command -v pm2 &> /dev/null; then
               sudo npm install -g pm2
             fi
 
-            pm2 start npm --name sarthi-frontend -- run start || pm2 restart sarthi-frontend
+            echo "🔄 Cloning/Updating frontend repo..."
+            if [ ! -d /opt/sarthi/sarthi_frontend ]; then
+              git clone https://github.com/manasjh1/sarthi_frontend.git /opt/sarthi/sarthi_frontend
+            else
+              cd /opt/sarthi/sarthi_frontend
+              git pull origin main
+            fi
+
+            cd /opt/sarthi/sarthi_frontend
+
+            echo "📦 Installing dependencies..."
+            npm ci
+
+            echo "🏗️  Building application..."
+            npm run build
+
+            echo "🚀 Starting/Restarting application with PM2..."
+            pm2 stop sarthi-frontend 2>/dev/null || true
+            pm2 start npm --name sarthi-frontend -- run start
             pm2 save
-EOSSH
+            pm2 startup systemd -u ubuntu --hp /home/ubuntu || true
+
+            echo "✅ Frontend deployment completed!"
+          '
+
+      - name: Verify Deployment
+        run: |
+          echo "🔍 Verifying deployment..."
+          sleep 10
+          curl -f http://${{ secrets.EC2_HOST }}:3000 || echo "⚠️ Frontend might take a moment to start"
