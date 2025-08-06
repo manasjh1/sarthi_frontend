@@ -1,4 +1,4 @@
-name: Frontend Deployment
+name: Deploy Frontend to EC2
 
 on:
   push:
@@ -10,36 +10,40 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+      - name: Checkout Repo
+        uses: actions/checkout@v4
 
-      - name: Setup SSH Key
+      - name: Set up SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.FRONTEND_DEPLOY_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Deploy via SSH
+      - name: Deploy to EC2
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOSSH'
-            if [ ! -d "/opt/sarthi/sarthi_frontend/.git" ]; then
-              git clone git@github.com:manasjh1/sarthi_frontend.git /opt/sarthi/sarthi_frontend
-            else
-              cd /opt/sarthi/sarthi_frontend
-              git reset --hard
-              git pull origin main
+          ssh -o StrictHostKeyChecking=no ubuntu@<your-ec2-ip> << 'EOSSH'
+            set -e
+
+            if [ ! -d /opt/sarthi/sarthi_frontend ]; then
+              mkdir -p /opt/sarthi/sarthi_frontend
             fi
 
             cd /opt/sarthi/sarthi_frontend
 
+            if [ ! -d ".git" ]; then
+              git init
+              git remote add origin git@github.com:manasjh1/sarthi_frontend.git
+            fi
+
+            git fetch origin
+            git reset --hard origin/main
+
             if ! command -v npm &> /dev/null; then
-              curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+              curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
               sudo apt-get install -y nodejs
             fi
 
             npm install
-            npm run build
 
             if ! command -v pm2 &> /dev/null; then
               sudo npm install -g pm2
