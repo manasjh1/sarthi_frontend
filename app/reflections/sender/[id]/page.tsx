@@ -47,14 +47,12 @@ export default function SenderSelectionPage() {
         <div className="flex items-center justify-between max-w-4xl mx-auto">
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-2 text-white/60 hover:text-white transition-colors"
+            className="hidden md:flex items-center gap-2 text-white/60 hover:text-white transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             <span>Back</span>
           </button>
-          <div className="flex-1 text-center">
-            <h1 className="text-lg font-normal text-white/90">How would you like to sign this?</h1>
-          </div>
+         
           <div className="w-20"></div>
         </div>
       </header>

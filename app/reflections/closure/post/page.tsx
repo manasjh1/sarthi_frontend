@@ -10,7 +10,7 @@ export default function PostReflectionPage() {
 
   const handleRestart = () => {
     localStorage.removeItem('sarthi-reflection') // Optional: clean up local state if stored
-    router.push('/reflections') // or your actual start route
+    router.push("/onboarding")
   }
 
   return (

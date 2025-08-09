@@ -199,9 +199,10 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
 
       {/* Sidebar */}
       <div
-        className={`fixed left-0 top-0 h-full w-80 bg-[#1a1a1a] border-r border-white/10 transform transition-transform duration-300 ease-in-out z-50 ${isOpen ? "translate-x-0" : "-translate-x-full"
+        className={`fixed left-0 top-0 h-[100dvh] md:h-screen w-80 bg-[#1a1a1a] border-r border-white/10 transform transition-transform duration-300 ease-in-out z-50 ${isOpen ? "translate-x-0" : "-translate-x-full"
           } md:relative md:translate-x-0 ${isOpen ? "md:block" : "md:hidden"}`}
       >
+
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="p-6 border-b border-white/10">
