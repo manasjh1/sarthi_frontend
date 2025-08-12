@@ -178,36 +178,8 @@ export default function ReflectionPage() {
             </div>
           </div>
 
-          {/* Conversation History */}
-          <div className="space-y-6">
-            <h3 className="text-lg font-medium text-white">Conversation history</h3>
-            <div className="space-y-6">
-              {reflection.messages?.map((message: any, index: number) => (
-                <div
-                  key={index}
-                  className={`flex ${message.sender === "user" ? "justify-end" : "items-start gap-4"}`}
-                >
-                  {message.sender === "sarthi" && (
-                    <div className="mt-1">
-                      <SarthiOrb size="sm" />
-                    </div>
-                  )}
-                  <div className={`max-w-[85%] ${message.sender === "user" ? "flex flex-col items-end" : ""}`}>
-                    <div
-                      className={`px-6 py-4 rounded-3xl ${
-                        message.sender === "user"
-                          ? "bg-[#1e1e1e] border border-[#2a2a2a]"
-                          : "bg-[#2a2a2a] border border-[#3a3a3a]"
-                      }`}
-                    >
-                      <p className="text-white leading-relaxed">{message.content}</p>
-                    </div>
-                    <div className="mt-2 text-xs text-white/40">{formatDate(message.timestamp)}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+  
+       
 
           {/* Action */}
           <div className="flex justify-center pt-8 pb-8">

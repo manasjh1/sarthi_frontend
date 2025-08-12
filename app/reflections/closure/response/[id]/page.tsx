@@ -36,29 +36,33 @@ export default function ClosureResponsePage() {
 
   return (
     <div className="min-h-screen bg-[#121212] flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-2xl space-y-8 text-center">
-        <div className="space-y-4">
-          <div className="w-16 h-16 mx-auto mb-6">
+      {/* Container width adjusted for mobile */}
+      <div className="w-full max-w-xl md:max-w-2xl space-y-6 md:space-y-8 text-center">
+        <div className="space-y-3 md:space-y-4">
+          {/* SarthiIcon size adjusted for mobile */}
+          <div className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-4 md:mb-6">
             <SarthiIcon size="lg" />
           </div>
-          <h1 className="text-3xl font-light text-white">{message}</h1>
+          {/* Heading font size adjusted for mobile */}
+          <h1 className="text-2xl md:text-3xl font-light text-white">{message}</h1>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3 md:space-y-4">
           {showShareOption ? (
-            <div className="space-y-4">
+            <div className="flex flex-col space-y-3 md:space-y-4">
+              {/* Buttons are full-width and have reduced padding on mobile */}
               <SarthiButton
                 onClick={() =>
                   router.push(`/reflections/share/${id}?feeling=${encodeURIComponent(feeling)}`)
                 }
-                className="px-8 py-4"
+                className="w-full px-6 py-3 md:px-8 md:py-4"
               >
                 Share how I feel
               </SarthiButton>
               <SarthiButton
                 onClick={() => router.push(`/reflections/closure/post?id=${id}`)}
                 variant="secondary"
-                className="px-8 py-4"
+                className="w-full px-6 py-3 md:px-8 md:py-4"
               >
                 Keep it to myself
               </SarthiButton>
@@ -66,7 +70,7 @@ export default function ClosureResponsePage() {
           ) : (
             <SarthiButton
               onClick={() => router.push(`/reflections/closure/post?id=${id}`)}
-              className="px-8 py-4"
+              className="w-full px-6 py-3 md:px-8 md:py-4"
             >
               Complete reflection
             </SarthiButton>

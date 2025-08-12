@@ -109,7 +109,7 @@ export default function ReflectionPreviewPage() {
     console.log("📝 Reflection ID:", id)
     console.log("✍️ Selected Template:", selectedTemplate)
     console.log("📄 Final Message:", editedMessage)
-     router.push(`/reflections/sender/${id}`)
+      router.push(`/reflections/sender/${id}`)
   }
 
   if (loading) {
@@ -129,24 +129,24 @@ export default function ReflectionPreviewPage() {
   }
 
   return (
-   <div className="h-screen overflow-y-auto bg-[#121212]">
-    <div className="max-w-6xl mx-auto p-4 pb-20">
-        <div className="space-y-8">
+    <div className="h-screen overflow-y-auto bg-[#121212]">
+      <div className="max-w-6xl mx-auto p-4 pb-20 md:p-8">
+        <div className="space-y-6 md:space-y-8">
           <div className="text-center space-y-2">
-            <h2 className="text-2xl font-light text-white">How would you like this to look?</h2>
-            <p className="text-white/60">Choose a style that feels right for your message</p>
+            <h2 className="text-xl md:text-2xl font-light text-white">How would you like this to look?</h2>
+            <p className="text-sm md:text-base text-white/60">Choose a style that feels right for your message</p>
           </div>
 
           <div className="max-w-2xl mx-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-white">Your message</h3>
-              <div className="flex items-center gap-4">
-                <button onClick={handleEditMessage} className="flex items-center gap-2 text-white/60 hover:text-white transition-colors text-sm">
-                  <Edit3 size={16} />
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
+              <h3 className="text-base md:text-lg font-medium text-white">Your message</h3>
+              <div className="flex items-center gap-2 md:gap-4">
+                <button onClick={handleEditMessage} className="flex items-center gap-1 md:gap-2 text-white/60 hover:text-white transition-colors text-xs md:text-sm">
+                  <Edit3 size={14} className="md:size-16" />
                   Edit
                 </button>
-                <button onClick={handleRegenerateMessage} className="flex items-center gap-2 text-white/60 hover:text-white transition-colors text-sm">
-                  <RotateCcw size={16} />
+                <button onClick={handleRegenerateMessage} className="flex items-center gap-1 md:gap-2 text-white/60 hover:text-white transition-colors text-xs md:text-sm">
+                  <RotateCcw size={14} className="md:size-16" />
                   Regenerate
                 </button>
               </div>
@@ -157,29 +157,29 @@ export default function ReflectionPreviewPage() {
                 <textarea
                   value={editedMessage}
                   onChange={(e) => setEditedMessage(e.target.value)}
-                  className="w-full bg-[#1b1b1b] border border-[#2a2a2a] rounded-2xl p-4 text-white resize-none focus:border-white/20 focus:outline-none"
+                  className="w-full bg-[#1b1b1b] border border-[#2a2a2a] rounded-2xl p-4 text-white resize-none focus:border-white/20 focus:outline-none text-sm md:text-base"
                   rows={6}
                 />
-                <div className="flex gap-3">
-                  <SarthiButton onClick={handleSaveEditedMessage} className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <SarthiButton onClick={handleSaveEditedMessage} className="flex items-center justify-center gap-2 w-full">
                     <Check size={16} />
                     Save changes
                   </SarthiButton>
-                  <SarthiButton variant="secondary" onClick={handleCancelEdit}>
+                  <SarthiButton variant="secondary" onClick={handleCancelEdit} className="w-full">
                     Cancel
                   </SarthiButton>
                 </div>
               </div>
             ) : (
               <div className="bg-[#1b1b1b] border border-[#2a2a2a] rounded-2xl p-4">
-                <p className="text-white leading-relaxed">{editedMessage}</p>
+                <p className="text-white leading-relaxed text-sm md:text-base">{editedMessage}</p>
               </div>
             )}
           </div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="space-y-4">
-              <h4 className="text-center text-white font-medium">Clean & Modern</h4>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+            <div className="space-y-2 md:space-y-4">
+              <h4 className="text-center text-white font-medium text-sm md:text-base">Clean & Modern</h4>
               <div onClick={() => setSelectedTemplate("clean-card")}>
                 <CleanCardTemplate
                   message={editedMessage}
@@ -190,8 +190,8 @@ export default function ReflectionPreviewPage() {
               </div>
             </div>
 
-            <div className="space-y-4">
-              <h4 className="text-center text-white font-medium">Handwritten Note</h4>
+            <div className="space-y-2 md:space-y-4">
+              <h4 className="text-center text-white font-medium text-sm md:text-base">Handwritten Note</h4>
               <div onClick={() => setSelectedTemplate("handwritten")}>
                 <HandwrittenTemplate
                   message={editedMessage}
@@ -202,8 +202,8 @@ export default function ReflectionPreviewPage() {
               </div>
             </div>
 
-            <div className="space-y-4">
-              <h4 className="text-center text-white font-medium">Minimal Dark</h4>
+            <div className="space-y-2 md:space-y-4">
+              <h4 className="text-center text-white font-medium text-sm md:text-base">Minimal Dark</h4>
               <div onClick={() => setSelectedTemplate("minimal")}>
                 <MinimalTemplate
                   message={editedMessage}
@@ -216,8 +216,8 @@ export default function ReflectionPreviewPage() {
           </div>
 
           {selectedTemplate && (
-            <div className="text-center py-8">
-              <SarthiButton onClick={handleContinueWithTemplate} className="px-8 py-4">
+            <div className="text-center py-4 md:py-8">
+              <SarthiButton onClick={handleContinueWithTemplate} className="w-full sm:w-auto px-6 py-3 md:px-8 md:py-4 text-sm md:text-base">
                 Continue with this style
               </SarthiButton>
             </div>
