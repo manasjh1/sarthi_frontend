@@ -103,7 +103,10 @@ useEffect(() => {
 
     setShowSuccessToast(true)
     setTimeout(() => setShowSuccessToast(false), 0)
-    setStep("space-setup")
+     setTimeout(() => {
+      // Navigate to chat with the selected reflection type
+      router.push(`/chat`)
+    }, 100)
     return
   }
 
