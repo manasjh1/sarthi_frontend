@@ -609,7 +609,7 @@ return (
           {isThinking && (
             <div className="flex items-start gap-4">
               <div className="mt-1">
-                <SarthiOrb size="sm" isThinking />
+                
               </div>
               <div className="flex-1">
                 <SarthiThinking />

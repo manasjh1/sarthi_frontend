@@ -171,54 +171,65 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
     window.open(whatsappUrl, '_blank');
   };
 
-  // Fetch reflections and user data on component mount
-  useEffect(() => {
-    const fetchReflectionsAndUserData = async () => {
-      setLoading(true)
-      try {
-        // Fetch outbox reflections
-        const outboxRes = await authFetch("/api/reflection/outbox")
-        const outboxJson = await outboxRes.json()
-        if (outboxJson.success) {
-          setOutbox(outboxJson.data.reflections || [])
-        } else {
-          setError(outboxJson.message || "Failed to fetch outbox reflections.")
-        }
-
-        // Fetch inbox reflections
-        const inboxRes = await authFetch("/api/reflection/inbox")
-        const inboxJson = await inboxRes.json()
-        console.log("Inbox Response:", inboxJson)
-        if (inboxJson.success) {
-          setInbox(inboxJson.data.reflections || [])
-        } else {
-          setError(inboxJson.message || "Failed to fetch inbox reflections.")
-        }
-      } catch {
-        setError("Something went wrong while fetching reflections")
-      } finally {
-        setLoading(false)
-      }
-
-      // Fetch user data
-      try {
-        const res = await authFetch("/api/user/me", { credentials: "include" })
-        const user = await res.json()
-        if (user?.name) {
-          setEditedName(user.name)
-          onUserNameChange(user.name)
-          localStorage.setItem("sarthi-user-name", user.name)
-          window.dispatchEvent(new CustomEvent("sarthi-name-updated", { detail: user.name }))
-        }
-        if (user?.email) setEmail(user.email)
-        if (user?.phone) setPhone(user.phone)
-      } catch (err) {
-        console.error("Failed to fetch user:", err)
-      }
+  const fetchReflections = async () => {
+  try {
+    const outboxRes = await authFetch("/api/reflection/outbox")
+    const outboxJson = await outboxRes.json()
+    if (outboxJson.success) {
+      setOutbox(outboxJson.data.reflections || [])
+    } else {
+      setError(outboxJson.message || "Failed to fetch outbox reflections.")
     }
 
-    fetchReflectionsAndUserData()
-  }, [])
+    const inboxRes = await authFetch("/api/reflection/inbox")
+    const inboxJson = await inboxRes.json()
+    if (inboxJson.success) {
+      setInbox(inboxJson.data.reflections || [])
+    } else {
+      setError(inboxJson.message || "Failed to fetch inbox reflections.")
+    }
+  } catch {
+    setError("Something went wrong while fetching reflections")
+  }
+}
+
+
+  // Fetch reflections and user data on component mount
+useEffect(() => {
+  const fetchReflectionsAndUserData = async () => {
+    setLoading(true)
+    await fetchReflections()
+    setLoading(false)
+
+    try {
+      const res = await authFetch("/api/user/me", { credentials: "include" })
+      const user = await res.json()
+      if (user?.name) {
+        setEditedName(user.name)
+        onUserNameChange(user.name)
+        localStorage.setItem("sarthi-user-name", user.name)
+        window.dispatchEvent(new CustomEvent("sarthi-name-updated", { detail: user.name }))
+      }
+      if (user?.email) setEmail(user.email)
+      if (user?.phone) setPhone(user.phone)
+    } catch (err) {
+      console.error("Failed to fetch user:", err)
+    }
+  }
+
+  fetchReflectionsAndUserData()
+
+  // Listen for reflection completed event
+  const handleReflectionCompleted = () => {
+    fetchReflections()
+  }
+
+  window.addEventListener("reflection-completed", handleReflectionCompleted)
+  return () => {
+    window.removeEventListener("reflection-completed", handleReflectionCompleted)
+  }
+}, [])
+
 
 
   useEffect(() => {
