@@ -10,7 +10,7 @@ const ClosureFeelingPage = () => {
   const { id } = useParams() as { id: string }
 
   const handleFeelingSelect = (feeling: string) => {
-    router.push(`/reflections/closure/response/${id}?feeling=${encodeURIComponent(feeling)}`)
+   router.push(`/reflections/closure/post?id=${id}`)
   }
 
   return (

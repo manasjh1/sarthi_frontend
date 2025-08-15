@@ -64,7 +64,7 @@ export default function AuthPage() {
 
     if (response.ok) {
       const data = await response.json();
-      console.log("Backend connection successful:", data);
+    //  console.log("Backend connection successful:", data);
     } else {
       console.error("Backend health check failed:", response.status);
     }
@@ -112,7 +112,7 @@ const handleContinue = async () => {
 });
 
     const result = await response.json();
-    console.log("OTP Send Result:", result);
+   // console.log("OTP Send Result:", result);
 
     if (result.success) {
       setCurrentContact(contact);
@@ -142,7 +142,7 @@ const handleContinue = async () => {
 
     try {
       const result = await validateInviteCode(inviteCode)
-      console.log("Invite validation result:", result)
+     // console.log("Invite validation result:", result)
 
       if (result.success && result.valid) {
         setInviteToken(result.inviteToken)
@@ -173,12 +173,12 @@ const handleContinue = async () => {
     setError("")
 
     try {
-      console.log("Verifying OTP...")
+    //  console.log("Verifying OTP...")
       const result = await verifyOTP(currentContact, otp, inviteToken)
-      console.log("OTP verification result:", result)
+    //  console.log("OTP verification result:", result)
 
       if (result.success) {
-        console.log("OTP verification successful")
+      //  console.log("OTP verification successful")
         
         // Update user type based on response
         if (result.isNewUser !== undefined) {
@@ -199,7 +199,7 @@ const handleContinue = async () => {
                 clearInterval(progressInterval)
                 // Redirect based on user type
                 const redirectTo ="/onboarding";
-                console.log("Redirecting to:", redirectTo)
+               // console.log("Redirecting to:", redirectTo)
                 router.push(redirectTo)
                 return 100
               }
@@ -228,7 +228,7 @@ const handleResendOTP = async () => {
   setError("");
 
   try {
-    console.log("Resending OTP to:", currentContact);
+   // console.log("Resending OTP to:", currentContact);
 
     const response = await authFetch("/api/auth/send-otp", {
       method: "POST",
@@ -239,7 +239,7 @@ const handleResendOTP = async () => {
     });
 
     const result = await response.json();
-    console.log("Resend OTP result:", result);
+  //  console.log("Resend OTP result:", result);
 
     if (result.success) {
       setShowSuccessToast(true);
@@ -674,18 +674,18 @@ const handleResendOTP = async () => {
   )
 
   // Debug logging
-  console.log("Current state:", {
-    step,
-    contactType,
-    email,
-    phoneNumber,
-    currentContact,
-    userType,
-    otp,
-    isLoading,
-    error,
-    redirectProgress,
-  })
+  // console.log("Current state:", {
+  //   step,
+  //   contactType,
+  //   email,
+  //   phoneNumber,
+  //   currentContact,
+  //   userType,
+  //   otp,
+  //   isLoading,
+  //   error,
+  //   redirectProgress,
+  // })
 
   return (
     <div className="min-h-screen flex flex-col">

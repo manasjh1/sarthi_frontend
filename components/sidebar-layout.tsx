@@ -38,25 +38,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
 
   // Load user name from localStorage
 // Load user name from API or fallback to localStorage
-useEffect(() => {
-  const fetchUserName = async () => {
-    try {
-      const res = await authFetch("/api/user/me")
-      const json = await res.json()
 
-      if (json?.name) {
-        setUserName(json.name)
-        localStorage.setItem("sarthi-user-name", json.name)
-        return
-      }
-    } catch (err) {
-      console.error("Failed to fetch user name from /api/user/me:", err)
-    }
-
-  }
-
-  fetchUserName()
-}, [])
 
 
   const handleUserNameChange = (name: string) => {

@@ -42,7 +42,7 @@ class ApiService {
   }
 
   async sendReflectionRequest(request: ApiRequest): Promise<ApiResponse> {
-    console.log("Sending request to backend:", request);
+    //console.log("Sending request to backend:", request);
 
     const authHeaders = await this.getAuthHeaders();
     if (!authHeaders) throw new Error('Not authenticated');
@@ -65,7 +65,7 @@ class ApiService {
     }
 
     const responseData = await response.json();
-    console.log("Backend response:", responseData);
+   // console.log("Backend response:", responseData);
     return responseData;
   }
 
@@ -158,7 +158,7 @@ export default function ChatPage() {
   // Start new reflection (Stage 0)
   const startNewReflection = async () => {
     try {
-      console.log("Starting new reflection...");
+    //  console.log("Starting new reflection...");
       setIsThinking(true)
       setCurrentStep("loading")
 
@@ -171,22 +171,22 @@ export default function ChatPage() {
         ]
       };
 
-      console.log("Sending start reflection request:", request);
+     // console.log("Sending start reflection request:", request);
       const response = await apiService.sendReflectionRequest(request)
-      console.log("Got response:", response);
+     // console.log("Got response:", response);
 
       if (!response.success && response.current_stage === -1) {
-        console.log("Distress detected, showing distress screen");
+      //  console.log("Distress detected, showing distress screen");
         setCurrentStep("distress-detected")
         return
       }
 
-      console.log("Setting reflection data:", {
-        reflectionId: response.reflection_id,
-        currentStage: response.current_stage,
-        progress: response.progress,
-        categories: response.data
-      });
+    //  console.log("Setting reflection data:", {
+    //     reflectionId: response.reflection_id,
+    //     currentStage: response.current_stage,
+    //     progress: response.progress,
+    //     categories: response.data
+    //   });
 
       setReflectionId(response.reflection_id)
       setProgress(response.progress)
@@ -275,7 +275,7 @@ export default function ChatPage() {
     const category = categories.find(cat => cat.category_no === categoryNo)
     if (!category) return
 
-    console.log("Selected category:", category);
+  //  console.log("Selected category:", category);
     addMessage(category.category_name, "user")
 
     try {
@@ -287,9 +287,9 @@ export default function ChatPage() {
         data: [{ category_no: categoryNo }]
       };
 
-      console.log("Sending category selection:", request);
+     // console.log("Sending category selection:", request);
       const response = await apiService.sendReflectionRequest(request)
-      console.log("Category selection response:", response);
+    //  console.log("Category selection response:", response);
 
       if (!response.success && response.current_stage === -1) {
         setCurrentStep("distress-detected")
@@ -311,7 +311,7 @@ export default function ChatPage() {
   const handleChatInput = async (inputMessage: string) => {
     if (!inputMessage.trim() || !reflectionId) return
 
-    console.log("Sending chat message:", inputMessage);
+   // console.log("Sending chat message:", inputMessage);
     addMessage(inputMessage, "user")
 
     try {
@@ -323,9 +323,9 @@ export default function ChatPage() {
         data: []
       };
 
-      console.log("Sending chat request:", request);
+     // console.log("Sending chat request:", request);
       const response = await apiService.sendReflectionRequest(request)
-      console.log("Chat response:", response);
+    //  console.log("Chat response:", response);
 
       if (response.current_stage === -1) {
         setCurrentStep("distress-detected");
@@ -341,7 +341,7 @@ export default function ChatPage() {
         // Check if we have a summary (conversation complete)
         const summaryItem = response.data.find(item => item.summary !== undefined)
         if (summaryItem) {
-          console.log("Conversation complete, summary:", summaryItem.summary);
+        //  console.log("Conversation complete, summary:", summaryItem.summary);
           // For now, just show the summary in a message
           setTimeout(() => {
             addMessage(`Here's your reflection: ${summaryItem.summary}`, "sarthi")

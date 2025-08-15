@@ -29,7 +29,7 @@ useEffect(() => {
           credentials: "include",
         });
       const json = await res.json();
-     console.log("Fetched user:", json.name);
+    // console.log("Fetched user:", json.name);
       if (json?.name) {
            setTimeout(() => {
       router.push(`/chat`)
@@ -140,7 +140,7 @@ useEffect(() => {
 
   setShowSuccessToast(true)
   setTimeout(() => setShowSuccessToast(false), 0)
-  console.log("Saving name:", name.trim())
+//  console.log("Saving name:", name.trim())
    setTimeout(() => {
       
       router.push(`/chat`)
@@ -163,7 +163,7 @@ useEffect(() => {
   try {
     const res = await authFetch("/api/user/me");
     const json = await res.json();
-    console.log("handleContinueFromSuccess Response:", json);
+  //  console.log("handleContinueFromSuccess Response:", json);
 
     if (json.name) {
       setStep("space-setup");
