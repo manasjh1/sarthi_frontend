@@ -33,7 +33,9 @@ useEffect(() => {
       if (json?.name) {
            setTimeout(() => {
       router.push(`/chat`)
+      
     }, 100)
+
       } else {
         setStep("name-entry");
       }
@@ -240,151 +242,88 @@ useEffect(() => {
   }
 
   // STEP 2: Name Entry
-  if (step === "name-entry") {
-    return (
-      <div className="min-h-screen bg-[#0f0f0f] flex flex-col items-center justify-center p-4">
-        <div className="w-full max-w-md space-y-8 sarthi-fade-in">
-          <div className="text-center space-y-4" style={{ marginTop: "48px" }}>
-            <h1 className="text-3xl font-light text-white">What should I call you?</h1>
-            <p className="text-white/60" style={{ marginTop: "16px" }}>
-              This name will appear when you sign your reflections.
-            </p>
-          </div>
+if (step === "name-entry") {
+  return (
+    <div className="min-h-screen bg-[#0f0f0f] flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-md space-y-8 sarthi-fade-in">
+        <div className="text-center space-y-4" style={{ marginTop: "48px" }}>
+          <h1 className="text-4xl font-extralight text-white tracking-wide">
+            What should I call you?
+          </h1>
+        </div>
 
-          <div className="sarthi-card p-6 space-y-6 rounded-[16px] relative">
-            {/* Progress Indicator */}
-            <div className="absolute top-4 right-4 text-xs text-white/40">Step 2 of 3</div>
-
-            <div className="space-y-6" style={{ paddingTop: "24px" }}>
-              {/* Name Option Card */}
-              <div className="space-y-4">
-                <button
-                  onClick={() => {
-                    setIsAnonymous(false)
-                    setNameError("")
-                  }}
-                  className={`w-full p-4 rounded-2xl border transition-all text-left group min-h-[44px] ${
-                    !isAnonymous
-                      ? "border-white/30 bg-white/10"
-                      : "border-white/10 hover:border-white/20 hover:bg-white/5"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex-shrink-0 w-8 h-8 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/15 transition-colors">
-                      <User className="h-4 w-4 text-white/80" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-white font-medium">Use my name</h3>
-                      <p className="text-white/60 text-sm">Sign reflections with your name</p>
-                    </div>
-                    <div
-                      className={`w-4 h-4 rounded-full border-2 transition-colors ${
-                        !isAnonymous ? "border-white bg-white" : "border-white/40"
-                      }`}
-                    >
-                      {!isAnonymous && <div className="w-full h-full rounded-full bg-[#0f0f0f] scale-50"></div>}
-                    </div>
-                  </div>
-                </button>
-
-                {/* Name Input - only show when "Use my name" is selected */}
-                {!isAnonymous && (
-                  <div className="space-y-2 pl-11">
-                    <SarthiInput
-                      id="name"
-                      type="text"
-                      placeholder="Your first name"
-                      value={name}
-                      onChange={(e) => {
-                        setName(e.target.value)
-                        setNameError("")
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          handleNameSubmit()
-                        }
-                      }}
-                      className="auth-input"
-                      autoFocus
-                    />
-                    {nameError && <div className="text-red-400 text-sm">{nameError}</div>}
-                  </div>
-                )}
-              </div>
-
-              {/* Anonymous Option Card */}
-              <button
-                onClick={() => {
-                  setIsAnonymous(true)
-                  setName("")
-                  setNameError("")
+        <div className="sarthi-card p-8 space-y-6 rounded-[24px] border border-white/5 shadow-xl shadow-white/[0.02] relative">
+          <div className="space-y-4" style={{ paddingTop: "12px" }}>
+            <div className="space-y-2">
+              <SarthiInput
+                id="name"
+                type="text"
+                placeholder="Enter Your Name"
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setNameError("");
                 }}
-                className={`w-full p-4 rounded-2xl border transition-all text-left group min-h-[44px] ${
-                  isAnonymous ? "border-white/30 bg-white/10" : "border-white/10 hover:border-white/20 hover:bg-white/5"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex-shrink-0 w-8 h-8 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/15 transition-colors">
-                    <UserX className="h-4 w-4 text-white/80" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-white font-medium">Stay anonymous</h3>
-                    <p className="text-white/60 text-sm">Don't include your name</p>
-                  </div>
-                  <div
-                    className={`w-4 h-4 rounded-full border-2 transition-colors ${
-                      isAnonymous ? "border-white bg-white" : "border-white/40"
-                    }`}
-                  >
-                    {isAnonymous && <div className="w-full h-full rounded-full bg-[#0f0f0f] scale-50"></div>}
-                  </div>
-                </div>
-              </button>
-            </div>
-
-            <div className="pt-6">
-              <SarthiButton
-                className="w-full auth-button rounded-[16px]"
-                onClick={handleNameSubmit}
-                disabled={!isAnonymous && (!name.trim() || !!nameError)}
-              >
-                Let's begin
-              </SarthiButton>
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleNameSubmit();
+                  }
+                }}
+                className="auth-input w-full p-4 rounded-xl border border-white/10 bg-white/5 text-white placeholder-white/40 focus:ring-2 focus:ring-white/30 focus:border-transparent transition-all duration-300"
+                autoFocus
+              />
+              {nameError && (
+                <div className="text-red-400 text-sm pl-2">{nameError}</div>
+              )}
             </div>
           </div>
 
-          {/* Success Toast */}
-          {showSuccessToast && (
-            <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-green-500/20 border border-green-500/30 text-green-400 px-6 py-3 rounded-[16px] backdrop-blur-sm shadow-lg animate-in slide-in-from-top duration-300">
-              <div className="flex items-center gap-3">
+          <div className="pt-6">
+            <SarthiButton
+              className="w-full auth-button rounded-xl bg-white/10 text-white/80 hover:bg-white/15 transition-colors duration-300"
+              onClick={handleNameSubmit}
+              disabled={!name.trim() || !!nameError}
+            >
+              Let's begin
+            </SarthiButton>
+          </div>
+        </div>
+
+        {/* Success Toast */}
+        {showSuccessToast && (
+          <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50 bg-green-500/10 border border-green-500/20 text-green-400 px-6 py-3 rounded-full backdrop-blur-md shadow-2xl animate-in slide-in-from-top duration-500">
+            <div className="flex items-center gap-3">
+              <svg
+                className="h-5 w-5 flex-shrink-0"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                viewBox="0 0 24 24"
+              >
+                <path d="M5 13l4 4L19 7" />
+              </svg>
+              <p className="text-sm font-medium">Nice to meet you, {name}!</p>
+              <button
+                onClick={() => setShowSuccessToast(false)}
+                className="ml-2 text-green-400/60 hover:text-green-400 transition-colors min-h-[24px] min-w-[24px]"
+              >
                 <svg
-                  className="h-5 w-5 flex-shrink-0"
+                  className="h-4 w-4"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth={2}
                   viewBox="0 0 24 24"
                 >
-                  <path d="M5 13l4 4L19 7" />
+                  <path d="M6 18L18 6M6 6l12 12" />
                 </svg>
-                <p className="text-sm">
-                  Nice to meet you, {isAnonymous ? "friend" : name}! Your past reflections are waiting on the left.
-                </p>
-                <button
-                  onClick={() => setShowSuccessToast(false)}
-                  className="ml-2 text-green-400/60 hover:text-green-400 transition-colors min-h-[24px] min-w-[24px]"
-                >
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                    <path d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
+              </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
-    )
-  }
-
+    </div>
+  );
+}
   // STEP 3: Safe Space Setup
   if (step === "space-setup") {
     return (

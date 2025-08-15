@@ -82,31 +82,34 @@ export default function DeliveryMethodPage() {
         phone: selectedCountry.dialCode + phoneNumber.trim(),
       });
     }
+if (deliveryMethod === "send") {
+  try {
+    await authFetch("/api/reflection", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
 
-    if (deliveryMethod === "send") {
-      try {
-        await authFetch("/api/reflection", {
-          method: "POST",
-          body: JSON.stringify(payload),
-        });
-      } catch (error) {
-        console.error("Error submitting delivery details:", error);
-        return;
-      }
+    // 🔔 Let sidebar know a new reflection is ready
+    window.dispatchEvent(new Event("reflection-completed"));
+    
+  } catch (error) {
+    console.error("Error submitting delivery details:", error);
+    return;
+  }
 
-      // If ONLY email is submitted and no phone
-      if (emailContact.trim() && !phoneNumber.trim()) {
-        router.push(`/reflections/confirm/${id}?method=email`);
-      } else {
-        router.push(`/reflections/share/${id}`);
-      }
-    }
+  if (emailContact.trim() && !phoneNumber.trim()) {
+    router.push(`/reflections/confirm/${id}?method=email`);
+  } else {
+    router.push(`/reflections/share/${id}`);
+  }
+}
 
+if (deliveryMethod === "keep-private") {
+  // 🔔 Even for private reflections, trigger the update
+  window.dispatchEvent(new Event("reflection-completed"));
+  router.push(`/reflections/confirm/${id}`);
+}
 
-    // If delivery method is "keep-private"
-    if (deliveryMethod === "keep-private") {
-      router.push(`/reflections/confirm/${id}`);
-    }
   };
 
 
