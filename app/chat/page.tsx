@@ -8,6 +8,8 @@ import { SarthiOrb } from "@/components/sarthi-orb"
 import { SarthiIcon } from "@/components/ui/sarthi-icon"
 import { SarthiThinking } from "@/components/sarthi-thinking"
 import { ArrowLeft } from "lucide-react"
+import { ApologyIcon } from "@/components/icons/apology-icon"
+import { Heart, MessageCircle} from "lucide-react"
 import { getCurrentUser, getAuthHeaders } from "@/app/actions/auth"
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"
 // Backend API integration
@@ -140,6 +142,18 @@ const checkAuthentication = async () => {
   }
 }
 
+const getReflectionIcon = (type: string) => {
+  switch (type) {
+    case "gratitude":
+      return <Heart className="h-4 w-4" />
+    case "apology":
+      return <ApologyIcon className="h-4 w-4" strokeWidth={1.5} />
+    case "boundary":
+      return <MessageCircle className="h-4 w-4" />
+    default:
+      return <MessageCircle className="h-4 w-4" />
+  }
+}
 
   // Start new reflection (Stage 0)
   const startNewReflection = async () => {
