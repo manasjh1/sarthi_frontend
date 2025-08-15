@@ -32,7 +32,6 @@ useEffect(() => {
      console.log("Fetched user:", json.name);
       if (json?.name) {
            setTimeout(() => {
-      // Navigate to chat with the selected reflection type
       router.push(`/chat`)
     }, 100)
       } else {
@@ -140,7 +139,10 @@ useEffect(() => {
   setShowSuccessToast(true)
   setTimeout(() => setShowSuccessToast(false), 0)
   console.log("Saving name:", name.trim())
-  setStep("space-setup")
+   setTimeout(() => {
+      
+      router.push(`/chat`)
+    }, 100)
 }
 
 

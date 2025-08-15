@@ -111,7 +111,7 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({}), 
+        body: JSON.stringify({}),
       });
 
       const json = await res.json();
@@ -511,7 +511,8 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
 
       {/* Sidebar */}
       <div className={`fixed left-0 top-0 h-full w-80 bg-[#1a1a1a] border-r border-white/10 transform transition-transform duration-300 ease-in-out z-50 ${isOpen ? "translate-x-0" : "-translate-x-full"
-        } md:relative md:translate-x-0 ${isOpen ? "md:block" : "md:hidden"}`}><div className="flex flex-col h-full">
+        } md:relative md:translate-x-0 ${isOpen ? "md:block" : "md:hidden"}`}
+        onClick={(e) => e.stopPropagation()} ><div className="flex flex-col h-full">
           {/* Header */}
           <div className="p-6 border-b border-white/10 flex justify-between items-center">
             <div className="flex items-center space-x-3">
@@ -577,7 +578,12 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
 
           {/* Start New Reflection Button */}
           <div className="p-6">
-            <SarthiButton onClick={() => router.push("/onboarding")} className="w-full justify-start auth-button rounded-[16px]">
+            <SarthiButton onClick={() => {
+              router.push("/onboarding");
+              if (window.innerWidth < 768) {
+                onToggle();
+              }
+            }} className="w-full justify-start auth-button rounded-[16px]">
               <span className="text-lg mr-2">+</span>
               Start new reflection
             </SarthiButton>

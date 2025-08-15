@@ -18,6 +18,8 @@ export default function ReflectionPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  
+
   useEffect(() => {
     const fetchReflection = async () => {
       setLoading(true)
@@ -49,18 +51,19 @@ export default function ReflectionPage() {
     if (id) fetchReflection()
   }, [id])
 
-  const getReflectionIcon = (type: string) => {
-    switch (type) {
-      case "apologize":
-        return <ApologyIcon className="h-5 w-5" strokeWidth={1.5} />
-      case "gratitude":
-        return <Heart className="h-5 w-5" strokeWidth={1.5} />
-      case "boundary":
-        return <MessageCircle className="h-5 w-5" strokeWidth={1.5} />
-      default:
-        return <MessageCircle className="h-5 w-5" strokeWidth={1.5} />
-    }
+const getReflectionIcon = (type: string) => {
+  switch (type) {
+    case "gratitude":
+      return <Heart className="h-4 w-4" />
+    case "apology":
+      return <ApologyIcon className="h-4 w-4" strokeWidth={1.5} />
+    case "boundary":
+      return <MessageCircle className="h-4 w-4" />
+    default:
+      return <MessageCircle className="h-4 w-4" />
   }
+}
+
 
   const getReflectionLabel = (type: string) => {
     switch (type) {
@@ -133,7 +136,7 @@ export default function ReflectionPage() {
           </button>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center text-white/60">
-              {getReflectionIcon(reflection.type)}
+               {getReflectionIcon(reflection.category.toLowerCase())}
             </div>
             <div>
               <h1 className="text-white font-medium">
