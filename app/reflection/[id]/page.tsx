@@ -35,7 +35,7 @@ export default function ReflectionPage() {
         })
         
         const json = await res.json()
-          console.log("History Response:", json)
+      //    console.log("History Response:", json)
         if (json.success) {
           setReflection(json.data)
         } else {

@@ -9,7 +9,7 @@ import { ApologyIcon } from "@/components/icons/apology-icon"
 import { Heart, MessageCircle, User, UserPlus, Edit3, LogOut, X, Lock, Check, Share, Copy, Plus } from "lucide-react"
 import { authFetch } from "@/lib/api"
 import { CountrySelector } from "@/components/ui/country-selector"
-
+import { getCookie } from "@/app/actions/auth" 
 // Interface for the component props
 interface SidebarProps {
   isOpen: boolean
@@ -115,7 +115,7 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
       });
 
       const json = await res.json();
-      console.log("Invite Link Response:", json);
+    //  console.log("Invite Link Response:", json);
 
       if (json.success && json.invite_code) {
         const inviteUrl = `${window.location.origin}/auth?invite=${json.invite_code}`;
@@ -195,40 +195,47 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
 
 
   // Fetch reflections and user data on component mount
-  useEffect(() => {
-    const fetchReflectionsAndUserData = async () => {
+useEffect(() => {
+  const fetchReflectionsAndUserData = async () => {
+    try {
+      // Check if the user is logged in
+      const res = await authFetch("/api/user/me", { credentials: "include" })
+
+      if (!res.ok) {
+        // Not logged in → skip fetching reflections
+        return
+      }
+
+      const user = await res.json()
+      if (!user?.name) return
+
+      setEditedName(user.name)
+      onUserNameChange(user.name)
+      localStorage.setItem("sarthi-user-name", user.name)
+      window.dispatchEvent(new CustomEvent("sarthi-name-updated", { detail: user.name }))
+      if (user?.email) setEmail(user.email)
+      if (user?.phone) setPhone(user.phone)
+
+      // Only fetch reflections if logged in
       setLoading(true)
       await fetchReflections()
       setLoading(false)
-
-      try {
-        const res = await authFetch("/api/user/me", { credentials: "include" })
-        const user = await res.json()
-        if (user?.name) {
-          setEditedName(user.name)
-          onUserNameChange(user.name)
-          localStorage.setItem("sarthi-user-name", user.name)
-          window.dispatchEvent(new CustomEvent("sarthi-name-updated", { detail: user.name }))
-        }
-        if (user?.email) setEmail(user.email)
-        if (user?.phone) setPhone(user.phone)
-      } catch (err) {
-        console.error("Failed to fetch user:", err)
-      }
+    } catch (err) {
+      console.error("Failed to fetch user:", err)
     }
+  }
 
-    fetchReflectionsAndUserData()
+  fetchReflectionsAndUserData()
 
-    // Listen for reflection completed event
-    const handleReflectionCompleted = () => {
-      fetchReflections()
-    }
+  const handleReflectionCompleted = () => {
+    fetchReflections()
+  }
+  window.addEventListener("reflection-completed", handleReflectionCompleted)
+  return () => {
+    window.removeEventListener("reflection-completed", handleReflectionCompleted)
+  }
+}, [])
 
-    window.addEventListener("reflection-completed", handleReflectionCompleted)
-    return () => {
-      window.removeEventListener("reflection-completed", handleReflectionCompleted)
-    }
-  }, [])
 
 
 
@@ -609,7 +616,7 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
           {/* Reflections */}
           <div className="flex-1 overflow-y-auto px-8 pb-6">
             <ReflectionSection title="Outbox" reflections={outbox} expanded={outboxExpanded} setExpanded={setOutboxExpanded} />
-            <ReflectionSection title="Inbox" reflections={inbox} expanded={inboxExpanded} setExpanded={inboxExpanded} />
+            <ReflectionSection title="Inbox" reflections={inbox} expanded={inboxExpanded} setExpanded={setInboxExpanded} />
           </div>
 
 

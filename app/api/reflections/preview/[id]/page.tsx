@@ -72,7 +72,7 @@ export default function ReflectionPreviewPage() {
       })
 
       const json = await res.json()
-      console.log('Edit response:', json)
+     // console.log('Edit response:', json)
     } catch (err) {
       console.error('Failed to edit:', err)
     }
@@ -92,7 +92,7 @@ export default function ReflectionPreviewPage() {
       })
 
       const json = await res.json()
-      console.log('Regenerate response:', json)
+    //  console.log('Regenerate response:', json)
       if (json.success && json.data[0].summary) {
         setEditedMessage(json.data[0].summary)
       } else {
@@ -106,9 +106,9 @@ export default function ReflectionPreviewPage() {
   }
 
   const handleContinueWithTemplate = () => {
-    console.log("📝 Reflection ID:", id)
-    console.log("✍️ Selected Template:", selectedTemplate)
-    console.log("📄 Final Message:", editedMessage)
+   // console.log("📝 Reflection ID:", id)
+   // console.log("✍️ Selected Template:", selectedTemplate)
+   // console.log("📄 Final Message:", editedMessage)
     
       router.push(`/reflections/sender/${id}`)
   }
