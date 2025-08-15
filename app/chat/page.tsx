@@ -12,7 +12,10 @@ import { ApologyIcon } from "@/components/icons/apology-icon"
 import { Heart, MessageCircle} from "lucide-react"
 import { getCurrentUser, getAuthHeaders } from "@/app/actions/auth"
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"
-// Backend API integration
+import analytics from "@/lib/mixpanel"
+import { ANALYTICS_EVENTS } from "@/lib/analytics-events"
+import { timeStamp } from "console"
+
 interface ApiRequest {
   reflection_id: string | null;
   message: string;
@@ -162,6 +165,10 @@ const getReflectionIcon = (type: string) => {
       setIsThinking(true)
       setCurrentStep("loading")
 
+      analytics.track(ANALYTICS_EVENTS.REFLECTION_STARTED, {
+        timeStamp: new Date().toISOString()
+      })
+
       const request = {
         reflection_id: null,
         message: "",
@@ -190,7 +197,20 @@ const getReflectionIcon = (type: string) => {
 
       setReflectionId(response.reflection_id)
       setProgress(response.progress)
-      setCategories(response.data || [])
+      setCategories(
+        Array.isArray(response.data)
+          ? response.data
+              .filter(
+                (item) =>
+                  typeof item.category_no === "number" &&
+                  typeof item.category_name === "string"
+              )
+              .map((item) => ({
+                category_no: item.category_no,
+                category_name: item.category_name,
+              }))
+          : []
+      )
 
       // Add Sarthi's welcome message
       await simulateThinkingAndResponse(response.sarthi_message)
@@ -276,6 +296,13 @@ const simulateThinkingAndResponse = async (
     if (!category) return
 
     console.log("Selected category:", category);
+
+    analytics.track(ANALYTICS_EVENTS.REFLECTION_CATEGORY_SELECTED, {
+      reflection_id: reflectionId,
+      category_number: categoryNo,
+      category_name: category.category_name
+    })
+
     addMessage(category.category_name, "user")
 
     try {
@@ -312,6 +339,12 @@ const simulateThinkingAndResponse = async (
     if (!inputMessage.trim() || !reflectionId) return
 
     console.log("Sending chat message:", inputMessage);
+
+    analytics.track(ANALYTICS_EVENTS.REFLECTION_MESSAGE_SENT, {
+      reflection_id: reflectionId,
+      message_length: inputMessage.length,
+      word_count: inputMessage.trim().split(' ').length
+    })
     addMessage(inputMessage, "user")
 
     try {
@@ -341,7 +374,12 @@ const simulateThinkingAndResponse = async (
         const summaryItem = response.data.find(item => item.summary !== undefined)
         if (summaryItem) {
           console.log("Conversation complete, summary:", summaryItem.summary);
-          // For now, just show the summary in a message
+          
+          analytics.track(ANALYTICS_EVENTS.REFLECTION_COMPLETED, {
+            reflection_id: reflectionId,
+            summary_length: summaryItem.summary.length
+          })
+          
           setTimeout(() => {
             addMessage(`Here's your reflection: ${summaryItem.summary}`, "sarthi")
             router.push(`/api/reflections/preview/${response.reflection_id}`);
@@ -608,9 +646,9 @@ return (
           {/* Thinking indicator */}
           {isThinking && (
             <div className="flex items-start gap-4">
-              <div className="mt-1">
-                <SarthiOrb size="sm" isThinking />
-              </div>
+                <div className="mt-1">
+                <SarthiOrb size="sm" />
+                </div>
               <div className="flex-1">
                 <SarthiThinking />
               </div>

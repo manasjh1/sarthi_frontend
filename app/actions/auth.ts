@@ -2,6 +2,8 @@
 
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
+import analytics from '@/lib/mixpanel'
+
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL|| "http://localhost:8000"
 
@@ -314,6 +316,19 @@ export async function getCurrentUser(): Promise<UserProfileResponse | null> {
       },
     })
 
+    if (response && typeof window !== 'undefined' )
+      analytics.setUserProperties({
+        userId: response.user_id,
+        name: response.name,
+        email: response.email,
+        phone_number: response.phone_number,
+        is_verified: response.is_verified,
+        user_type: response.user_type,
+        proficiency_score: response.proficiency_score,
+        created_at: response.created_at,
+        updated_at: response.updated_at
+      })
+
     return response
   } catch {
     return null
@@ -326,6 +341,9 @@ export async function isAuthenticated(): Promise<boolean> {
 }
 
 export async function logout(): Promise<{ success: boolean; message: string }> {
+  if (typeof window !== 'undefined') {
+    analytics.reset()
+  }
   await deleteCookie("sarthi_session")
   await deleteCookie("sarthi_user_id")
   return { success: true, message: "Logged out successfully" }

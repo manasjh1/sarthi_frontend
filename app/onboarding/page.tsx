@@ -8,6 +8,8 @@ import { SarthiInput } from "@/components/ui/sarthi-input"
 import { ApologyIcon } from "@/components/icons/apology-icon"
 import { Heart, MessageCircle, User, UserX } from "lucide-react"
 import { authFetch } from "@/lib/api"
+import analytics from "@/lib/mixpanel"
+import { ANALYTICS_EVENTS } from "@/lib/analytics-events"
 
 type OnboardingStep = "success" | "name-entry" | "space-setup" | "reflection-prompt" | "complete"
 
@@ -139,8 +141,12 @@ useEffect(() => {
   setShowSuccessToast(true)
   setTimeout(() => setShowSuccessToast(false), 0)
   console.log("Saving name:", name.trim())
+
+  analytics.track(ANALYTICS_EVENTS.ONBOARDING_COMPLETED, {
+    user_type: "named",
+    name: name.trim(),
+  })
    setTimeout(() => {
-      
       router.push(`/chat`)
     }, 100)
 }

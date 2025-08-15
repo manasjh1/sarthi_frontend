@@ -9,6 +9,9 @@ import { CountrySelector } from "@/components/ui/country-selector"
 import { validateInviteCode, verifyOTP } from "@/app/actions/auth"
 import { SarthiIcon } from "@/components/ui/sarthi-icon"
 import { authFetch } from "@/lib/api";
+import analytics from "@/lib/mixpanel"
+import { ANALYTICS_EVENTS } from "@/lib/analytics-events"
+
 
 type AuthStep = "entry" | "invite-code" | "otp-verification" | "success" | "redirecting"
 type UserType = "new" | "existing" | null
@@ -101,6 +104,12 @@ const handleContinue = async () => {
   setIsLoading(true);
   setError("");
 
+  analytics.track(ANALYTICS_EVENTS.AUTH_OTP_SENT, {
+    contact_type: contactType,
+    has_invite_code: !!inviteToken,
+    contact_length: contact.length
+  });
+
   try {
 
   const response = await authFetch("/api/auth/send-otp", {
@@ -129,8 +138,6 @@ const handleContinue = async () => {
     setIsLoading(false);
   }
 };
-
-
   const handleInviteCode = async () => {
     if (!inviteCode.trim()) {
       setError("Please enter your invite code")
@@ -139,6 +146,10 @@ const handleContinue = async () => {
 
     setIsLoading(true)
     setError("")
+
+    analytics.track(ANALYTICS_EVENTS.AUTH_INVITE_CODE_ENTERED, {
+      invite_code: inviteCode
+    });
 
     try {
       const result = await validateInviteCode(inviteCode)
