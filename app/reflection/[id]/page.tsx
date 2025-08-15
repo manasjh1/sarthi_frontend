@@ -100,7 +100,7 @@ const getReflectionIcon = (type: string) => {
     if (reflection?.senderType === "anonymous") {
       return "Anonymous"
     }
-    return reflection?.senderName || "User"
+    return reflection?.display_name || "User"
   }
 
   const formatDate = (dateString: string) => {
@@ -140,7 +140,7 @@ const getReflectionIcon = (type: string) => {
             </div>
             <div>
               <h1 className="text-white font-medium">
-                {getReflectionLabel(reflection.type)} to {reflection.name}
+                {reflection.name}
               </h1>
               <p className="text-white/60 text-sm">{formatDate(reflection.created_at)}</p>
             </div>

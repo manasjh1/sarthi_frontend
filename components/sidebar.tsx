@@ -172,63 +172,63 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
   };
 
   const fetchReflections = async () => {
-  try {
-    const outboxRes = await authFetch("/api/reflection/outbox")
-    const outboxJson = await outboxRes.json()
-    if (outboxJson.success) {
-      setOutbox(outboxJson.data.reflections || [])
-    } else {
-      setError(outboxJson.message || "Failed to fetch outbox reflections.")
-    }
+    try {
+      const outboxRes = await authFetch("/api/reflection/outbox")
+      const outboxJson = await outboxRes.json()
+      if (outboxJson.success) {
+        setOutbox(outboxJson.data.reflections || [])
+      } else {
+        setError(outboxJson.message || "Failed to fetch outbox reflections.")
+      }
 
-    const inboxRes = await authFetch("/api/reflection/inbox")
-    const inboxJson = await inboxRes.json()
-    if (inboxJson.success) {
-      setInbox(inboxJson.data.reflections || [])
-    } else {
-      setError(inboxJson.message || "Failed to fetch inbox reflections.")
+      const inboxRes = await authFetch("/api/reflection/inbox")
+      const inboxJson = await inboxRes.json()
+      if (inboxJson.success) {
+        setInbox(inboxJson.data.reflections || [])
+      } else {
+        setError(inboxJson.message || "Failed to fetch inbox reflections.")
+      }
+    } catch {
+      setError("Something went wrong while fetching reflections")
     }
-  } catch {
-    setError("Something went wrong while fetching reflections")
   }
-}
 
 
   // Fetch reflections and user data on component mount
-useEffect(() => {
-  const fetchReflectionsAndUserData = async () => {
-    setLoading(true)
-    await fetchReflections()
-    setLoading(false)
+  useEffect(() => {
+    const fetchReflectionsAndUserData = async () => {
+      setLoading(true)
+      await fetchReflections()
+      setLoading(false)
 
-    try {
-      const res = await authFetch("/api/user/me", { credentials: "include" })
-      const user = await res.json()
-      if (user?.name) {
-        setEditedName(user.name)
-        onUserNameChange(user.name)
-        localStorage.setItem("sarthi-user-name", user.name)
-        window.dispatchEvent(new CustomEvent("sarthi-name-updated", { detail: user.name }))
+      try {
+        const res = await authFetch("/api/user/me", { credentials: "include" })
+        const user = await res.json()
+        if (user?.name) {
+          setEditedName(user.name)
+          onUserNameChange(user.name)
+          localStorage.setItem("sarthi-user-name", user.name)
+          window.dispatchEvent(new CustomEvent("sarthi-name-updated", { detail: user.name }))
+        }
+        if (user?.email) setEmail(user.email)
+        if (user?.phone) setPhone(user.phone)
+      } catch (err) {
+        console.error("Failed to fetch user:", err)
       }
-      if (user?.email) setEmail(user.email)
-      if (user?.phone) setPhone(user.phone)
-    } catch (err) {
-      console.error("Failed to fetch user:", err)
     }
-  }
 
-  fetchReflectionsAndUserData()
+    fetchReflectionsAndUserData()
 
-  // Listen for reflection completed event
-  const handleReflectionCompleted = () => {
-    fetchReflections()
-  }
+    // Listen for reflection completed event
+    const handleReflectionCompleted = () => {
+      fetchReflections()
+    }
 
-  window.addEventListener("reflection-completed", handleReflectionCompleted)
-  return () => {
-    window.removeEventListener("reflection-completed", handleReflectionCompleted)
-  }
-}, [])
+    window.addEventListener("reflection-completed", handleReflectionCompleted)
+    return () => {
+      window.removeEventListener("reflection-completed", handleReflectionCompleted)
+    }
+  }, [])
 
 
 
@@ -526,7 +526,13 @@ useEffect(() => {
         onClick={(e) => e.stopPropagation()} ><div className="flex flex-col h-full">
           {/* Header */}
           <div className="p-6 border-b border-white/10 flex justify-between items-center">
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-3 cursor-pointer"
+              onClick={() => {
+                router.push("/onboarding");
+                if (window.innerWidth < 768) {
+                  onToggle();
+                }
+              }}>
               <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
                 <SarthiIcon size="sm" />
               </div>

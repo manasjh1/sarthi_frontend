@@ -109,7 +109,7 @@ export default function ReflectionPreviewPage() {
     console.log("📝 Reflection ID:", id)
     console.log("✍️ Selected Template:", selectedTemplate)
     console.log("📄 Final Message:", editedMessage)
-     window.dispatchEvent(new Event("reflection-completed"))
+    
       router.push(`/reflections/sender/${id}`)
   }
 

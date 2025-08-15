@@ -32,14 +32,31 @@ export default function SenderSelectionPage() {
     fetchName()
   }, [])
 
-  const handleSenderSelection = (mode: "name" | "anonymous", name?: string) => {
-    console.log("Reflection ID:", id)
-    console.log("Sender Mode:", mode)
-    console.log("Sender Name:", name || "Anonymous")
+ const handleSenderSelection = async (mode: "name" | "anonymous", name?: string) => {
+  const finalName = mode === "anonymous" ? "Anonymous" : (name || userName || "").trim();
 
-    // Save to state / backend / route forward
-    router.push(`/reflections/delivery/${id}`)
+  try {
+    const res = await authFetch("/api/reflection", {
+      method: "POST",
+      body: JSON.stringify({
+        reflection_id: id,
+        message: "",
+        data: [{ name: finalName }]
+      }),
+    });
+
+    const json = await res.json();
+    if (!json.success) {
+      console.error("Failed to save sender name:", json.message);
+      return;
+    }
+
+    router.push(`/reflections/delivery/${id}`);
+  } catch (error) {
+    console.error("Error saving sender name:", error);
   }
+};
+
 
   return (
     <div className="min-h-screen bg-[#121212] flex flex-col">
