@@ -8,11 +8,11 @@ export default function ReflectionConfirmationPage() {
   const searchParams = useSearchParams()
   const router = useRouter();
 
-  const [deliveryMethod, setDeliveryMethod] = useState<'keep-private' | 'email' | 'whatsapp'>('keep-private')
+  const [deliveryMethod, setDeliveryMethod] = useState<'keep-private' | 'email' | 'phone'>('keep-private')
 
   useEffect(() => {
     const method = searchParams.get('method')
-    if (method === 'email' || method === 'whatsapp') {
+    if (method === 'email' || method === 'phone') {
       setDeliveryMethod(method)
     }
 

@@ -525,7 +525,17 @@ useEffect(() => {
   return (
     <>
       {/* Mobile Overlay */}
-      {isOpen && <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={onToggle} />}
+     {isOpen && (
+  <div
+    className="fixed inset-0 bg-black/50 z-40 md:hidden"
+    onClick={(e) => {
+      if (e.target === e.currentTarget) {
+        onToggle();
+      }
+    }}
+  />
+)}
+
 
       {/* Sidebar */}
       <div className={`fixed left-0 top-0 h-full w-80 bg-[#1a1a1a] border-r border-white/10 transform transition-transform duration-300 ease-in-out z-50 ${isOpen ? "translate-x-0" : "-translate-x-full"
