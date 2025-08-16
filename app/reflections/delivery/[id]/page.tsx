@@ -6,7 +6,7 @@ import { ArrowLeft } from "lucide-react"
 import { SarthiButton } from "@/components/ui/sarthi-button"
 import { SarthiInput } from "@/components/ui/sarthi-input"
 import { CountrySelector } from "@/components/ui/country-selector"
-import { validateEmail, validatePhone} from "@/lib/validators"
+import { validateEmail, validatePhone } from "@/lib/validators"
 import { authFetch } from "@/lib/api"
 
 type Country = {
@@ -15,7 +15,6 @@ type Country = {
   dialCode: string
   flag: string
 }
-
 
 export default function DeliveryMethodPage() {
   const { id } = useParams() as { id: string }
@@ -34,85 +33,96 @@ export default function DeliveryMethodPage() {
   const [deliveryMethod, setDeliveryMethod] = useState<"keep-private" | "send">("send")
 
   const handleNext = async () => {
-    let hasError = false;
+    let hasError = false
 
     // Validate email
     if (emailContact.trim()) {
-      const error = validateEmail(emailContact);
+      const error = validateEmail(emailContact)
       if (error) {
-        setEmailError(error);
-        hasError = true;
+        setEmailError(error)
+        hasError = true
       }
     }
 
     // Validate phone
     if (phoneNumber.trim()) {
-      const error = validatePhone(phoneNumber);
+      const error = validatePhone(phoneNumber)
       if (error) {
-        setPhoneError(error);
-        hasError = true;
+        setPhoneError(error)
+        hasError = true
       }
     }
 
     // Require at least one contact method if delivery is "send"
     if (deliveryMethod !== "keep-private" && !emailContact.trim() && !phoneNumber.trim()) {
-      setEmailError("Please provide at least one contact method");
-      hasError = true;
+      setEmailError("Please provide at least one contact method")
+      hasError = true
     }
 
-    if (hasError) return;
+    if (hasError) return
 
-    const reflectionId = id;
-    const payload: {
-      reflection_id: string;
-      message: string;
-      data: any[];
-    } = {
-      reflection_id: reflectionId,
-      message: "",
-      data: [],
-    };
+    const reflectionId = id
 
-    if (emailContact.trim()) {
-      payload.data.push({ email: emailContact.trim() });
+    if (deliveryMethod === "send") {
+      // Decide delivery mode
+      let deliveryMode = 0
+      if (emailContact.trim() && phoneNumber.trim()) {
+        deliveryMode = 2
+      } else if (phoneNumber.trim()) {
+        deliveryMode = 1
+      } else {
+        deliveryMode = 0
+      }
+
+      const payload: {
+        reflection_id: string
+        message: string
+        data: any[]
+      } = {
+        reflection_id: reflectionId,
+        message:
+          deliveryMode === 0
+            ? "Send my reflection via email"
+            : deliveryMode === 1
+            ? "Send my reflection via WhatsApp"
+            : "Send via both channels",
+        data: [
+          { delivery_mode: deliveryMode },
+          ...(emailContact.trim() ? [{ recipient_email: emailContact.trim() }] : []),
+          ...(phoneNumber.trim()
+            ? [{ recipient_phone: selectedCountry.dialCode + phoneNumber.trim() }]
+            : []),
+        ],
+      }
+
+      try {
+        await authFetch("/api/reflection", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        })
+
+        // 🔔 Let sidebar know a new reflection is ready
+        window.dispatchEvent(new Event("reflection-completed"))
+      } catch (error) {
+        console.error("Error submitting delivery details:", error)
+        return
+      }
+
+      if (deliveryMode === 0) {
+        router.push(`/reflections/confirm/${id}?method=email`)
+      } else if (deliveryMode === 1) {
+        router.push(`/reflections/confirm/${id}?method=phone`)
+      } else {
+        router.push(`/reflections/share/${id}`)
+      }
     }
 
-    if (phoneNumber.trim()) {
-      payload.data.push({
-        phone: selectedCountry.dialCode + phoneNumber.trim(),
-      });
+    if (deliveryMethod === "keep-private") {
+      // 🔔 Even for private reflections, trigger the update
+      window.dispatchEvent(new Event("reflection-completed"))
+      router.push(`/reflections/confirm/${id}`)
     }
-if (deliveryMethod === "send") {
-  try {
-    await authFetch("/api/reflection", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-
-    // 🔔 Let sidebar know a new reflection is ready
-    window.dispatchEvent(new Event("reflection-completed"));
-    
-  } catch (error) {
-    console.error("Error submitting delivery details:", error);
-    return;
   }
-
-  if (emailContact.trim() && !phoneNumber.trim()) {
-    router.push(`/reflections/confirm/${id}?method=email`);
-  } else {
-    router.push(`/reflections/share/${id}`);
-  }
-}
-
-if (deliveryMethod === "keep-private") {
-  // 🔔 Even for private reflections, trigger the update
-  window.dispatchEvent(new Event("reflection-completed"));
-  router.push(`/reflections/confirm/${id}`);
-}
-
-  };
-
-
 
   return (
     <div className="h-screen bg-[#121212] flex flex-col">
@@ -138,23 +148,23 @@ if (deliveryMethod === "keep-private") {
       </header>
 
       <div className="flex-1 overflow-y-auto">
-        {/* Responsive padding and spacing */}
         <div className="max-w-2xl mx-auto p-4 pb-8 space-y-6 sm:space-y-8">
           <div className="text-center space-y-2">
-            {/* Responsive font sizes */}
-            <h2 className="text-xl sm:text-2xl font-light text-white">How would you like to send this?</h2>
-            <p className="text-sm sm:text-base text-white/60">You can provide both email and phone to give them options</p>
+            <h2 className="text-xl sm:text-2xl font-light text-white">
+              How would you like to send this?
+            </h2>
+            <p className="text-sm sm:text-base text-white/60">
+              You can provide both email and phone to give them options
+            </p>
           </div>
 
           <div className="space-y-6">
             {/* Email Input */}
             <div className="space-y-3 sm:space-y-4">
               <div className="flex items-center gap-2 sm:gap-3">
-                {/* Responsive icon container size */}
                 <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white/10 rounded-full flex items-center justify-center text-sm sm:text-base">
                   📧
                 </div>
-                {/* Responsive title font size */}
                 <h3 className="text-base sm:text-lg font-medium text-white">Email Address</h3>
               </div>
               <SarthiInput
@@ -172,11 +182,9 @@ if (deliveryMethod === "keep-private") {
             {/* WhatsApp Input */}
             <div className="space-y-3 sm:space-y-4">
               <div className="flex items-center gap-2 sm:gap-3">
-                {/* Responsive icon container size */}
                 <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white/10 rounded-full flex items-center justify-center text-sm sm:text-base">
                   📱
                 </div>
-                {/* Responsive title font size */}
                 <h3 className="text-base sm:text-lg font-medium text-white">WhatsApp Number</h3>
               </div>
               <CountrySelector
@@ -209,14 +217,16 @@ if (deliveryMethod === "keep-private") {
                 }`}
               >
                 <div className="flex items-start gap-3 sm:gap-4">
-                  {/* Responsive icon container size */}
                   <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-white/10 rounded-full flex items-center justify-center">
                     🔒
                   </div>
                   <div className="flex-1">
-                    {/* Responsive font sizes */}
-                    <h3 className="text-lg sm:text-xl font-medium text-white mb-1 sm:mb-2">Keep it private</h3>
-                    <p className="text-sm sm:text-base text-white/60 leading-relaxed">Just between you and Sarthi</p>
+                    <h3 className="text-lg sm:text-xl font-medium text-white mb-1 sm:mb-2">
+                      Keep it private
+                    </h3>
+                    <p className="text-sm sm:text-base text-white/60 leading-relaxed">
+                      Just between you and Sarthi
+                    </p>
                   </div>
                 </div>
               </button>

@@ -56,25 +56,6 @@ export default function AuthPage() {
     return /^\d{7,15}$/.test(phone.trim())
   }
 
-  // Test backend connection on component mount
-  useEffect(() => {
-    const testConnection = async () => {
-  try {
-    const response = await authFetch("/health");
-
-    if (response.ok) {
-      const data = await response.json();
-    //  console.log("Backend connection successful:", data);
-    } else {
-      console.error("Backend health check failed:", response.status);
-    }
-  } catch (error) {
-    console.error("Backend connection failed:", error);
-  }
-};
-    
-    testConnection();
-  }, []);
 
 const handleContinue = async () => {
   const contact = getFullContact();
@@ -112,7 +93,7 @@ const handleContinue = async () => {
 });
 
     const result = await response.json();
-   // console.log("OTP Send Result:", result);
+   console.log("OTP Send Result:", result);
 
     if (result.success) {
       setCurrentContact(contact);
