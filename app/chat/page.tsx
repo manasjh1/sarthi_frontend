@@ -104,6 +104,8 @@ export default function ChatPage() {
   const [categories, setCategories] = useState<Array<{ category_no: number, category_name: string }>>([])
   const [progress, setProgress] = useState({ current_step: 1, total_step: 4, workflow_completed: false })
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null)
+  const [userName, setUserName] = useState("")
+
   const inputRef = useRef<HTMLInputElement>(null)
 
 
@@ -141,6 +143,14 @@ export default function ChatPage() {
       router.push('/auth')
     }
   }
+
+  const formatDateDivider = (date: Date) => {
+  const today = new Date().toDateString()
+  const messageDate = date.toDateString()
+  if (today === messageDate) return "Today"
+  return date.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })
+}
+
 
   const getReflectionIcon = (type: string) => {
     switch (type) {
@@ -193,9 +203,9 @@ export default function ChatPage() {
       setCategories(response.data || [])
 
       // Add Sarthi's welcome message
-      await simulateThinkingAndResponse(response.sarthi_message)
-
-      setCurrentStep("intent-selection")
+      const user = await getCurrentUser()
+setUserName(user?.name || "there")
+setCurrentStep("conversation")
     } catch (error) {
       console.error("Failed to start reflection:", error)
       setApiError("Failed to start reflection. Please try again.")
@@ -571,58 +581,90 @@ export default function ChatPage() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto">
-        {/* Adjusted padding for smaller screens */}
-        <div className="p-4 sm:p-6">
-          {/* Adjusted max-width for better mobile layout */}
-          <div className="max-w-full sm:max-w-4xl mx-auto space-y-6">
-            {messages.map((message) => (
-              <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "items-start gap-4"}`}>
-                {message.role === "assistant" && (
-                  <div className="mt-1">
-                    <SarthiOrb size="sm" />
-                  </div>
-                )}
+    <div className="flex-1 overflow-y-auto">
+  {/* Adjusted padding for smaller screens */}
+  <div className="p-4 sm:p-6 flex flex-col h-full">
+    {/* Adjusted max-width for better mobile layout */}
+    <div className="max-w-full sm:max-w-4xl mx-auto space-y-6 flex-1">
+      
+      {messages.length === 0 ? (
+        // Welcome section slightly below center
+        <div className="flex-1 flex flex-col items-center justify-center text-center px-4 translate-y-8">
+          <h1 className="text-2xl sm:text-3xl font-light text-white mb-4">
+            Hi {userName}
+          </h1>
+          <p className="text-white/70 max-w-xl leading-relaxed">
+            I’m Sarthi. This is your private, non-judgmental space.
+            <br /><br />
+            I’m here for anything that’s been sitting on your heart, something you never got to say, or just want to get off your chest. I’ll hold it gently.
+          </p>
+        </div>
+      ) : (
+        <>
+         {messages.map((message, i) => {
+  const prev = messages[i - 1]
+  const showDateDivider =
+    !prev || new Date(prev.timestamp).toDateString() !== new Date(message.timestamp).toDateString()
 
-                {/* Adjusted max-width for message bubble on smaller screens */}
-                <div className={`max-w-[90%] sm:max-w-[85%] ${message.role === "user" ? "flex flex-col items-end" : ""}`}>
-                  <div
-                    className={`px-4 py-3 sm:px-6 sm:py-4 rounded-3xl ${message.role === "user"
-                      ? "bg-[#1e1e1e] border border-[#2a2a2a]"
-                      : "bg-[#2a2a2a] border border-[#3a3a3a]"
-                      }`}
-                  >
-                    <p className="text-white leading-relaxed text-sm sm:text-base">
-                      {message.content}
-                      {streamingMessageId === message.id && (
-                        <span className="inline-block w-2 h-5 bg-white/60 ml-1 animate-pulse"></span>
-                      )}
-                    </p>
-                  </div>
+  return (
+    <div key={message.id}>
+      {showDateDivider && (
+        <div className="text-center text-white/40 text-xs my-4">
+          --- {formatDateDivider(new Date(message.timestamp))} ---
+        </div>
+      )}
 
-                  <div className="mt-2 text-xs text-white/40">
-                    {message.timestamp?.toLocaleTimeString()}
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {/* Thinking indicator */}
-            {isThinking && (
-              <div className="flex items-start gap-4">
-                <div className="mt-1">
-
-                </div>
-                <div className="flex-1">
-                  <SarthiThinking />
-                </div>
-              </div>
-            )}
-
-            <div ref={messagesEndRef} />
+      <div className={`flex ${message.role === "user" ? "justify-end" : "items-start gap-4"}`}>
+        {message.role === "assistant" && (
+          <div className="mt-1">
+            <SarthiOrb size="sm" />
+          </div>
+        )}
+        <div className={`max-w-[90%] sm:max-w-[85%] ${message.role === "user" ? "flex flex-col items-end" : ""}`}>
+          <div
+            className={`px-4 py-3 sm:px-6 sm:py-4 rounded-3xl ${
+              message.role === "user"
+                ? "bg-[#1e1e1e] border border-[#2a2a2a]"
+                : "bg-[#2a2a2a] border border-[#3a3a3a]"
+            }`}
+          >
+            <p className="text-white leading-relaxed text-sm sm:text-base">
+              {message.content}
+              {streamingMessageId === message.id && (
+                <span className="inline-block w-2 h-5 bg-white/60 ml-1 animate-pulse"></span>
+              )}
+            </p>
+          </div>
+          <div className="mt-2 text-xs text-white/40">
+            {message.timestamp?.toLocaleTimeString()}
           </div>
         </div>
       </div>
+    </div>
+  )
+})}
+
+
+          {/* Thinking indicator */}
+          {isThinking && (
+            <div className="flex items-start gap-4">
+              <div className="mt-1">
+                
+              </div>
+              <div className="flex-1">
+                <SarthiThinking />
+              </div>
+            </div>
+          )}
+
+          <div ref={messagesEndRef} />
+        </>
+      )}
+
+    </div>
+  </div>
+</div>
+
 
       {/* Input Area */}
       {currentStep === "conversation" && (
