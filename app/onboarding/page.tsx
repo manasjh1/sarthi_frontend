@@ -8,6 +8,8 @@ import { SarthiInput } from "@/components/ui/sarthi-input"
 import { ApologyIcon } from "@/components/icons/apology-icon"
 import { Heart, MessageCircle, User, UserX } from "lucide-react"
 import { authFetch } from "@/lib/api"
+import mixpanel, { initMixpanel } from "@/lib/mixpanel";
+
 
 type OnboardingStep = "success" | "name-entry" | "space-setup" | "reflection-prompt" | "complete"
 
@@ -48,6 +50,9 @@ useEffect(() => {
   fetchUser();
 }, []);
 
+useEffect(() => {
+  initMixpanel();
+}, []);
 
 
   // Space setup progress animation
@@ -80,7 +85,7 @@ useEffect(() => {
     return ""
   }
 
- const handleNameSubmit = async () => {
+const handleNameSubmit = async () => {
   if (isAnonymous) {
     // Save anonymous name in local storage
     if (typeof window !== "undefined") {
@@ -98,14 +103,20 @@ useEffect(() => {
           name: "Anonymous"
         })
       })
+
+      // 🔹 Track profile name set (Anonymous)
+      mixpanel.track("profile_name_set", {
+        name_setup: true,
+        is_anonymous: true,
+        name: "Anonymous"
+      })
     } catch (err) {
       console.error("Onboarding error:", err)
     }
 
     setShowSuccessToast(true)
     setTimeout(() => setShowSuccessToast(false), 0)
-     setTimeout(() => {
-      // Navigate to chat with the selected reflection type
+    setTimeout(() => {
       router.push(`/chat`)
     }, 100)
     return
@@ -134,30 +145,40 @@ useEffect(() => {
         name: name.trim()
       })
     })
+
+    // 🔹 Track profile name set (Named)
+    mixpanel.track("profile_name_set", {
+      name_setup: true,
+      is_anonymous: false,
+      name: name.trim()
+    })
   } catch (err) {
     console.error("Onboarding error:", err)
   }
 
   setShowSuccessToast(true)
   setTimeout(() => setShowSuccessToast(false), 0)
-//  console.log("Saving name:", name.trim())
-   setTimeout(() => {
-      
-      router.push(`/chat`)
-    }, 100)
+  setTimeout(() => {
+    router.push(`/chat`)
+  }, 100)
 }
 
 
-  const handleReflectionSelect = (reflectionType: string) => {
-    setSelectedReflection(reflectionType)
-    setIsNavigating(true)
 
-    // Add a smooth transition before navigating
-    setTimeout(() => {
-      // Navigate to chat with the selected reflection type
-      router.push(`/chat?intent=${reflectionType}`)
-    }, 0)
-  }
+const handleReflectionSelect = (reflectionType: string) => {
+  setSelectedReflection(reflectionType)
+  setIsNavigating(true)
+
+  // 🔹 Track reflection selected
+  mixpanel.track("reflection_selected", {
+    reflection_type: reflectionType // "apologize" | "gratitude" | "boundary"
+  })
+
+  // Add a smooth transition before navigating
+  setTimeout(() => {
+    router.push(`/chat?intent=${reflectionType}`)
+  }, 0)
+}
 
  const handleContinueFromSuccess = async () => {
   try {

@@ -456,3 +456,30 @@
     transform: translateY(0);
   }
 }
+
+/* Fix mobile keyboard issue with vh units */
+:root {
+  --vh: 100%;
+}
+
+@supports (height: 100dvh) {
+  :root {
+    --vh: 100dvh; /* modern browsers with dynamic viewport units */
+  }
+}
+
+html, body {
+  height: 100%;
+  min-height: 100%;
+}
+
+/* Use this custom vh variable instead of plain 100vh */
+.h-screen {
+  height: var(--vh);
+}
+
+/* Ensure bottom buttons are always visible with safe area */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+}
+

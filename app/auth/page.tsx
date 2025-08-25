@@ -9,6 +9,8 @@ import { CountrySelector } from "@/components/ui/country-selector"
 import { validateInviteCode, verifyOTP } from "@/app/actions/auth"
 import { SarthiIcon } from "@/components/ui/sarthi-icon"
 import { authFetch } from "@/lib/api";
+import mixpanel, { initMixpanel } from "@/lib/mixpanel";
+
 
 type AuthStep = "entry" | "invite-code" | "otp-verification" | "success" | "redirecting"
 type UserType = "new" | "existing" | null
@@ -57,59 +59,63 @@ export default function AuthPage() {
   }
 
 
-const handleContinue = async () => {
-  const contact = getFullContact();
-  if (contactType === "email") {
-    if (!email.trim()) {
-      setError("Please enter your email address");
-      return;
-    }
-    if (!isValidEmail(email)) {
-      setError("Please enter a valid email address");
-      return;
-    }
-  } else {
-    if (!phoneNumber.trim()) {
-      setError("Please enter your phone number");
-      return;
-    }
-    if (!isValidPhone(phoneNumber)) {
-      setError("Please enter a valid phone number");
-      return;
-    }
-  }
+  const handleContinue = async () => {
+    mixpanel.track("signup_started", {
+      auth_method: contactType // "email" or "phone"
+    });
+    const contact = getFullContact();
+    if (contactType === "email") {
 
-  setIsLoading(true);
-  setError("");
-
-  try {
-
-  const response = await authFetch("/api/auth/send-otp", {
-  method: "POST",
-  body: JSON.stringify({
-    contact: contact,
-    invite_token: inviteToken || 'string',
-  }),
-});
-
-    const result = await response.json();
-   console.log("OTP Send Result:", result);
-
-    if (result.success) {
-      setCurrentContact(contact);
-      setShowSuccessToast(true);
-      setTimeout(() => setShowSuccessToast(false), 100);
-      setStep("otp-verification");
+      if (!email.trim()) {
+        setError("Please enter your email address");
+        return;
+      }
+      if (!isValidEmail(email)) {
+        setError("Please enter a valid email address");
+        return;
+      }
     } else {
-      setError(result.message || "Failed to send OTP.");
+      if (!phoneNumber.trim()) {
+        setError("Please enter your phone number");
+        return;
+      }
+      if (!isValidPhone(phoneNumber)) {
+        setError("Please enter a valid phone number");
+        return;
+      }
     }
-  } catch (err) {
-    console.error("Error sending OTP:", err);
-    setError("Something went wrong. Please try again.");
-  } finally {
-    setIsLoading(false);
-  }
-};
+
+    setIsLoading(true);
+    setError("");
+
+    try {
+
+      const response = await authFetch("/api/auth/send-otp", {
+        method: "POST",
+        body: JSON.stringify({
+          contact: contact,
+          invite_token: inviteToken || 'string',
+        }),
+      });
+
+      const result = await response.json();
+      console.log("OTP Send Result:", result);
+
+      if (result.success) {
+        setCurrentContact(contact);
+        setShowSuccessToast(true);
+        setTimeout(() => setShowSuccessToast(false), 100);
+        setStep("otp-verification");
+      } else {
+        setError(result.message || "Failed to send OTP.");
+      }
+    } catch (err) {
+      console.error("Error sending OTP:", err);
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
 
   const handleInviteCode = async () => {
@@ -123,9 +129,14 @@ const handleContinue = async () => {
 
     try {
       const result = await validateInviteCode(inviteCode)
-     // console.log("Invite validation result:", result)
+      // console.log("Invite validation result:", result)
 
       if (result.success && result.valid) {
+        mixpanel.track("invite_code_submitted", {
+          invite_code_source: "direct", // or email/whatsapp if you can detect
+          code_valid: result.success && result.valid
+        });
+
         setInviteToken(result.inviteToken)
         setStep("success")
         setTimeout(() => {
@@ -154,15 +165,35 @@ const handleContinue = async () => {
     setError("")
 
     try {
-    //  console.log("Verifying OTP...")
+      //  console.log("Verifying OTP...")
       const result = await verifyOTP(currentContact, otp, inviteToken)
-    //  console.log("OTP verification result:", result)
+      //  console.log("OTP verification result:", result)
 
       if (result.success) {
-      //  console.log("OTP verification successful")
-        
+        if (result.isNewUser) {
+          mixpanel.track("signup_completed", {
+            auth_method: contactType,
+            signup_status: "success"
+          });
+        }
+      }
+
+
+      if (result.success) {
+  if (!result.isNewUser) {
+    mixpanel.track("login_success", {
+      auth_method: contactType,
+      login: "success"
+    });
+  }
+}
+
+      if (result.success) {
+        //  console.log("OTP verification successful")
+
         // Update user type based on response
         if (result.isNewUser !== undefined) {
+
           setUserType(result.isNewUser ? "new" : "existing")
         }
 
@@ -179,8 +210,8 @@ const handleContinue = async () => {
               if (prev >= 100) {
                 clearInterval(progressInterval)
                 // Redirect based on user type
-                const redirectTo ="/onboarding";
-               // console.log("Redirecting to:", redirectTo)
+                const redirectTo = "/onboarding";
+                // console.log("Redirecting to:", redirectTo)
                 router.push(redirectTo)
                 return 100
               }
@@ -199,66 +230,71 @@ const handleContinue = async () => {
     }
   }
 
-const handleResendOTP = async () => {
-  if (!currentContact) {
-    setError("Contact information missing.");
-    return;
-  }
 
-  setIsLoading(true);
-  setError("");
 
-  try {
-   // console.log("Resending OTP to:", currentContact);
-
-    const response = await authFetch("/api/auth/send-otp", {
-      method: "POST",
-      body: JSON.stringify({
-        contact: currentContact,
-        invite_token: inviteToken || 'string',
-      }),
-    });
-
-    const result = await response.json();
-  //  console.log("Resend OTP result:", result);
-
-    if (result.success) {
-      setShowSuccessToast(true);
-      setTimeout(() => setShowSuccessToast(false), 100);
-    } else {
-      setError(result.message || "Failed to resend OTP.");
+  const handleResendOTP = async () => {
+    if (!currentContact) {
+      setError("Contact information missing.");
+      return;
     }
-  } catch (err) {
-    console.error("Error in handleResendOTP:", err);
-    setError("Failed to resend code. Please try again.");
-  } finally {
-    setIsLoading(false);
-  }
-};
-   useEffect(() => {
-  const params = new URLSearchParams(window.location.search);
-  const codeFromUrl = params.get("invite");
 
-  if (codeFromUrl) {
-    // Directly validate the invite code
-    (async () => {
-      try {
-        const result = await validateInviteCode(codeFromUrl);
-        if (result.success && result.valid) {
-          setInviteToken(result.inviteToken);
-          // User can skip invite-code step entirely
-          setStep("entry");
-        } else {
-          setError("Invalid invite link.");
-        }
-      } catch (err) {
-        console.error("Error validating invite from URL", err);
-        setError("Something went wrong.");
+    setIsLoading(true);
+    setError("");
+
+    try {
+      // console.log("Resending OTP to:", currentContact);
+
+      const response = await authFetch("/api/auth/send-otp", {
+        method: "POST",
+        body: JSON.stringify({
+          contact: currentContact,
+          invite_token: inviteToken || 'string',
+        }),
+      });
+
+      const result = await response.json();
+      //  console.log("Resend OTP result:", result);
+
+      if (result.success) {
+        setShowSuccessToast(true);
+        setTimeout(() => setShowSuccessToast(false), 100);
+      } else {
+        setError(result.message || "Failed to resend OTP.");
       }
-    })();
-  }
-}, []);
+    } catch (err) {
+      console.error("Error in handleResendOTP:", err);
+      setError("Failed to resend code. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const codeFromUrl = params.get("invite");
 
+    if (codeFromUrl) {
+      // Directly validate the invite code
+      (async () => {
+        try {
+          const result = await validateInviteCode(codeFromUrl);
+          if (result.success && result.valid) {
+            setInviteToken(result.inviteToken);
+            // User can skip invite-code step entirely
+            setStep("entry");
+          } else {
+            setError("Invalid invite link.");
+          }
+        } catch (err) {
+          console.error("Error validating invite from URL", err);
+          setError("Something went wrong.");
+        }
+      })();
+    }
+  }, []);
+
+  useEffect(() => {
+    initMixpanel();
+  }, []);
 
   const resetToEntry = () => {
     setStep("entry")
@@ -272,221 +308,219 @@ const handleResendOTP = async () => {
   }
 
   const renderEntryStep = () => (
-  <div className="w-full max-w-md space-y-8 px-4 sm:px-0">
-  <div className="text-center sarthi-fade-in">
-    <h1 className="text-3xl font-medium mb-4 sm:mb-6">I'm Sarthi, your personal confidant</h1>
-    <p className="text-[#cbd5e1] mb-4 sm:mb-6">
-      To get started, enter the email or phone where you received your message. I'll send you a one-time code to
-      sign in.
-    </p>
-  </div>
-
-  <div className="sarthi-card p-4 sm:p-6 space-y-4 rounded-[16px]">
-    {/* Contact Type Toggle */}
-    <div className="flex bg-[#2a2a2a] rounded-[16px] p-1">
-      <button
-        type="button"
-        onClick={() => {
-          setContactType("email");
-          setError("");
-        }}
-        className={`flex-1 py-2 px-3 rounded-[12px] text-sm font-medium transition-all duration-150 ${
-          contactType === "email" ? "bg-white text-[#0f0f0f]" : "text-[#cbd5e1] hover:text-white hover:bg-white/10"
-        }`}
-      >
-        Email
-      </button>
-      <button
-        type="button"
-        onClick={() => {
-          setContactType("phone");
-          setError("");
-        }}
-        className={`flex-1 py-2 px-3 rounded-[12px] text-sm font-medium transition-all duration-150 ${
-          contactType === "phone" ? "bg-white text-[#0f0f0f]" : "text-[#cbd5e1] hover:text-white hover:bg-white/10"
-        }`}
-      >
-        Phone
-      </button>
-    </div>
-
-    <div className="space-y-2">
-      <label htmlFor="contact" className="block text-sm text-[#cbd5e1] text-left">
-        {contactType === "email" ? "Email address" : "Phone number"}
-      </label>
-
-      {contactType === "email" ? (
-        <SarthiInput
-          id="contact"
-          type="email"
-          placeholder="name@example.com"
-          value={email}
-          onChange={(e) => {
-            setEmail(e.target.value);
-            setError("");
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              handleContinue();
-            }
-          }}
-          className="auth-input"
-        />
-      ) : (
-        <CountrySelector
-          selectedCountry={selectedCountry}
-          onCountrySelect={setSelectedCountry}
-          phoneNumber={phoneNumber}
-          onPhoneNumberChange={(phone) => {
-            setPhoneNumber(phone);
-            setError("");
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              handleContinue();
-            }
-          }}
-        />
-      )}
-
-      <p className="text-xs text-[#9ca3af]">
-        You'll receive a one-time code at this {contactType === "email" ? "address" : "number"}.
-      </p>
-    </div>
-
-    {error && (
-      <div className="text-red-400 text-sm" role="alert" aria-live="polite" tabIndex={-1}>
-        {error}
+    <div className="w-full max-w-md space-y-8 px-4 sm:px-0">
+      <div className="text-center sarthi-fade-in">
+        <h1 className="text-3xl font-medium mb-4 sm:mb-6">I'm Sarthi, your personal confidant</h1>
+        <p className="text-[#cbd5e1] mb-4 sm:mb-6">
+          To get started, enter the email or phone where you received your message. I'll send you a one-time code to
+          sign in.
+        </p>
       </div>
-    )}
 
-    <div className="pt-2">
-      <SarthiButton
-        className="w-full auth-button rounded-[16px]"
-        onClick={handleContinue}
-        disabled={isLoading}
-      >
-        {isLoading ? "Sending code…" : "Send my code"}
-      </SarthiButton>
-    </div>
+      <div className="sarthi-card p-4 sm:p-6 space-y-4 rounded-[16px]">
+        {/* Contact Type Toggle */}
+        <div className="flex bg-[#2a2a2a] rounded-[16px] p-1">
+          <button
+            type="button"
+            onClick={() => {
+              setContactType("email");
+              setError("");
+            }}
+            className={`flex-1 py-2 px-3 rounded-[12px] text-sm font-medium transition-all duration-150 ${contactType === "email" ? "bg-white text-[#0f0f0f]" : "text-[#cbd5e1] hover:text-white hover:bg-white/10"
+              }`}
+          >
+            Email
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setContactType("phone");
+              setError("");
+            }}
+            className={`flex-1 py-2 px-3 rounded-[12px] text-sm font-medium transition-all duration-150 ${contactType === "phone" ? "bg-white text-[#0f0f0f]" : "text-[#cbd5e1] hover:text-white hover:bg-white/10"
+              }`}
+          >
+            Phone
+          </button>
+        </div>
 
-    <div className="text-center text-sm text-[#cbd5e1]">
-      <p>Take a deep breath. I'm here when you are.</p>
-    </div>
-  </div>
+        <div className="space-y-2">
+          <label htmlFor="contact" className="block text-sm text-[#cbd5e1] text-left">
+            {contactType === "email" ? "Email address" : "Phone number"}
+          </label>
 
-  <div className="text-center mt-4 sm:mt-6">
-    <button
-      onClick={() => setStep("invite-code")}
-      className="text-[#cbd5e1] hover:text-white transition-colors text-sm underline min-h-[44px] min-w-[44px] px-4 py-2 rounded-lg hover:bg-white/5 focus:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/20"
-    >
-      Have an invite code?
-    </button>
-  </div>
+          {contactType === "email" ? (
+            <SarthiInput
+              id="contact"
+              type="email"
+              placeholder="name@example.com"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setError("");
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleContinue();
+                }
+              }}
+              className="auth-input"
+            />
+          ) : (
+            <CountrySelector
+              selectedCountry={selectedCountry}
+              onCountrySelect={setSelectedCountry}
+              phoneNumber={phoneNumber}
+              onPhoneNumberChange={(phone) => {
+                setPhoneNumber(phone);
+                setError("");
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleContinue();
+                }
+              }}
+            />
+          )}
 
-  {/* Success Toast */}
-  {showSuccessToast && (
-    <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-green-500/20 border border-green-500/30 text-green-400 px-6 py-3 rounded-[16px] backdrop-blur-sm shadow-lg animate-in slide-in-from-top duration-300">
-      <div className="flex items-center gap-3">
-        <svg
-          className="h-5 w-5 flex-shrink-0"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={2}
-          viewBox="0 0 24 24"
-        >
-          <path d="M5 13l4 4L19 7" />
-        </svg>
-        <p className="text-sm">Great! I've sent your code. I'll be right here when you enter it.</p>
+          <p className="text-xs text-[#9ca3af]">
+            You'll receive a one-time code at this {contactType === "email" ? "address" : "number"}.
+          </p>
+        </div>
+
+        {error && (
+          <div className="text-red-400 text-sm" role="alert" aria-live="polite" tabIndex={-1}>
+            {error}
+          </div>
+        )}
+
+        <div className="pt-2">
+          <SarthiButton
+            className="w-full auth-button rounded-[16px]"
+            onClick={handleContinue}
+            disabled={isLoading}
+          >
+            {isLoading ? "Sending code…" : "Send my code"}
+          </SarthiButton>
+        </div>
+
+        <div className="text-center text-sm text-[#cbd5e1]">
+          <p>Take a deep breath. I'm here when you are.</p>
+        </div>
+      </div>
+
+      <div className="text-center mt-4 sm:mt-6">
         <button
-          onClick={() => setShowSuccessToast(false)}
-          className="ml-2 text-green-400/60 hover:text-green-400 transition-colors min-h-[24px] min-w-[24px]"
+          onClick={() => setStep("invite-code")}
+          className="text-[#cbd5e1] hover:text-white transition-colors text-sm underline min-h-[44px] min-w-[44px] px-4 py-2 rounded-lg hover:bg-white/5 focus:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/20"
         >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-            <path d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          Have an invite code?
         </button>
       </div>
+
+      {/* Success Toast */}
+      {showSuccessToast && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-green-500/20 border border-green-500/30 text-green-400 px-6 py-3 rounded-[16px] backdrop-blur-sm shadow-lg animate-in slide-in-from-top duration-300">
+          <div className="flex items-center gap-3">
+            <svg
+              className="h-5 w-5 flex-shrink-0"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              viewBox="0 0 24 24"
+            >
+              <path d="M5 13l4 4L19 7" />
+            </svg>
+            <p className="text-sm">Great! I've sent your code. I'll be right here when you enter it.</p>
+            <button
+              onClick={() => setShowSuccessToast(false)}
+              className="ml-2 text-green-400/60 hover:text-green-400 transition-colors min-h-[24px] min-w-[24px]"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
-  )}
-</div>
 
   )
 
   const renderOtpStep = () => (
     <div className="w-full max-w-md space-y-8 px-4 sm:px-0">
-  <div className="text-center space-y-2 sarthi-fade-in">
-    <h1 className="text-2xl sm:text-3xl font-medium">
-      Enter verification code
-    </h1>
-    <p className="text-[#cbd5e1] text-sm sm:text-base">
-      A secure code has been sent to <span className="text-white">{currentContact}</span>. 
-      Please enter the verification code below.
-    </p>
-  </div>
+      <div className="text-center space-y-2 sarthi-fade-in">
+        <h1 className="text-2xl sm:text-3xl font-medium">
+          Enter verification code
+        </h1>
+        <p className="text-[#cbd5e1] text-sm sm:text-base">
+          A secure code has been sent to <span className="text-white">{currentContact}</span>.
+          Please enter the verification code below.
+        </p>
+      </div>
 
-  <div className="sarthi-card p-4 sm:p-6 space-y-6 rounded-[16px]">
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <label htmlFor="otp" className="block text-sm text-[#cbd5e1] text-left">
-          Verification code
-        </label>
-        <SarthiInput
-          id="otp"
-          type="text"
-          placeholder="Enter the 6-digit code"
-          value={otp}
-          onChange={(e) => {
-            setOtp(e.target.value)
-            setError("")
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              handleOtpVerification()
-            }
-          }}
-          maxLength={6}
-          className="auth-input"
-        />
+      <div className="sarthi-card p-4 sm:p-6 space-y-6 rounded-[16px]">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="otp" className="block text-sm text-[#cbd5e1] text-left">
+              Verification code
+            </label>
+            <SarthiInput
+              id="otp"
+              type="text"
+              placeholder="Enter the 6-digit code"
+              value={otp}
+              onChange={(e) => {
+                setOtp(e.target.value)
+                setError("")
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleOtpVerification()
+                }
+              }}
+              maxLength={6}
+              className="auth-input"
+            />
+          </div>
+        </div>
+
+        {error && (
+          <div className="text-red-400 text-sm text-center" role="alert" aria-live="polite">
+            {error}
+          </div>
+        )}
+
+        <div className="pt-2">
+          <SarthiButton
+            className="w-full auth-button rounded-[16px]"
+            onClick={handleOtpVerification}
+            disabled={isLoading}
+          >
+            {isLoading ? "Verifying..." : "Verify and continue"}
+          </SarthiButton>
+        </div>
+
+        <div className="text-center">
+          <button
+            onClick={handleResendOTP}
+            disabled={isLoading}
+            className="text-[#cbd5e1] hover:text-white transition-colors text-sm disabled:opacity-50 min-h-[44px] min-w-[44px] px-4 py-2 rounded-lg hover:bg-white/5 focus:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/20"
+          >
+            Didn't receive it yet? Try again
+          </button>
+        </div>
+      </div>
+
+      <div className="text-center">
+        <button
+          onClick={resetToEntry}
+          className="text-[#cbd5e1] hover:text-white transition-colors text-sm min-h-[44px] min-w-[44px] px-4 py-2 rounded-lg hover:bg-white/5 focus:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/20"
+        >
+          Use a different {contactType === "email" ? "email" : "phone number"}
+        </button>
       </div>
     </div>
-
-    {error && (
-      <div className="text-red-400 text-sm text-center" role="alert" aria-live="polite">
-        {error}
-      </div>
-    )}
-
-    <div className="pt-2">
-      <SarthiButton
-        className="w-full auth-button rounded-[16px]"
-        onClick={handleOtpVerification}
-        disabled={isLoading}
-      >
-        {isLoading ? "Verifying..." : "Verify and continue"}
-      </SarthiButton>
-    </div>
-
-    <div className="text-center">
-      <button
-        onClick={handleResendOTP}
-        disabled={isLoading}
-        className="text-[#cbd5e1] hover:text-white transition-colors text-sm disabled:opacity-50 min-h-[44px] min-w-[44px] px-4 py-2 rounded-lg hover:bg-white/5 focus:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/20"
-      >
-        Didn't receive it yet? Try again
-      </button>
-    </div>
-  </div>
-
-  <div className="text-center">
-    <button
-      onClick={resetToEntry}
-      className="text-[#cbd5e1] hover:text-white transition-colors text-sm min-h-[44px] min-w-[44px] px-4 py-2 rounded-lg hover:bg-white/5 focus:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/20"
-    >
-      Use a different {contactType === "email" ? "email" : "phone number"}
-    </button>
-  </div>
-</div>
 
   )
 
@@ -578,79 +612,79 @@ const handleResendOTP = async () => {
   )
 
   const renderInviteCodeStep = () => (
-  <div className="w-full max-w-md space-y-8 px-4 sm:px-6">
-  <div className="flex items-center space-x-2 mb-4">
-    <button
-      onClick={() => setStep("entry")}
-      className="text-[#cbd5e1] hover:text-white transition-colors min-h-[44px] min-w-[44px] p-2 rounded-lg hover:bg-white/5 focus:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/20"
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="m12 19-7-7 7-7" />
-        <path d="M19 12H5" />
-      </svg>
-    </button>
-    <span className="text-[#cbd5e1] text-sm">Back</span>
-  </div>
-
-  <div className="text-center space-y-2 sarthi-fade-in">
-    <h1 className="text-2xl sm:text-3xl font-medium">Enter your invite code</h1>
-    <p className="text-[#cbd5e1] text-sm sm:text-base">
-      We're honored to have you here
-    </p>
-  </div>
-
-  <div className="sarthi-card p-4 sm:p-6 space-y-6 rounded-[16px]">
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <label
-          htmlFor="inviteCode"
-          className="block text-sm text-[#cbd5e1] text-left"
+    <div className="w-full max-w-md space-y-8 px-4 sm:px-6">
+      <div className="flex items-center space-x-2 mb-4">
+        <button
+          onClick={() => setStep("entry")}
+          className="text-[#cbd5e1] hover:text-white transition-colors min-h-[44px] min-w-[44px] p-2 rounded-lg hover:bg-white/5 focus:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/20"
         >
-          Invite code
-        </label>
-        <SarthiInput
-          id="inviteCode"
-          type="text"
-          placeholder="Enter your invite code"
-          value={inviteCode}
-          onChange={(e) => setInviteCode(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleInviteCode()}
-          className="auth-input text-sm sm:text-base"
-        />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="m12 19-7-7 7-7" />
+            <path d="M19 12H5" />
+          </svg>
+        </button>
+        <span className="text-[#cbd5e1] text-sm">Back</span>
+      </div>
+
+      <div className="text-center space-y-2 sarthi-fade-in">
+        <h1 className="text-2xl sm:text-3xl font-medium">Enter your invite code</h1>
+        <p className="text-[#cbd5e1] text-sm sm:text-base">
+          We're honored to have you here
+        </p>
+      </div>
+
+      <div className="sarthi-card p-4 sm:p-6 space-y-6 rounded-[16px]">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label
+              htmlFor="inviteCode"
+              className="block text-sm text-[#cbd5e1] text-left"
+            >
+              Invite code
+            </label>
+            <SarthiInput
+              id="inviteCode"
+              type="text"
+              placeholder="Enter your invite code"
+              value={inviteCode}
+              onChange={(e) => setInviteCode(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleInviteCode()}
+              className="auth-input text-sm sm:text-base"
+            />
+          </div>
+        </div>
+
+        {error && (
+          <div
+            className="text-red-400 text-xs sm:text-sm text-center"
+            role="alert"
+            aria-live="polite"
+          >
+            {error}
+          </div>
+        )}
+
+        <div className="pt-2">
+          <SarthiButton
+            className="w-full auth-button rounded-[16px] text-sm sm:text-base py-2 sm:py-3"
+            onClick={handleInviteCode}
+            disabled={isLoading}
+          >
+            {isLoading ? "Validating..." : "Apply"}
+          </SarthiButton>
+        </div>
       </div>
     </div>
-
-    {error && (
-      <div
-        className="text-red-400 text-xs sm:text-sm text-center"
-        role="alert"
-        aria-live="polite"
-      >
-        {error}
-      </div>
-    )}
-
-    <div className="pt-2">
-      <SarthiButton
-        className="w-full auth-button rounded-[16px] text-sm sm:text-base py-2 sm:py-3"
-        onClick={handleInviteCode}
-        disabled={isLoading}
-      >
-        {isLoading ? "Validating..." : "Apply"}
-      </SarthiButton>
-    </div>
-  </div>
-</div>
 
   )
 

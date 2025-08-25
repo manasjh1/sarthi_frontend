@@ -8,6 +8,8 @@ import { SarthiInput } from "@/components/ui/sarthi-input"
 import { CountrySelector } from "@/components/ui/country-selector"
 import { validateEmail, validatePhone } from "@/lib/validators"
 import { authFetch } from "@/lib/api"
+import mixpanel, { initMixpanel } from "@/lib/mixpanel";
+import { useEffect } from "react";
 
 type Country = {
   name: string
@@ -32,97 +34,144 @@ export default function DeliveryMethodPage() {
   })
   const [deliveryMethod, setDeliveryMethod] = useState<"keep-private" | "send">("send")
 
-  const handleNext = async () => {
-    let hasError = false
+const handleNext = async () => {
+  let hasError = false
 
-    // Validate email
-    if (emailContact.trim()) {
-      const error = validateEmail(emailContact)
-      if (error) {
-        setEmailError(error)
-        hasError = true
-      }
-    }
-
-    // Validate phone
-    if (phoneNumber.trim()) {
-      const error = validatePhone(phoneNumber)
-      if (error) {
-        setPhoneError(error)
-        hasError = true
-      }
-    }
-
-    // Require at least one contact method if delivery is "send"
-    if (deliveryMethod !== "keep-private" && !emailContact.trim() && !phoneNumber.trim()) {
-      setEmailError("Please provide at least one contact method")
+  // Validate email
+  if (emailContact.trim()) {
+    const error = validateEmail(emailContact)
+    if (error) {
+      setEmailError(error)
       hasError = true
     }
+  }
 
-    if (hasError) return
-
-    const reflectionId = id
-
-    if (deliveryMethod === "send") {
-      // Decide delivery mode
-      let deliveryMode = 0
-      if (emailContact.trim() && phoneNumber.trim()) {
-        deliveryMode = 2
-      } else if (phoneNumber.trim()) {
-        deliveryMode = 1
-      } else {
-        deliveryMode = 0
-      }
-
-      const payload: {
-        reflection_id: string
-        message: string
-        data: any[]
-      } = {
-        reflection_id: reflectionId,
-        message:
-          deliveryMode === 0
-            ? "Send my reflection via email"
-            : deliveryMode === 1
-            ? "Send my reflection via WhatsApp"
-            : "Send via both channels",
-        data: [
-          { delivery_mode: deliveryMode },
-          ...(emailContact.trim() ? [{ recipient_email: emailContact.trim() }] : []),
-          ...(phoneNumber.trim()
-            ? [{ recipient_phone: selectedCountry.dialCode + phoneNumber.trim() }]
-            : []),
-        ],
-      }
-
-      try {
-        await authFetch("/api/reflection", {
-          method: "POST",
-          body: JSON.stringify(payload),
-        })
-
-        // 🔔 Let sidebar know a new reflection is ready
-        window.dispatchEvent(new Event("reflection-completed"))
-      } catch (error) {
-        console.error("Error submitting delivery details:", error)
-        return
-      }
-
-      if (deliveryMode === 0) {
-        router.push(`/reflections/confirm/${id}?method=email`)
-      } else if (deliveryMode === 1) {
-        router.push(`/reflections/confirm/${id}?method=phone`)
-      } else {
-        router.push(`/reflections/share/${id}`)
-      }
-    }
-
-    if (deliveryMethod === "keep-private") {
-      // 🔔 Even for private reflections, trigger the update
-      window.dispatchEvent(new Event("reflection-completed"))
-      router.push(`/reflections/confirm/${id}`)
+  // Validate phone
+  if (phoneNumber.trim()) {
+    const error = validatePhone(phoneNumber)
+    if (error) {
+      setPhoneError(error)
+      hasError = true
     }
   }
+
+  // Require at least one contact method if delivery is "send"
+  if (deliveryMethod !== "keep-private" && !emailContact.trim() && !phoneNumber.trim()) {
+    setEmailError("Please provide at least one contact method")
+    hasError = true
+  }
+
+  if (hasError) return
+
+  const reflectionId = id
+
+  if (deliveryMethod === "send") {
+    // Decide delivery mode
+    let deliveryMode = 0
+    if (emailContact.trim() && phoneNumber.trim()) {
+      deliveryMode = 2
+    } else if (phoneNumber.trim()) {
+      deliveryMode = 1
+    } else {
+      deliveryMode = 0
+    }
+
+    // 🔹 Track delivery channel selected
+    mixpanel.track("delivery_channel_selected", {
+      channel:
+        deliveryMode === 0
+          ? "email"
+          : deliveryMode === 1
+          ? "whatsapp"
+          : "email+whatsapp",
+      reflection_id: reflectionId,
+    })
+
+    const payload: {
+      reflection_id: string
+      message: string
+      data: any[]
+    } = {
+      reflection_id: reflectionId,
+      message:
+        deliveryMode === 0
+          ? "Send my reflection via email"
+          : deliveryMode === 1
+          ? "Send my reflection via WhatsApp"
+          : "Send via both channels",
+      data: [
+        { delivery_mode: deliveryMode },
+        ...(emailContact.trim() ? [{ recipient_email: emailContact.trim() }] : []),
+        ...(phoneNumber.trim()
+          ? [{ recipient_phone: selectedCountry.dialCode + phoneNumber.trim() }]
+          : []),
+      ],
+    }
+
+    try {
+      await authFetch("/api/reflection", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      })
+
+      // 🔹 Track send successful
+      mixpanel.track("send_successful", {
+        reflection_id: reflectionId,
+        channel:
+          deliveryMode === 0
+            ? "email"
+            : deliveryMode === 1
+            ? "whatsapp"
+            : "email+whatsapp",
+      })
+
+      // 🔔 Let sidebar know a new reflection is ready
+      window.dispatchEvent(new Event("reflection-completed"))
+    } catch (error) {
+      console.error("Error submitting delivery details:", error)
+
+      // 🔹 Track send failed
+      mixpanel.track("send_failed", {
+        reflection_id: reflectionId,
+        channel:
+          deliveryMode === 0
+            ? "email"
+            : deliveryMode === 1
+            ? "whatsapp"
+            : "email+whatsapp",
+        error: String(error),
+      })
+
+      return
+    }
+
+    if (deliveryMode === 0) {
+      router.push(`/reflections/confirm/${id}?method=email`)
+    } else if (deliveryMode === 1) {
+      router.push(`/reflections/confirm/${id}?method=phone`)
+    } else {
+      router.push(`/reflections/share/${id}`)
+    }
+  }
+
+  if (deliveryMethod === "keep-private") {
+    // 🔹 Track delivery channel selected (keep private)
+    mixpanel.track("delivery_channel_selected", {
+      channel: "keep-private",
+      reflection_id: reflectionId,
+    })
+
+    // 🔔 Even for private reflections, trigger the update
+    window.dispatchEvent(new Event("reflection-completed"))
+    router.push(`/reflections/confirm/${id}`)
+  }
+}
+
+
+  useEffect(() => {
+  initMixpanel();
+}, []);
+
 
   return (
     <div className="h-screen bg-[#121212] flex flex-col">
