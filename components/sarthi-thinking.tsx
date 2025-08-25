@@ -16,25 +16,9 @@ export function SarthiThinking({
   onComplete,
   duration = 100,
 }: SarthiThinkingProps) {
-  const [currentThought, setCurrentThought] = useState("")
   const [dotCount, setDotCount] = useState(0)
 
-  const thinkingPhrases = [
-    "thinking",
-    "reflecting",
-    "considering your words",
-    "finding the right response",
-    "processing",
-    "understanding",
-  ]
-
   useEffect(() => {
-    // Cycle through thinking phrases
-    const phraseInterval = setInterval(() => {
-      const randomPhrase = thinkingPhrases[Math.floor(Math.random() * thinkingPhrases.length)]
-      setCurrentThought(randomPhrase)
-    }, 100)
-
     // Animate dots
     const dotInterval = setInterval(() => {
       setDotCount((prev) => (prev + 1) % 4)
@@ -46,7 +30,6 @@ export function SarthiThinking({
     }, duration)
 
     return () => {
-      clearInterval(phraseInterval)
       clearInterval(dotInterval)
       clearTimeout(completeTimer)
     }
@@ -59,7 +42,7 @@ export function SarthiThinking({
       </div>
       <div className="message-bubble-content message-bubble-sarthi px-6 py-4">
         <div className="flex items-center gap-2 text-white/60">
-          <span className="text-sm italic">{currentThought}</span>
+          <span className="text-sm italic">{thinkingText}</span>
           <span className="text-sm">{"•".repeat(dotCount)}</span>
         </div>
       </div>

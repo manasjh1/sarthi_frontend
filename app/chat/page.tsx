@@ -11,6 +11,7 @@ import { ArrowLeft } from "lucide-react"
 import { ApologyIcon } from "@/components/icons/apology-icon"
 import { Heart, MessageCircle } from "lucide-react"
 import { getCurrentUser, getAuthHeaders } from "@/app/actions/auth"
+import mixpanel, { initMixpanel } from "@/lib/mixpanel"
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"
 // Backend API integration
 interface ApiRequest {
@@ -119,9 +120,20 @@ export default function ChatPage() {
     scrollToBottom()
   }, [messages])
 
-  useEffect(() => {
-    checkAuthentication()
-  }, [])
+ useEffect(() => {
+initMixpanel();
+
+const inviteCode = searchParams.get("invite");
+if (inviteCode) {
+mixpanel.track("invite_link_opened", {
+invite_code_source: "direct", 
+sender_detail: inviteCode,
+});
+}
+
+
+checkAuthentication()
+}, [])
 
   // Check authentication
   const hasStartedRef = useRef(false)
@@ -297,6 +309,7 @@ export default function ChatPage() {
       }
 
       if (response && response.success) {
+        mixpanel.track("profile_name_set", { name_setup: true });
         await simulateThinkingAndResponse(response.sarthi_message)
         setCurrentStep("conversation")
       }
@@ -545,12 +558,12 @@ export default function ChatPage() {
 
   // Main Chat Interface
   return (
-    <div className="h-screen bg-[#121212] flex flex-col">
+    <div className="h-screen bg-[#121212] flex flex-col safe-bottom">
       {/* Header */}
       <div className="border-b border-white/10 p-4">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => router.push('/dashboard')}
+            onClick={() => router.back()}
             className="p-2 hover:bg-white/10 rounded-lg transition-colors"
           >
             <ArrowLeft className="h-5 w-5 text-white/60" />
