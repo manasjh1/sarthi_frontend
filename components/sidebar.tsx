@@ -107,7 +107,7 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
     setCopyStatus("Copy");
 
     try {
-      const res = await authFetch("/api/invite/generate", {
+      const res = await authFetch("/invite/generate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -187,7 +187,7 @@ const handleCopyLink = async () => {
 
   const fetchReflections = async () => {
     try {
-      const outboxRes = await authFetch("/api/reflection/outbox")
+      const outboxRes = await authFetch("/reflection/outbox")
       const outboxJson = await outboxRes.json()
       if (outboxJson.success) {
         setOutbox(outboxJson.data.reflections || [])
@@ -195,7 +195,7 @@ const handleCopyLink = async () => {
         setError(outboxJson.message || "Failed to fetch outbox reflections.")
       }
 
-      const inboxRes = await authFetch("/api/reflection/inbox")
+      const inboxRes = await authFetch("/reflection/inbox")
       const inboxJson = await inboxRes.json()
       if (inboxJson.success) {
         setInbox(inboxJson.data.reflections || [])
@@ -630,7 +630,7 @@ useEffect(() => {
           {/* Start New Reflection Button */}
           <div className="p-6">
             <SarthiButton onClick={() => {
-              router.push("/onboarding");
+              router.push("/chat");
               if (window.innerWidth < 768) {
                 onToggle();
               }

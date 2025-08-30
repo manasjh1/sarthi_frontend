@@ -62,7 +62,7 @@ export default function ReflectionPreviewPage() {
   const handleSaveEditedMessage = async () => {
     setIsEditingMessage(false)
     try {
-      const res = await authFetch('/api/reflection', {
+      const res = await authFetch('/chat', {
         method: 'POST',
         body: JSON.stringify({
           reflection_id: id,
@@ -82,7 +82,7 @@ export default function ReflectionPreviewPage() {
     setIsEditingMessage(false)
     setLoading(true)
     try {
-      const res = await authFetch('/api/reflection', {
+      const res = await authFetch('/chat', {
         method: 'POST',
         body: JSON.stringify({
           reflection_id: id,
