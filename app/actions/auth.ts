@@ -116,7 +116,7 @@ export async function validateInviteCode(code: string): Promise<{
       }
     }
 
-    const response: InviteValidateResponse = await makeAPICall("/api/invite/validate", {
+    const response: InviteValidateResponse = await makeAPICall("/api/auth/invite/validate", {
       method: "POST",
       body: JSON.stringify({ invite_code: code.trim().toUpperCase() }),
     })

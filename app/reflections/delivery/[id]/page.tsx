@@ -96,7 +96,7 @@ export default function DeliveryMethodPage() {
       }
 
       try {
-        await authFetch("/api/reflection", {
+        await authFetch("/chat", {
           method: "POST",
           body: JSON.stringify(payload),
         })
