@@ -87,26 +87,27 @@ const handleNext = async () => {
       reflection_id: reflectionId,
     })
 
-    const payload: {
-      reflection_id: string
-      message: string
-      data: any[]
-    } = {
-      reflection_id: reflectionId,
-      message:
-        deliveryMode === 0
-          ? "Send my reflection via email"
-          : deliveryMode === 1
-          ? "Send my reflection via WhatsApp"
-          : "Send via both channels",
-      data: [
-        { delivery_mode: deliveryMode },
-        ...(emailContact.trim() ? [{ recipient_email: emailContact.trim() }] : []),
-        ...(phoneNumber.trim()
-          ? [{ recipient_phone: selectedCountry.dialCode + phoneNumber.trim() }]
-          : []),
-      ],
-    }
+  const payload = {
+  reflection_id: reflectionId,
+  message:
+    deliveryMode === 0
+      ? "Send my reflection via email"
+      : deliveryMode === 1
+      ? "Send my reflection via WhatsApp"
+      : deliveryMode === 2
+      ? "Send via both channels"
+      : "Keep private",
+  data: [
+    {
+      delivery_mode: deliveryMode,
+      ...(emailContact.trim() ? { recipient_email: emailContact.trim() } : {}),
+      ...(phoneNumber.trim()
+        ? { recipient_phone: selectedCountry.dialCode + phoneNumber.trim() }
+        : {}),
+    },
+  ],
+};
+
 
     try {
       await authFetch("/chat", {

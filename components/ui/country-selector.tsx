@@ -131,14 +131,21 @@ export function CountrySelector({
         </button>
 
         {/* Phone Number Input */}
-        <input
-          type="tel"
-          placeholder="+1 123 456 7890"
-          value={phoneNumber}
-          onChange={(e) => onPhoneNumberChange(e.target.value)}
-          onKeyDown={onKeyDown}
-          className="bg-[#1f1f1f] hover:bg-[#242424] focus:bg-[#242424] border border-l-0 border-[#2a2a2a] rounded-r-[16px] px-4 py-3 text-white flex-1 focus:border-[#3a3a3a] focus:outline-none focus:ring-2 focus:ring-white/10 transition-all duration-150 shadow-inner placeholder:text-[#9ca3af]"
-        />
+       <input
+  type="tel"
+  placeholder="+1 123 456 7890"
+  value={phoneNumber}
+  onChange={(e) => onPhoneNumberChange(e.target.value)}
+  onKeyDown={onKeyDown}
+  className="bg-[#1f1f1f] hover:bg-[#242424] focus:bg-[#242424] 
+             border border-l-0 border-[#2a2a2a] rounded-r-[16px] 
+             px-4 py-3 text-white flex-1 min-w-0   /* ✅ allow shrinking */
+             focus:border-[#3a3a3a] focus:outline-none 
+             focus:ring-2 focus:ring-white/10 
+             transition-all duration-150 shadow-inner 
+             placeholder:text-[#9ca3af]"
+/>
+
       </div>
 
       {/* Dropdown */}

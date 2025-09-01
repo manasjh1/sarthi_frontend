@@ -3,11 +3,8 @@
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { SarthiButton } from "@/components/ui/sarthi-button"
-import { CleanCardTemplate } from "@/components/message-templates/clean-card"
-import { HandwrittenTemplate } from "@/components/message-templates/handwritten"
 import { MinimalTemplate } from "@/components/message-templates/minimal"
-import { SarthiOrb } from "@/components/sarthi-orb"
-import { ArrowLeft, Heart, MessageCircle, Mail, Phone } from "lucide-react"
+import { ArrowLeft, Heart, MessageCircle } from "lucide-react"
 import { ApologyIcon } from "@/components/icons/apology-icon"
 import { authFetch } from "@/lib/api"
 
@@ -18,26 +15,24 @@ export default function ReflectionPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  
-
   useEffect(() => {
     const fetchReflection = async () => {
       setLoading(true)
       try {
-        const res = await authFetch("/api/reflection/history", {
-          method: "POST",
-          body: JSON.stringify({
-            data: {
-              mode: "get_reflections",
-              reflection_id: id,
-            },
-          }),
+        // fetch paginated reflections
+        const res = await authFetch(`/reflection/history?page=1&limit=10`, {
+          method: "GET",
         })
-        
+
         const json = await res.json()
-      //    console.log("History Response:", json)
         if (json.success) {
-          setReflection(json.data)
+          // find the one that matches this reflection_id
+          const found = json.data.find((r: any) => r.reflection_id === id)
+          if (found) {
+            setReflection(found)
+          } else {
+            setError("Reflection not found.")
+          }
         } else {
           setError(json.message || "Failed to fetch reflection.")
         }
@@ -51,19 +46,18 @@ export default function ReflectionPage() {
     if (id) fetchReflection()
   }, [id])
 
-const getReflectionIcon = (type: string) => {
-  switch (type) {
-    case "gratitude":
-      return <Heart className="h-4 w-4" />
-    case "apology":
-      return <ApologyIcon className="h-4 w-4" strokeWidth={1.5} />
-    case "boundary":
-      return <MessageCircle className="h-4 w-4" />
-    default:
-      return <MessageCircle className="h-4 w-4" />
+  const getReflectionIcon = (type: string) => {
+    switch (type) {
+      case "gratitude":
+        return <Heart className="h-4 w-4" />
+      case "apology":
+        return <ApologyIcon className="h-4 w-4" strokeWidth={1.5} />
+      case "boundary":
+        return <MessageCircle className="h-4 w-4" />
+      default:
+        return <MessageCircle className="h-4 w-4" />
+    }
   }
-}
-
 
   const getReflectionLabel = (type: string) => {
     switch (type) {
@@ -78,29 +72,8 @@ const getReflectionIcon = (type: string) => {
     }
   }
 
-  const getDeliveryMethodIcon = (method: string) => {
-    switch (method) {
-      case "email":
-        return <Mail className="h-4 w-4" />
-      case "whatsapp":
-        return <Phone className="h-4 w-4" />
-      case "both":
-        return (
-          <div className="flex gap-1">
-            <Mail className="h-4 w-4" />
-            <Phone className="h-4 w-4" />
-          </div>
-        )
-      default:
-        return null
-    }
-  }
-
   const getDisplayName = () => {
-    if (reflection?.senderType === "anonymous") {
-      return "Anonymous"
-    }
-    return reflection?.display_name || "User"
+    return reflection?.from || "You"
   }
 
   const formatDate = (dateString: string) => {
@@ -136,12 +109,10 @@ const getReflectionIcon = (type: string) => {
           </button>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center text-white/60">
-               {getReflectionIcon(reflection.category.toLowerCase())}
+              {getReflectionIcon((reflection.category || "reflection").toLowerCase())}
             </div>
             <div>
-              <h1 className="text-white font-medium">
-                {reflection.name}
-              </h1>
+              <h1 className="text-white font-medium">{reflection.to}</h1>
               <p className="text-white/60 text-sm">{formatDate(reflection.created_at)}</p>
             </div>
           </div>
@@ -155,34 +126,30 @@ const getReflectionIcon = (type: string) => {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-white/60">Recipient</p>
-                <p className="text-white">{reflection.name}</p>
+                <p className="text-white">{reflection.to}</p>
               </div>
               <div>
-                <p className="text-white/60">Relationship</p>
-                <p className="text-white">{reflection.relation}</p>
+                <p className="text-white/60">From</p>
+                <p className="text-white">{reflection.from}</p>
               </div>
               <div>
                 <p className="text-white/60">Type</p>
                 <p className="text-white">{getReflectionLabel(reflection.type)}</p>
               </div>
-             
               <div>
-                <p className="text-white/60">Category</p>
-                <p className="text-white">{reflection.category}</p>
+                <p className="text-white/60">Status</p>
+                <p className="text-white">{reflection.status}</p>
               </div>
             </div>
           </div>
 
-          {/* Message Preview */}
+          {/* Summary (instead of chat) */}
           <div className="space-y-4">
             <h2 className="text-white font-medium">Your Message</h2>
             <div className="flex justify-center">
               <MinimalTemplate message={reflection.summary} fromName={getDisplayName()} />
             </div>
           </div>
-
-  
-       
 
           {/* Action */}
           <div className="flex justify-center pt-8 pb-8">

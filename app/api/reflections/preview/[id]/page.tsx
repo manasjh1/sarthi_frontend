@@ -24,7 +24,7 @@ export default function ReflectionPreviewPage() {
     const fetchReflection = async () => {
       setLoading(true)
       try {
-        const res = await authFetch("/api/reflection/history", {
+        const res = await authFetch("/chat/history", {
           method: "POST",
           body: JSON.stringify({
             data: {

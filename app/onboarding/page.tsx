@@ -198,6 +198,16 @@ const handleReflectionSelect = (reflectionType: string) => {
 };
 
 
+useEffect(() => {
+  if (typeof window !== "undefined") {
+    const alreadyReloaded = sessionStorage.getItem("sidebarReloaded");
+
+    if (!alreadyReloaded) {
+      sessionStorage.setItem("sidebarReloaded", "true");
+      window.location.reload();
+    }
+  }
+}, []);
 
 
   // STEP 1: Success Message
