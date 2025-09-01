@@ -21,14 +21,18 @@ interface SidebarProps {
 
 // Interface for reflection data
 interface Reflection {
-  reflection_id: string
-  name: string
-  relation: string
-  category: string
-  summary: string
-  created_at: string
-  stage: number
+  reflection_id: string;
+  summary: string;
+  created_at: string;
+  // Inbox-only
+  from?: string;
+  // Outbox-only
+  to?: string;
+  status?: string;
+  // Optional because not all endpoints provide them
+  category?: string;
 }
+
 
 // Helper function to get the correct icon for a reflection category
 const getReflectionIcon = (type: string) => {
@@ -401,28 +405,35 @@ const renderReflection = (reflection: any, type: "inbox" | "outbox") => {
 
 
 
-  // Renders a section of reflections (e.g., Outbox or Inbox)
-  const ReflectionSection = ({ title, reflections, expanded, setExpanded }: any) => (
-    <div className="mb-6">
-      <p className="text-white text-sm font-semibold mb-2">{title}</p>
-      {loading ? (
-        <p className="text-white/50 text-sm">Loading...</p>
-      ) : error ? (
-        <p className="text-red-400 text-sm">{error}</p>
-      ) : reflections.length === 0 ? (
-        <p className="text-white/40 text-sm">No reflections yet.</p>
-      ) : (
-        <>
-          {reflections.slice(0, expanded ? reflections.length : 3).map(renderReflection)}
-          {reflections.length > 3 && (
-            <button onClick={() => setExpanded(!expanded)} className="text-xs text-blue-400 hover:underline mt-2">
-              {expanded ? "See less" : "See more"}
-            </button>
-          )}
-        </>
-      )}
-    </div>
-  )
+ 
+// Renders a section of reflections (e.g., Outbox or Inbox)
+const ReflectionSection = ({ title, reflections, expanded, setExpanded, type }: any) => (
+  <div className="mb-6">
+    <p className="text-white text-sm font-semibold mb-2">{title}</p>
+    {loading ? (
+      <p className="text-white/50 text-sm">Loading...</p>
+    ) : error ? (
+      <p className="text-red-400 text-sm">{error}</p>
+    ) : reflections.length === 0 ? (
+      <p className="text-white/40 text-sm">No reflections yet.</p>
+    ) : (
+      <>
+        {reflections
+          .slice(0, expanded ? reflections.length : 3)
+          .map((r: any) => renderReflection(r, type))} {/* ✅ pass type here */}
+        {reflections.length > 3 && (
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="text-xs text-blue-400 hover:underline mt-2"
+          >
+            {expanded ? "See less" : "See more"}
+          </button>
+        )}
+      </>
+    )}
+  </div>
+)
+
 
   // Renders the modal content based on the current step (contact or verify)
   const renderOtpModalContent = () => {
@@ -656,10 +667,23 @@ const renderReflection = (reflection: any, type: "inbox" | "outbox") => {
           </div>
 
           {/* Reflections */}
-          <div className="flex-1 overflow-y-auto px-8 pb-6">
-            <ReflectionSection title="Outbox" reflections={outbox} expanded={outboxExpanded} setExpanded={setOutboxExpanded} />
-            <ReflectionSection title="Inbox" reflections={inbox} expanded={inboxExpanded} setExpanded={setInboxExpanded} />
-          </div>
+       <div className="flex-1 overflow-y-auto px-8 pb-6">
+  <ReflectionSection
+    title="Outbox"
+    reflections={outbox}
+    expanded={outboxExpanded}
+    setExpanded={setOutboxExpanded}
+    type="outbox"   // ✅
+  />
+  <ReflectionSection
+    title="Inbox"
+    reflections={inbox}
+    expanded={inboxExpanded}
+    setExpanded={setInboxExpanded}
+    type="inbox"    // ✅
+  />
+</div>
+
 
 
           {/* Invite friends button with new design and icon */}
