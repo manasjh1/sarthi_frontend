@@ -32,17 +32,27 @@ export default function SenderSelectionPage() {
     fetchName()
   }, [])
 
- const handleSenderSelection = async (mode: "name" | "anonymous", name?: string) => {
-  const finalName = mode === "anonymous" ? "Anonymous" : (name || userName || "").trim();
+const handleSenderSelection = async (mode: "name" | "anonymous", name?: string) => {
+  let payload;
+
+  if (mode === "anonymous") {
+    payload = {
+      reflection_id: id,
+      message: "",
+      data: [{ reveal_name: false }]
+    };
+  } else {
+    payload = {
+      reflection_id: id,
+      message: "",
+      data: [{ reveal_name: true, name: (name || userName || "").trim() }]
+    };
+  }
 
   try {
-    const res = await authFetch("/api/reflection", {
+    const res = await authFetch("/chat", {
       method: "POST",
-      body: JSON.stringify({
-        reflection_id: id,
-        message: "",
-        data: [{ name: finalName }]
-      }),
+      body: JSON.stringify(payload),
     });
 
     const json = await res.json();
@@ -56,6 +66,7 @@ export default function SenderSelectionPage() {
     console.error("Error saving sender name:", error);
   }
 };
+
 
 
   return (

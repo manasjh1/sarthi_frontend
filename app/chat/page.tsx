@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import React, { useState, useRef, useEffect, memo } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { SarthiButton } from "@/components/ui/sarthi-button"
 import { SarthiInput } from "@/components/ui/sarthi-input"
@@ -12,6 +12,7 @@ import { ApologyIcon } from "@/components/icons/apology-icon"
 import { Heart, MessageCircle } from "lucide-react"
 import { getCurrentUser, getAuthHeaders } from "@/app/actions/auth"
 import mixpanel, { initMixpanel } from "@/lib/mixpanel"
+import { authFetch } from "@/lib/api"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"
 
@@ -99,12 +100,53 @@ interface Category {
   category_name: string;
 }
 
+
+const ChatMessage = memo(function ChatMessage({
+  message,
+  isStreaming,
+}: {
+  message: Message
+  isStreaming: boolean
+}) {
+  return (
+    <div className={`flex ${message.role === "user" ? "justify-end" : "items-start gap-4"}`}>
+      {message.role === "assistant" && (
+        <div className="mt-1">
+          <SarthiOrb size="sm" />
+        </div>
+      )}
+
+      <div className={`max-w-[90%] sm:max-w-[85%] ${message.role === "user" ? "flex flex-col items-end" : ""}`}>
+        <div
+          className={`px-4 py-3 sm:px-6 sm:py-4 rounded-3xl ${message.role === "user"
+            ? "bg-[#1e1e1e] border border-[#2a2a2a]"
+            : "bg-[#2a2a2a] border border-[#3a3a3a]"
+            }`}
+        >
+          <p className="text-white leading-relaxed text-sm sm:text-base">
+            {message.content ?? ""}
+            {isStreaming && (
+              <span className="inline-block w-2 h-5 bg-white/60 ml-1 animate-pulse" />
+            )}
+          </p>
+        </div>
+
+        <div className="mt-2 text-xs text-white/40">
+          {message.timestamp?.toLocaleTimeString?.()}
+        </div>
+      </div>
+    </div>
+  )
+})
+
+
 export default function ChatPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
-  const [currentStep, setCurrentStep] = useState<ChatStep>("conversation")
+const [currentStep, setCurrentStep] = useState<ChatStep>("conversation");
+
   const [isThinking, setIsThinking] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
@@ -117,10 +159,16 @@ export default function ChatPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [showWelcome, setShowWelcome] = useState(false)
   const [hasInitialized, setHasInitialized] = useState(false)
+const [page, setPage] = useState(1);
+const [hasMore, setHasMore] = useState(true);
+const [isFetchingHistory, setIsFetchingHistory] = useState(false);
+const prevLengthRef = useRef<number>(0);
 
   const inputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
+
+  
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
@@ -162,6 +210,64 @@ checkAuthentication()
       router.push('/auth')
     }
   }
+
+// helper: convert backend sender → UI role
+const senderToRole = (sender: any): "user" | "assistant" => {
+  // Backend: 1 = assistant (Sarthi), 0 = user
+  return sender === 1 || sender === "assistant" || sender === "sarthi"
+    ? "assistant"
+    : "user";
+};
+const fetchHistory = async (pageNum: number) => {
+  try {
+    setIsFetchingHistory(true);
+
+    const res = await authFetch(`/reflection/history?page=${pageNum}&limit=10`);
+    if (!res.ok) throw new Error("Failed to fetch history");
+
+    const result = await res.json();
+    console.log("Fetched history:", result);
+
+    const reflections = Array.isArray(result?.data) ? result.data : [];
+
+    // Flatten, sanitize, and sort by time (oldest→newest) for this batch
+    const batch: Message[] = reflections.flatMap((r: any) => {
+      const chats = Array.isArray(r.chat_history) ? r.chat_history : [];
+      return chats
+        .filter(
+          (c: any) =>
+            typeof c?.message === "string" && c.message.trim().length > 0
+        )
+        .map((c: any, idx: number) => ({
+          // 👇 safer unique key: use reflection_id + created_at + idx + random suffix
+          id: `${r.reflection_id}-${c.created_at}-${idx}-${Math.random()
+            .toString(36)
+            .slice(2, 8)}`,
+          role: senderToRole(c.sender),
+          content: c.message.trim(),
+          timestamp: new Date(c.created_at),
+        }));
+    });
+
+    batch.sort(
+      (a, b) => (a.timestamp?.getTime() ?? 0) - (b.timestamp?.getTime() ?? 0)
+    );
+
+    // Prepend older batch at the top
+    setMessages((prev) => [...batch, ...prev]);
+
+    // pagination flag
+    setHasMore(reflections.length >= 20);
+  } catch (err) {
+    console.error("History fetch error:", err);
+  } finally {
+    setIsFetchingHistory(false);
+  }
+};
+
+
+
+
 
   const formatDateDivider = (date: Date) => {
     const today = new Date().toDateString()
@@ -208,11 +314,11 @@ checkAuthentication()
         setReflectionId(response.reflection_id)
       }
 
-      setProgress({
-        current_step: response.progress?.current_step ?? 1,
-        total_step: response.progress?.total_step ?? 4,
-        workflow_completed: response.progress?.workflow_completed ?? false
-      })
+       setProgress({
+          current_step: response.current_stage ?? 0,
+          total_step: 100,
+          workflow_completed: response.progress?.workflow_completed ?? false
+        })
 
       // Handle response data
       if (response.data && response.data.length > 0) {
@@ -226,8 +332,8 @@ checkAuthentication()
         }
       }
 
-     if (response.sarthi_message && !showWelcome) {
-  addMessage(response.sarthi_message, "assistant")
+  if (response.sarthi_message && !showWelcome && messages.length === 0) {
+  addMessage(response.sarthi_message, "assistant");
 }
 
       setCurrentStep("conversation")
@@ -263,7 +369,7 @@ checkAuthentication()
   const simulateThinkingAndResponse = async (
     content: string,
     thinkingDuration = 0,
-    streamSpeed = 5,
+    streamSpeed = 0,
   ) => {
     // Skip if last assistant message is the same
     if (messages[messages.length - 1]?.role === "assistant" &&
@@ -289,13 +395,13 @@ checkAuthentication()
     let currentIndex = 0;
     const streamInterval = setInterval(() => {
       if (currentIndex < content.length) {
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === messageId
-              ? { ...msg, content: content.substring(0, currentIndex + 1) }
-              : msg
-          )
-        );
+      setMessages((prev) => {
+  const idx = prev.findIndex((m) => m.id === messageId);
+  if (idx === -1) return prev;
+  const copy = prev.slice();
+  copy[idx] = { ...copy[idx], content: content.substring(0, currentIndex + 1) };
+  return copy;
+});
         currentIndex++;
       } else {
         clearInterval(streamInterval);
@@ -362,10 +468,12 @@ checkAuthentication()
       let request
       if (choice === "continue") {
         // Continue last reflection
-        request = { reflection_id: "", message: "", data: [{ choice: "1" }] }
+      request = { reflection_id: "", message: "", data: [{ choice: "1"}] }
+
       } else {
         // Start a new reflection
-        request = { reflection_id: null, message: "", data: [{ start_reflection: 1 }] }
+        request = { reflection_id: "", message: "", data: [{ choice: "0"}] }
+
       }
 
       const response = await apiService.sendReflectionRequest(request)
@@ -382,11 +490,11 @@ checkAuthentication()
       }
 
       // Save progress properly
-      setProgress({
-        current_step: response.progress?.current_step ?? 1,
-        total_step: response.progress?.total_step ?? 4,
-        workflow_completed: response.progress?.workflow_completed ?? false
-      })
+     setProgress({
+          current_step: response.current_stage ?? 0,
+          total_step: 100,
+          workflow_completed: response.progress?.workflow_completed ?? false
+        })
 
       // Handle response data
       if (response.data && response.data.length > 0) {
@@ -415,59 +523,68 @@ checkAuthentication()
     }
   }
 
-  const handleChoiceSelect = async (choice: string) => {
-    if (!reflectionId) return
+const handleChoiceSelect = async (choice: string) => {
+  // Find the selected choice to show as user message
+  const selectedChoice = choices.find(c => c.choice === choice);
+  if (selectedChoice) {
+    addMessage(selectedChoice.label, "user");
+  }
 
-    // Find the selected choice to show as user message
-    const selectedChoice = choices.find(c => c.choice === choice)
-    if (selectedChoice) {
-      addMessage(selectedChoice.label, "user")
+  setIsThinking(true);
+  try {
+    // Detect special "continue?" case (Yes/No)
+    const isContinuePrompt =
+      choices.length === 2 &&
+      choices.some(c => c.label.toLowerCase() === "yes") &&
+      choices.some(c => c.label.toLowerCase() === "no");
+
+    const response = await apiService.sendReflectionRequest({
+      reflection_id: isContinuePrompt ? null : reflectionId, // 👈 override
+      message: "",
+      data: [{ choice, label: selectedChoice?.label }]
+    });
+
+    console.log("Choice response:", response);
+
+    if (response.data?.some(item => item.session_closed === true || item.session_end === true)) {
+      handleSessionEnd();
+      return;
     }
 
-    setIsThinking(true)
-    try {
-      const response = await apiService.sendReflectionRequest({
-        reflection_id: "",
-        message: "",
-        data: [{ choice }]
-      })
-       console.log("Choice response:", response)
-      if (response.success) {
-        if (response.sarthi_message) {
-          await simulateThinkingAndResponse(response.sarthi_message)
+    if (response.success) {
+      if (response.sarthi_message) {
+        await simulateThinkingAndResponse(response.sarthi_message);
+      }
+
+      setChoices([]);
+
+      if (response.data && response.data.length > 0) {
+        const firstItem = response.data[0];
+        if ("choice" in firstItem && "label" in firstItem) {
+          setChoices(response.data as Choice[]);
+        } else if ("category_no" in firstItem && "category_name" in firstItem) {
+          setCategories(response.data as Category[]);
         }
-
-        // Clear current choices
-        setChoices([])
-
-        // Handle new data from response
-        if (response.data && response.data.length > 0) {
-          const firstItem = response.data[0]
-          if ('choice' in firstItem && 'label' in firstItem) {
-            setChoices(response.data as Choice[])
-          } else if ('category_no' in firstItem && 'category_name' in firstItem) {
-            setCategories(response.data as Category[])
-          }
-        }
-
-        // Update progress
-        setProgress({
-          current_step: response.progress?.current_step ?? 1,
-          total_step: response.progress?.total_step ?? 4,
+      }
+    setProgress({
+          current_step: response.current_stage ?? 0,
+          total_step: 100,
           workflow_completed: response.progress?.workflow_completed ?? false
         })
-      }
-    } catch (err) {
-      console.error("Choice error:", err)
-      setApiError("Failed to process choice. Please try again.")
-    } finally {
-      setIsThinking(false)
     }
+  } catch (err) {
+    console.error("Choice error:", err);
+    setApiError("Failed to process choice. Please try again.");
+  } finally {
+    setIsThinking(false);
   }
+};
+
+
 
   const handleSessionEnd = () => {
   setReflectionId(null);
-  setProgress({ current_step: 0, total_step: 4, workflow_completed: false });
+  setProgress({ current_step: 1, total_step: 100, workflow_completed: false });
   setChoices([]);
   setCategories([]);
   setMessages([]);
@@ -494,10 +611,11 @@ checkAuthentication()
       const response = await apiService.sendReflectionRequest(request);
       console.log("Chat response:", response)
 
-      if (response.data?.some(item => item.session_end === true)) {
-        handleSessionEnd();
-        return;
-      }
+    if (response.data?.some(item => item.session_closed === true || item.session_end === true)) {
+  handleSessionEnd();
+  return;
+}
+
 
       if (response.current_stage === -1) {
         setCurrentStep("distress-detected");
@@ -508,12 +626,11 @@ checkAuthentication()
         await simulateThinkingAndResponse(response.sarthi_message)
 
         setProgress({
-          current_step: response.progress?.current_step ?? 1,
-          total_step: response.progress?.total_step ?? 4,
+          current_step: response.current_stage ?? 1,
+          total_step: 100,
           workflow_completed: response.progress?.workflow_completed ?? false
         })
 
-        // Handle new data from response
         if (response.data && response.data.length > 0) {
           const firstItem = response.data[0]
           if ('choice' in firstItem && 'label' in firstItem) {
@@ -523,12 +640,12 @@ checkAuthentication()
             setCategories(response.data as Category[])
             setChoices([])
           } else {
-            // Check for summary
+      
             const summaryItem = response.data.find(item => item.summary !== undefined)
             if (summaryItem) {
               setTimeout(() => {
                 addMessage(`Here's your reflection: ${summaryItem.summary}`, "sarthi")
-                router.push(`/api/reflections/preview/${response.reflection_id}`)
+                router.push(`/reflections/sender/${response.reflection_id}`)
               }, 100)
             }
           }
@@ -541,6 +658,38 @@ checkAuthentication()
       setIsThinking(false)
     }
   }
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+  if (e.currentTarget.scrollTop === 0 && hasMore && !isFetchingHistory) {
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchHistory(nextPage);
+  }
+};
+
+
+
+  useEffect(() => {
+  fetchHistory(1);
+}, []);
+
+useEffect(() => {
+  const prevLen = prevLengthRef.current;
+  const currLen = messages.length;
+
+  // If a new message was added (length increased) -> scroll
+  if (currLen > prevLen) {
+    scrollToBottom();
+  } else {
+    // If streaming ended (streamingMessageId changed to null), scroll to finish
+    if (prevLengthRef.current === currLen && streamingMessageId === null) {
+      scrollToBottom();
+    }
+  }
+
+  prevLengthRef.current = currLen;
+}, [messages.length, streamingMessageId]);
+
 
   // Authentication Check Screen
   if (currentStep === "auth-check" || currentStep === "loading") {
@@ -682,7 +831,7 @@ checkAuthentication()
 
   // Main Chat Interface
   return (
-    <div className="h-screen bg-[#121212] flex flex-col safe-bottom">
+    <div className="h-[100dvh] bg-[#121212] flex flex-col safe-bottom">
       {/* Header */}
       <div className="border-b border-white/10 p-4">
         <div className="flex items-center gap-3">
@@ -710,7 +859,7 @@ checkAuthentication()
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto"  onScroll={handleScroll}>
         <div className="p-4 sm:p-6">
           <div className="max-w-full sm:max-w-4xl mx-auto space-y-6">
             {messages.map((message, i) => {
@@ -732,44 +881,8 @@ checkAuthentication()
                       ---
                     </div>
                   )}
+<ChatMessage message={message} isStreaming={streamingMessageId === message.id} />
 
-                  <div
-                    className={`flex ${message.role === "user"
-                        ? "justify-end"
-                        : "items-start gap-4"
-                      }`}
-                  >
-                    {message.role === "assistant" && (
-                      <div className="mt-1">
-                        <SarthiOrb size="sm" />
-                      </div>
-                    )}
-
-                    <div
-                      className={`max-w-[90%] sm:max-w-[85%] ${message.role === "user"
-                          ? "flex flex-col items-end"
-                          : ""
-                        }`}
-                    >
-                      <div
-                        className={`px-4 py-3 sm:px-6 sm:py-4 rounded-3xl ${message.role === "user"
-                            ? "bg-[#1e1e1e] border border-[#2a2a2a]"
-                            : "bg-[#2a2a2a] border border-[#3a3a3a]"
-                          }`}
-                      >
-                        <p className="text-white leading-relaxed text-sm sm:text-base">
-                          {message.content}
-                          {streamingMessageId === message.id && (
-                            <span className="inline-block w-2 h-5 bg-white/60 ml-1 animate-pulse"></span>
-                          )}
-                        </p>
-                      </div>
-
-                      <div className="mt-2 text-xs text-white/40">
-                        {message.timestamp?.toLocaleTimeString()}
-                      </div>
-                    </div>
-                  </div>
                 </div>
               )
             })}
@@ -829,7 +942,7 @@ checkAuthentication()
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Share what's on your mind..."
-                  className="flex-1 text-sm sm:text-base"
+                  className="flex-1 text-base sm:text-base"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault()

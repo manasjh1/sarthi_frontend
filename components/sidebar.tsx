@@ -185,70 +185,65 @@ const handleCopyLink = async () => {
     window.open(whatsappUrl, '_blank');
   };
 
-  const fetchReflections = async () => {
-    try {
-      const outboxRes = await authFetch("/reflection/outbox")
-      const outboxJson = await outboxRes.json()
-      if (outboxJson.success) {
-        setOutbox(outboxJson.data.reflections || [])
-      } else {
-        setError(outboxJson.message || "Failed to fetch outbox reflections.")
-      }
+const fetchReflections = async () => {
+  try {
+    const outboxRes = await authFetch("/reflection/outbox");
+    const outboxJson = await outboxRes.json();
+    console.log("Outbox Response:", outboxJson);
 
-      const inboxRes = await authFetch("/reflection/inbox")
-      const inboxJson = await inboxRes.json()
-      if (inboxJson.success) {
-        setInbox(inboxJson.data.reflections || [])
-      } else {
-        setError(inboxJson.message || "Failed to fetch inbox reflections.")
-      }
-    } catch {
-      setError("Something went wrong while fetching reflections")
+    if (outboxJson.success) {
+      setOutbox(outboxJson.data || []);  // ✅ fix
+    } else {
+      setError(outboxJson.message || "Failed to fetch outbox reflections.");
     }
+
+    const inboxRes = await authFetch("/reflection/inbox");
+    const inboxJson = await inboxRes.json();
+    console.log("Inbox Response:", inboxJson);
+
+    if (inboxJson.success) {
+      setInbox(inboxJson.data || []);   // ✅ fix
+    } else {
+      setError(inboxJson.message || "Failed to fetch inbox reflections.");
+    }
+  } catch {
+    setError("Something went wrong while fetching reflections");
   }
+};
+
 
 
   // Fetch reflections and user data on component mount
 useEffect(() => {
+  if (!isOpen) return; // 🔹 only run when sidebar is open
+
   const fetchReflectionsAndUserData = async () => {
     try {
-      // Check if the user is logged in
-      const res = await authFetch("/api/user/me", { credentials: "include" })
+      const res = await authFetch("/api/user/me", { credentials: "include" });
+      if (!res.ok) return;
 
-      if (!res.ok) {
-        // Not logged in → skip fetching reflections
-        return
+      const user = await res.json();
+      if (user?.name) {
+        setEditedName(user.name);
+        onUserNameChange(user.name);
+        localStorage.setItem("sarthi-user-name", user.name);
+        window.dispatchEvent(new CustomEvent("sarthi-name-updated", { detail: user.name }));
       }
+      if (user?.email) setEmail(user.email);
+      if (user?.phone_number) setPhone(user.phone_number);
 
-      const user = await res.json()
-      if (!user?.name) return
-
-      setEditedName(user.name)
-      onUserNameChange(user.name)
-      localStorage.setItem("sarthi-user-name", user.name)
-      window.dispatchEvent(new CustomEvent("sarthi-name-updated", { detail: user.name }))
-      if (user?.email) setEmail(user.email)
-      if (user?.phone) setPhone(user.phone)
-
-      // Only fetch reflections if logged in
-      setLoading(true)
-      await fetchReflections()
-      setLoading(false)
+      setLoading(true);
+      await fetchReflections();
+      setLoading(false);
     } catch (err) {
-      console.error("Failed to fetch user:", err)
+      console.error("Failed to fetch user:", err);
     }
-  }
+  };
 
-  fetchReflectionsAndUserData()
+  fetchReflectionsAndUserData();
 
-  const handleReflectionCompleted = () => {
-    fetchReflections()
-  }
-  window.addEventListener("reflection-completed", handleReflectionCompleted)
-  return () => {
-    window.removeEventListener("reflection-completed", handleReflectionCompleted)
-  }
-}, [])
+}, [isOpen]); // 🔹 re-run every time sidebar opens
+
 
 useEffect(() => {
   initMixpanel();
@@ -363,7 +358,19 @@ useEffect(() => {
   };
 
   // Renders a single reflection item
-  const renderReflection = (reflection: Reflection) => (
+const renderReflection = (reflection: any, type: "inbox" | "outbox") => {
+  const category = reflection.category || "reflection";
+  const name =
+    type === "inbox"
+      ? reflection.from || "Anonymous"
+      : reflection.to || "Unknown";
+
+  const summary = reflection.summary || "No summary";
+  const createdAt = reflection.created_at
+    ? new Date(reflection.created_at).toLocaleDateString("en-IN")
+    : "";
+
+  return (
     <button
       key={reflection.reflection_id}
       onClick={() => {
@@ -376,19 +383,23 @@ useEffect(() => {
     >
       <div className="flex items-start space-x-3">
         <div className="flex-shrink-0 w-8 h-8 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/15 transition-colors">
-          {getReflectionIcon(reflection.category.toLowerCase())}
+          {getReflectionIcon(category.toLowerCase())}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center space-x-2 mb-1">
-            <span className="text-white text-sm font-medium">{reflection.name}</span>
-            <span className="text-white/40 text-xs">{getReflectionTypeLabel(reflection.relation.toLowerCase())}</span>
+            <span className="text-white text-sm font-medium">{name}</span>
           </div>
-          <p className="text-white/60 text-sm truncate">{reflection.summary}</p>
-          <p className="text-white/40 text-xs mt-1">{new Date(reflection.created_at).toLocaleDateString("en-IN")}</p>
+          <p className="text-white/60 text-sm truncate">{summary}</p>
+          {createdAt && (
+            <p className="text-white/40 text-xs mt-1">{createdAt}</p>
+          )}
         </div>
       </div>
     </button>
-  )
+  );
+};
+
+
 
   // Renders a section of reflections (e.g., Outbox or Inbox)
   const ReflectionSection = ({ title, reflections, expanded, setExpanded }: any) => (
@@ -629,15 +640,19 @@ useEffect(() => {
 
           {/* Start New Reflection Button */}
           <div className="p-6">
-            <SarthiButton onClick={() => {
-              router.push("/chat");
-              if (window.innerWidth < 768) {
-                onToggle();
-              }
-            }} className="w-full justify-start auth-button rounded-[16px]">
-              <span className="text-lg mr-2">+</span>
-              Start new reflection
-            </SarthiButton>
+      <SarthiButton
+  onClick={() => {
+    window.location.href = "/chat"; // full page reload
+    if (window.innerWidth < 768) {
+      onToggle();
+    }
+  }}
+  className="w-full justify-start auth-button rounded-[16px]"
+>
+  <span className="text-lg mr-2">+</span>
+  Start new reflection
+</SarthiButton>
+
           </div>
 
           {/* Reflections */}
