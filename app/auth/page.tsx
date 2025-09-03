@@ -94,7 +94,7 @@ export default function AuthPage() {
         method: "POST",
         body: JSON.stringify({
           contact: contact,
-          invite_token: inviteToken || 'string',
+          invite_token: inviteToken || '',
         }),
       });
 
