@@ -11,12 +11,13 @@ import { authFetch } from "@/lib/api"
 export default function ReflectionPage() {
   const { id } = useParams()
   const searchParams = useSearchParams()
-  const type = searchParams.get("type") // "inbox" or "outbox"
+  const type = searchParams.get("type") 
   const router = useRouter()
 
   const [reflection, setReflection] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+   const userName = typeof window !== "undefined" ? localStorage.getItem("sarthi-user-name") : "You";
 
   useEffect(() => {
     const fetchReflection = async () => {
@@ -113,7 +114,7 @@ export default function ReflectionPage() {
               {getReflectionIcon((reflection.category || "reflection").toLowerCase())}
             </div>
             <div>
-              <h1 className="text-white font-medium">{reflection.to}</h1>
+              <h1 className="text-white font-medium">    {type === "inbox" ? userName : reflection.to}</h1>
               <p className="text-white/60 text-sm">{formatDate(reflection.created_at)}</p>
             </div>
           </div>
@@ -122,27 +123,34 @@ export default function ReflectionPage() {
 
       <div className="flex-1 overflow-y-auto p-4">
         <div className="max-w-4xl mx-auto space-y-8">
-          {/* Reflection Details */}
-          <div className="bg-white/5 rounded-2xl p-6 space-y-4">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-white/60">Recipient</p>
-                <p className="text-white">{reflection.to}</p>
-              </div>
-              <div>
-                <p className="text-white/60">From</p>
-                <p className="text-white">{reflection.from}</p>
-              </div>
-              <div>
-                <p className="text-white/60">Type</p>
-                <p className="text-white">{getReflectionLabel(reflection.type)}</p>
-              </div>
-              <div>
-                <p className="text-white/60">Status</p>
-                <p className="text-white">{reflection.status}</p>
-              </div>
-            </div>
-          </div>
+ {/* Reflection Details */}
+<div className="bg-white/5 rounded-2xl p-6 space-y-4">
+  <div className="grid grid-cols-2 gap-4 text-sm">
+    <div>
+      <p className="text-white/60">Recipient</p>
+      <p className="text-white">
+        {type === "inbox" ? userName : reflection.to}
+      </p>
+    </div>
+    <div>
+      <p className="text-white/60">From</p>
+      <p className="text-white">
+        {type === "inbox" ? reflection.from : "You"}
+      </p>
+    </div>
+    <div>
+      <p className="text-white/60">Type</p>
+      <p className="text-white">{getReflectionLabel(reflection.type)}</p>
+    </div>
+    <div>
+      <p className="text-white/60">Status</p>
+      <p className="text-white">
+        {type === "inbox" ? "Delivered" : reflection.status}
+      </p>
+    </div>
+  </div>
+</div>
+
 
           {/* Summary (instead of chat) */}
           <div className="space-y-4">
