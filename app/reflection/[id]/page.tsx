@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { SarthiButton } from "@/components/ui/sarthi-button"
 import { MinimalTemplate } from "@/components/message-templates/minimal"
 import { ArrowLeft, Heart, MessageCircle } from "lucide-react"
@@ -10,23 +10,24 @@ import { authFetch } from "@/lib/api"
 
 export default function ReflectionPage() {
   const { id } = useParams()
+  const searchParams = useSearchParams()
+  const type = searchParams.get("type") // "inbox" or "outbox"
   const router = useRouter()
+
   const [reflection, setReflection] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchReflection = async () => {
+      if (!id || !type) return
+
       setLoading(true)
       try {
-        // fetch paginated reflections
-        const res = await authFetch(`/reflection/history?page=1&limit=10`, {
-          method: "GET",
-        })
-
+        const res = await authFetch(`/reflection/${type}`, { method: "GET" })
         const json = await res.json()
+
         if (json.success) {
-          // find the one that matches this reflection_id
           const found = json.data.find((r: any) => r.reflection_id === id)
           if (found) {
             setReflection(found)
@@ -43,8 +44,8 @@ export default function ReflectionPage() {
       }
     }
 
-    if (id) fetchReflection()
-  }, [id])
+    fetchReflection()
+  }, [id, type])
 
   const getReflectionIcon = (type: string) => {
     switch (type) {
