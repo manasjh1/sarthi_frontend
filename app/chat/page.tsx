@@ -309,7 +309,7 @@ const fetchHistory = async (pageNum: number) => {
       const response = await apiService.sendReflectionRequest(initialRequest)
 
       // Case 1: distress flag
-      if (!response.success && response.current_stage === -1) {
+      if (!response.success && checkForDistress(response.data)) {
         setCurrentStep("distress-detected")
         return
       }
@@ -441,7 +441,7 @@ const fetchHistory = async (pageNum: number) => {
 
       const response = await apiService.sendReflectionRequest(request)
 
-      if (!response.success && response.current_stage === -1) {
+      if (!response.success && checkForDistress(response.data)) {
         setCurrentStep("distress-detected")
         return
       }
@@ -491,7 +491,7 @@ const fetchHistory = async (pageNum: number) => {
       const response = await apiService.sendReflectionRequest(request)
 
       // Distress check
-      if (!response.success && response.current_stage === -1) {
+      if (!response.success && checkForDistress(response.data)) {
         setCurrentStep("distress-detected")
         return
       }
@@ -607,6 +607,11 @@ const handleChoiceSelect = async (choice: string) => {
 };
 
 
+// Add this helper function near the top of your component, after the interfaces
+const checkForDistress = (data: Array<{ [key: string]: any }>) => {
+  if (!data || !Array.isArray(data)) return false;
+  return data.some(item => item.distress_level === "critical");
+};
   const handleChatInput = async (inputMessage: string) => {
     if (!inputMessage.trim()) return
 
@@ -630,7 +635,7 @@ const handleChoiceSelect = async (choice: string) => {
 }
 
 
-      if (response.current_stage === -1) {
+      if (checkForDistress(response.data)) {
         setCurrentStep("distress-detected");
         return;
       }
@@ -682,6 +687,7 @@ const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     fetchHistory(nextPage);
   }
 };
+
 
 
 
@@ -827,14 +833,14 @@ useEffect(() => {
             </div>
 
             <div className="space-y-4">
-              <SarthiButton
-                onClick={() => {
-                  initializeChat()
-                }}
-                className="w-full"
-              >
-                Continue with Sarthi
-              </SarthiButton>
+           <SarthiButton
+  onClick={() => {
+    window.location.reload()
+  }}
+  className="w-full"
+>
+  Continue with Sarthi
+</SarthiButton>
 
               <button
                 onClick={() => {
