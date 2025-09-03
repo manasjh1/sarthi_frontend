@@ -167,7 +167,9 @@ const prevLengthRef = useRef<number>(0);
   const inputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-
+const [isLoadingOlderMessages, setIsLoadingOlderMessages] = useState(false);
+const messagesContainerRef = useRef<HTMLDivElement>(null);
+const [previousScrollHeight, setPreviousScrollHeight] = useState(0);
   
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -218,9 +220,17 @@ const senderToRole = (sender: any): "user" | "assistant" => {
     ? "assistant"
     : "user";
 };
+
+
 const fetchHistory = async (pageNum: number) => {
   try {
     setIsFetchingHistory(true);
+    setIsLoadingOlderMessages(true); // 👈 Add this flag
+
+    // Store scroll height before loading older messages
+    if (messagesContainerRef.current) {
+      setPreviousScrollHeight(messagesContainerRef.current.scrollHeight);
+    }
 
     const res = await authFetch(`/reflection/history?page=${pageNum}&limit=10`);
     if (!res.ok) throw new Error("Failed to fetch history");
@@ -239,7 +249,6 @@ const fetchHistory = async (pageNum: number) => {
             typeof c?.message === "string" && c.message.trim().length > 0
         )
         .map((c: any, idx: number) => ({
-          // 👇 safer unique key: use reflection_id + created_at + idx + random suffix
           id: `${r.reflection_id}-${c.created_at}-${idx}-${Math.random()
             .toString(36)
             .slice(2, 8)}`,
@@ -256,12 +265,15 @@ const fetchHistory = async (pageNum: number) => {
     // Prepend older batch at the top
     setMessages((prev) => [...batch, ...prev]);
 
-    // pagination flag
-    setHasMore(reflections.length >= 20);
+    // Update pagination state
+    setHasMore(reflections.length === 10);
+    
   } catch (err) {
     console.error("History fetch error:", err);
+    setHasMore(false);
   } finally {
     setIsFetchingHistory(false);
+    // 👈 Don't reset the flag here, let useEffect handle it
   }
 };
 
@@ -525,6 +537,7 @@ const fetchHistory = async (pageNum: number) => {
 
 const handleChoiceSelect = async (choice: string) => {
   // Find the selected choice to show as user message
+  console.log(choice);
   const selectedChoice = choices.find(c => c.choice === choice);
   if (selectedChoice) {
     addMessage(selectedChoice.label, "user");
@@ -539,9 +552,9 @@ const handleChoiceSelect = async (choice: string) => {
       choices.some(c => c.label.toLowerCase() === "no");
 
     const response = await apiService.sendReflectionRequest({
-      reflection_id: isContinuePrompt ? null : reflectionId, // 👈 override
+      reflection_id: isContinuePrompt ? "" : reflectionId,
       message: "",
-      data: [{ choice, label: selectedChoice?.label }]
+      data: [{ choice }]
     });
 
     console.log("Choice response:", response);
@@ -659,8 +672,11 @@ const handleChoiceSelect = async (choice: string) => {
     }
   }
 
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-  if (e.currentTarget.scrollTop === 0 && hasMore && !isFetchingHistory) {
+const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+  const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+  
+  // Check if user scrolled to the top and we have more data to load
+  if (scrollTop === 0 && hasMore && !isFetchingHistory) {
     const nextPage = page + 1;
     setPage(nextPage);
     fetchHistory(nextPage);
@@ -677,18 +693,29 @@ useEffect(() => {
   const prevLen = prevLengthRef.current;
   const currLen = messages.length;
 
-  // If a new message was added (length increased) -> scroll
+  // If we're loading older messages, maintain scroll position
+  if (isLoadingOlderMessages && messagesContainerRef.current) {
+    const container = messagesContainerRef.current;
+    const newScrollHeight = container.scrollHeight;
+    const scrollDiff = newScrollHeight - previousScrollHeight;
+    
+    // Maintain relative scroll position after older messages are loaded
+    container.scrollTop = container.scrollTop + scrollDiff;
+    
+    setIsLoadingOlderMessages(false); // Reset the flag
+    return;
+  }
+
+  // Only scroll to bottom for new messages (length increased) or when streaming ends
   if (currLen > prevLen) {
     scrollToBottom();
-  } else {
-    // If streaming ended (streamingMessageId changed to null), scroll to finish
-    if (prevLengthRef.current === currLen && streamingMessageId === null) {
-      scrollToBottom();
-    }
+  } else if (prevLengthRef.current === currLen && streamingMessageId === null) {
+    scrollToBottom();
   }
 
   prevLengthRef.current = currLen;
-}, [messages.length, streamingMessageId]);
+}, [messages.length, streamingMessageId, isLoadingOlderMessages, previousScrollHeight]);
+
 
 
   // Authentication Check Screen
@@ -862,6 +889,14 @@ useEffect(() => {
       <div className="flex-1 overflow-y-auto"  onScroll={handleScroll}>
         <div className="p-4 sm:p-6">
           <div className="max-w-full sm:max-w-4xl mx-auto space-y-6">
+             {isFetchingHistory && (
+        <div className="text-center py-4">
+          <div className="inline-flex items-center gap-2 text-white/60">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white/60"></div>
+            <span className="text-sm">Loading older messages...</span>
+          </div>
+        </div>
+      )}
             {messages.map((message, i) => {
               const prevMsg = messages[i - 1]
               const prevDate = prevMsg
