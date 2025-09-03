@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { SarthiButton } from "@/components/ui/sarthi-button"
 import { MinimalTemplate } from "@/components/message-templates/minimal"
 import { ArrowLeft, Heart, MessageCircle } from "lucide-react"
@@ -10,23 +10,25 @@ import { authFetch } from "@/lib/api"
 
 export default function ReflectionPage() {
   const { id } = useParams()
+  const searchParams = useSearchParams()
+  const type = searchParams.get("type") 
   const router = useRouter()
+
   const [reflection, setReflection] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+   const userName = typeof window !== "undefined" ? localStorage.getItem("sarthi-user-name") : "You";
 
   useEffect(() => {
     const fetchReflection = async () => {
+      if (!id || !type) return
+
       setLoading(true)
       try {
-        // fetch paginated reflections
-        const res = await authFetch(`/reflection/history?page=1&limit=10`, {
-          method: "GET",
-        })
-
+        const res = await authFetch(`/reflection/${type}`, { method: "GET" })
         const json = await res.json()
+
         if (json.success) {
-          // find the one that matches this reflection_id
           const found = json.data.find((r: any) => r.reflection_id === id)
           if (found) {
             setReflection(found)
@@ -43,8 +45,8 @@ export default function ReflectionPage() {
       }
     }
 
-    if (id) fetchReflection()
-  }, [id])
+    fetchReflection()
+  }, [id, type])
 
   const getReflectionIcon = (type: string) => {
     switch (type) {
@@ -112,7 +114,7 @@ export default function ReflectionPage() {
               {getReflectionIcon((reflection.category || "reflection").toLowerCase())}
             </div>
             <div>
-              <h1 className="text-white font-medium">{reflection.to}</h1>
+              <h1 className="text-white font-medium">    {type === "inbox" ? userName : reflection.to}</h1>
               <p className="text-white/60 text-sm">{formatDate(reflection.created_at)}</p>
             </div>
           </div>
@@ -121,27 +123,34 @@ export default function ReflectionPage() {
 
       <div className="flex-1 overflow-y-auto p-4">
         <div className="max-w-4xl mx-auto space-y-8">
-          {/* Reflection Details */}
-          <div className="bg-white/5 rounded-2xl p-6 space-y-4">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-white/60">Recipient</p>
-                <p className="text-white">{reflection.to}</p>
-              </div>
-              <div>
-                <p className="text-white/60">From</p>
-                <p className="text-white">{reflection.from}</p>
-              </div>
-              <div>
-                <p className="text-white/60">Type</p>
-                <p className="text-white">{getReflectionLabel(reflection.type)}</p>
-              </div>
-              <div>
-                <p className="text-white/60">Status</p>
-                <p className="text-white">{reflection.status}</p>
-              </div>
-            </div>
-          </div>
+ {/* Reflection Details */}
+<div className="bg-white/5 rounded-2xl p-6 space-y-4">
+  <div className="grid grid-cols-2 gap-4 text-sm">
+    <div>
+      <p className="text-white/60">Recipient</p>
+      <p className="text-white">
+        {type === "inbox" ? userName : reflection.to}
+      </p>
+    </div>
+    <div>
+      <p className="text-white/60">From</p>
+      <p className="text-white">
+        {type === "inbox" ? reflection.from : "You"}
+      </p>
+    </div>
+    <div>
+      <p className="text-white/60">Type</p>
+      <p className="text-white">{getReflectionLabel(reflection.type)}</p>
+    </div>
+    <div>
+      <p className="text-white/60">Status</p>
+      <p className="text-white">
+        {type === "inbox" ? "Delivered" : reflection.status}
+      </p>
+    </div>
+  </div>
+</div>
+
 
           {/* Summary (instead of chat) */}
           <div className="space-y-4">

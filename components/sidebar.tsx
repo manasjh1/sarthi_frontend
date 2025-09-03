@@ -378,7 +378,7 @@ const renderReflection = (reflection: any, type: "inbox" | "outbox") => {
     <button
       key={reflection.reflection_id}
       onClick={() => {
-        router.push(`/reflection/${reflection.reflection_id}`);
+         router.push(`/reflection/${reflection.reflection_id}?type=${type}`);
         if (window.innerWidth < 768) {
           onToggle();
         }
