@@ -189,6 +189,23 @@ const handleCopyLink = async () => {
     window.open(whatsappUrl, '_blank');
   };
 
+
+  useEffect(() => {
+
+  const handleReflectionCompleted = () => {
+    console.log("Reflection completed, refreshing sidebar data...");
+    fetchReflections();
+  };
+
+  window.addEventListener("reflection-completed", handleReflectionCompleted);
+
+  return () => {
+    window.removeEventListener("reflection-completed", handleReflectionCompleted);
+  };
+}, []);
+
+
+
 const fetchReflections = async () => {
   try {
     const outboxRes = await authFetch("/reflection/outbox");
@@ -196,7 +213,7 @@ const fetchReflections = async () => {
     console.log("Outbox Response:", outboxJson);
 
     if (outboxJson.success) {
-      setOutbox(outboxJson.data || []);  // ✅ fix
+      setOutbox(outboxJson.data || []); 
     } else {
       setError(outboxJson.message || "Failed to fetch outbox reflections.");
     }
@@ -206,7 +223,7 @@ const fetchReflections = async () => {
     console.log("Inbox Response:", inboxJson);
 
     if (inboxJson.success) {
-      setInbox(inboxJson.data || []);   // ✅ fix
+      setInbox(inboxJson.data || []);  
     } else {
       setError(inboxJson.message || "Failed to fetch inbox reflections.");
     }
