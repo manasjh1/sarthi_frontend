@@ -97,6 +97,11 @@ export default function AuthPage() {
           invite_token: inviteToken || '',
         }),
       });
+     
+        if (response.status === 429) {
+    setError("Too many attempts. Please wait a few minutes before trying again.");
+    return;
+  }
 
       const result = await response.json();
       console.log("OTP Send Result:", result);
@@ -251,6 +256,11 @@ export default function AuthPage() {
           invite_token: inviteToken || 'string',
         }),
       });
+
+      if (response.status === 429) {
+  setError("You’ve requested too many codes. Please wait a few minutes before retrying.");
+  return;
+}
 
       const result = await response.json();
       //  console.log("Resend OTP result:", result);

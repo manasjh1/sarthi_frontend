@@ -378,6 +378,28 @@ const fetchHistory = async (pageNum: number) => {
     }
   }
 
+
+  const handleSignOut = async () => {
+  try {
+    const response = await fetch("/api/auth/signout", {
+      method: "POST",
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      throw new Error("Sign out failed");
+    }
+
+    console.log("Successfully signed out.");
+  } catch (error) {
+    console.warn("Error signing out:", error);
+  } finally {
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.href = "/auth"; // Redirect to the auth page
+  }
+};
+
   const simulateThinkingAndResponse = async (
     content: string,
     thinkingDuration = 0,
@@ -842,14 +864,12 @@ useEffect(() => {
   Continue with Sarthi
 </SarthiButton>
 
-              <button
-                onClick={() => {
-                  router.push('/auth')
-                }}
-                className="w-full p-3 text-white/60 hover:text-white transition-colors"
-              >
-                Sign out
-              </button>
+            <button
+  onClick={handleSignOut}
+  className="w-full p-3 text-white/60 hover:text-white transition-colors"
+>
+  Sign out
+</button>
             </div>
 
             <div className="text-xs text-white/40 leading-relaxed">
