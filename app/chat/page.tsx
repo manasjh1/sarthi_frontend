@@ -671,6 +671,14 @@ const checkForDistress = (data: Array<{ [key: string]: any }>) => {
           workflow_completed: response.progress?.workflow_completed ?? false
         })
 
+          if (response.current_stage === 20) {
+    setTimeout(() => {
+      router.push(`/reflections/closure/${response.reflection_id}`)
+    }, 1500)
+    return
+  }
+
+
         if (response.data && response.data.length > 0) {
           const firstItem = response.data[0]
           if ('choice' in firstItem && 'label' in firstItem) {
