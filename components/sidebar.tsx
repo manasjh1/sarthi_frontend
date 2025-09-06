@@ -9,7 +9,7 @@ import { ApologyIcon } from "@/components/icons/apology-icon"
 import { Heart, MessageCircle, User, UserPlus, Edit3, LogOut, X, Lock, Check, Share, Copy, Plus } from "lucide-react"
 import { authFetch } from "@/lib/api"
 import { CountrySelector } from "@/components/ui/country-selector"
-import { getCookie } from "@/app/actions/auth" 
+import { getCookie } from "@/app/actions/auth"
 import mixpanel, { initMixpanel } from "@/lib/mixpanel";
 // Interface for the component props
 interface SidebarProps {
@@ -102,6 +102,7 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
   // State for expanding/collapsing reflection lists
   const [outboxExpanded, setOutboxExpanded] = useState(false)
   const [inboxExpanded, setInboxExpanded] = useState(false)
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
 
   // Function to fetch the invite link
   const fetchInviteLink = async () => {
@@ -120,7 +121,7 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
       });
 
       const json = await res.json();
-    //  console.log("Invite Link Response:", json);
+      //  console.log("Invite Link Response:", json);
 
       if (json.success && json.invite_code) {
         const inviteUrl = `${window.location.origin}/auth?invite=${json.invite_code}`;
@@ -129,10 +130,10 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
         const defaultMessage = `Hey! I've been using Sarthi for my reflections and wanted to share the link with you. It's a great tool for personal growth.`;
         setInviteMessage(`${defaultMessage}\n\n${inviteUrl}`);
 
-          mixpanel.track("share_link_generated", {
-    invite_code: json.invite_code,
-    invite_url: inviteUrl,
-  })
+        mixpanel.track("share_link_generated", {
+          invite_code: json.invite_code,
+          invite_url: inviteUrl,
+        })
       } else {
         setInviteMessage(json.message || "Error fetching link. Please try again.");
       }
@@ -161,25 +162,25 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
   };
 
   // Handle copying the invite message to clipboard
-const handleCopyLink = async () => {
-  if (inviteMessage) {
-    try {
-      await navigator.clipboard.writeText(inviteMessage);
-      setCopyStatus("Copied!");
+  const handleCopyLink = async () => {
+    if (inviteMessage) {
+      try {
+        await navigator.clipboard.writeText(inviteMessage);
+        setCopyStatus("Copied!");
 
-      // 🔹 Track copy to clipboard
-      mixpanel.track("invite_copied", {
-        invite_message: inviteMessage,
-        invite_link: inviteLink,
-      })
+        // 🔹 Track copy to clipboard
+        mixpanel.track("invite_copied", {
+          invite_message: inviteMessage,
+          invite_link: inviteLink,
+        })
 
-      setTimeout(() => setCopyStatus("Copy"), 2000);
-    } catch (err) {
-      setCopyStatus("Failed to copy");
-      console.error("Failed to copy invite link: ", err);
+        setTimeout(() => setCopyStatus("Copy"), 2000);
+      } catch (err) {
+        setCopyStatus("Failed to copy");
+        console.error("Failed to copy invite link: ", err);
+      }
     }
-  }
-};
+  };
 
 
   // Handle sharing on WhatsApp
@@ -192,83 +193,83 @@ const handleCopyLink = async () => {
 
   useEffect(() => {
 
-  const handleReflectionCompleted = () => {
-    console.log("Reflection completed, refreshing sidebar data...");
-    fetchReflections();
-  };
+    const handleReflectionCompleted = () => {
+      console.log("Reflection completed, refreshing sidebar data...");
+      fetchReflections();
+    };
 
-  window.addEventListener("reflection-completed", handleReflectionCompleted);
+    window.addEventListener("reflection-completed", handleReflectionCompleted);
 
-  return () => {
-    window.removeEventListener("reflection-completed", handleReflectionCompleted);
-  };
-}, []);
+    return () => {
+      window.removeEventListener("reflection-completed", handleReflectionCompleted);
+    };
+  }, []);
 
 
 
-const fetchReflections = async () => {
-  try {
-    const outboxRes = await authFetch("/reflection/outbox");
-    const outboxJson = await outboxRes.json();
-    console.log("Outbox Response:", outboxJson);
+  const fetchReflections = async () => {
+    try {
+      const outboxRes = await authFetch("/reflection/outbox");
+      const outboxJson = await outboxRes.json();
+      console.log("Outbox Response:", outboxJson);
 
-    if (outboxJson.success) {
-      setOutbox(outboxJson.data || []); 
-    } else {
-      setError(outboxJson.message || "Failed to fetch outbox reflections.");
+      if (outboxJson.success) {
+        setOutbox(outboxJson.data || []);
+      } else {
+        setError(outboxJson.message || "Failed to fetch outbox reflections.");
+      }
+
+      const inboxRes = await authFetch("/reflection/inbox");
+      const inboxJson = await inboxRes.json();
+      console.log("Inbox Response:", inboxJson);
+
+      if (inboxJson.success) {
+        setInbox(inboxJson.data || []);
+      } else {
+        setError(inboxJson.message || "Failed to fetch inbox reflections.");
+      }
+    } catch {
+      setError("Something went wrong while fetching reflections");
     }
-
-    const inboxRes = await authFetch("/reflection/inbox");
-    const inboxJson = await inboxRes.json();
-    console.log("Inbox Response:", inboxJson);
-
-    if (inboxJson.success) {
-      setInbox(inboxJson.data || []);  
-    } else {
-      setError(inboxJson.message || "Failed to fetch inbox reflections.");
-    }
-  } catch {
-    setError("Something went wrong while fetching reflections");
-  }
-};
+  };
 
 
 
   // Fetch reflections and user data on component mount
-useEffect(() => {
-  if (!isOpen) return; // 🔹 only run when sidebar is open
+  useEffect(() => {
+    if (!isOpen) return; // 🔹 only run when sidebar is open
 
-  const fetchReflectionsAndUserData = async () => {
-    try {
-      const res = await authFetch("/api/user/me", { credentials: "include" });
-      if (!res.ok) return;
+    const fetchReflectionsAndUserData = async () => {
+      try {
+        const res = await authFetch("/api/user/me", { credentials: "include" });
+        if (!res.ok) return;
 
-      const user = await res.json();
-      if (user?.name) {
-        setEditedName(user.name);
-        onUserNameChange(user.name);
-        localStorage.setItem("sarthi-user-name", user.name);
-        window.dispatchEvent(new CustomEvent("sarthi-name-updated", { detail: user.name }));
+        const user = await res.json();
+        if (user?.name) {
+          setEditedName(user.name);
+          onUserNameChange(user.name);
+          localStorage.setItem("sarthi-user-name", user.name);
+          window.dispatchEvent(new CustomEvent("sarthi-name-updated", { detail: user.name }));
+        }
+        if (user?.email) setEmail(user.email);
+        if (user?.phone_number) setPhone(user.phone_number);
+
+        setLoading(true);
+        await fetchReflections();
+        setLoading(false);
+      } catch (err) {
+        console.error("Failed to fetch user:", err);
       }
-      if (user?.email) setEmail(user.email);
-      if (user?.phone_number) setPhone(user.phone_number);
+    };
 
-      setLoading(true);
-      await fetchReflections();
-      setLoading(false);
-    } catch (err) {
-      console.error("Failed to fetch user:", err);
-    }
-  };
+    fetchReflectionsAndUserData();
 
-  fetchReflectionsAndUserData();
-
-}, [isOpen]); // 🔹 re-run every time sidebar opens
+  }, [isOpen]); // 🔹 re-run every time sidebar opens
 
 
-useEffect(() => {
-  initMixpanel();
-}, []);
+  useEffect(() => {
+    initMixpanel();
+  }, []);
 
 
 
@@ -312,8 +313,9 @@ useEffect(() => {
     }
   }
 
-  // API call to verify the OTP and add the contact
+
   const verifyContactOtp = async () => {
+    setIsVerifyingOtp(true);
     try {
       setOtpError(null)
       const res = await authFetch("/api/user/verify-contact-otp", {
@@ -325,11 +327,14 @@ useEffect(() => {
       if (!json.success) throw new Error(json.message || "OTP verification failed")
       if (contactType === "phone") setPhone(contactInput)
       if (contactType === "email") setEmail(contactInput)
-      setOtpModalOpen(false) // Close the modal on success
+      setOtpModalOpen(false)
     } catch (err: any) {
       setOtpError(err.message)
+    } finally {
+      setIsVerifyingOtp(false);
     }
   }
+
 
   // API call to save the new user name
   const handleSaveName = async () => {
@@ -379,77 +384,77 @@ useEffect(() => {
   };
 
   // Renders a single reflection item
-const renderReflection = (reflection: any, type: "inbox" | "outbox") => {
-  const category = reflection.category || "reflection";
-  const name =
-    type === "inbox"
-      ? reflection.from || "Anonymous"
-      : reflection.to || "Unknown";
+  const renderReflection = (reflection: any, type: "inbox" | "outbox") => {
+    const category = reflection.category || "reflection";
+    const name =
+      type === "inbox"
+        ? reflection.from || "Anonymous"
+        : reflection.to || "Unknown";
 
-  const summary = reflection.summary || "No summary";
-  const createdAt = reflection.created_at
-    ? new Date(reflection.created_at).toLocaleDateString("en-IN")
-    : "";
+    const summary = reflection.summary || "No summary";
+    const createdAt = reflection.created_at
+      ? new Date(reflection.created_at).toLocaleDateString("en-IN")
+      : "";
 
-  return (
-    <button
-      key={reflection.reflection_id}
-      onClick={() => {
-         router.push(`/reflection/${reflection.reflection_id}?type=${type}`);
-        if (window.innerWidth < 768) {
-          onToggle();
-        }
-      }}
-      className="w-full text-left p-4 rounded-lg hover:bg-white/5 transition-colors group min-h-[44px]"
-    >
-      <div className="flex items-start space-x-3">
-        <div className="flex-shrink-0 w-8 h-8 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/15 transition-colors">
-          {getReflectionIcon(category.toLowerCase())}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center space-x-2 mb-1">
-            <span className="text-white text-sm font-medium">{name}</span>
+    return (
+      <button
+        key={reflection.reflection_id}
+        onClick={() => {
+          router.push(`/reflection/${reflection.reflection_id}?type=${type}`);
+          if (window.innerWidth < 768) {
+            onToggle();
+          }
+        }}
+        className="w-full text-left p-4 rounded-lg hover:bg-white/5 transition-colors group min-h-[44px]"
+      >
+        <div className="flex items-start space-x-3">
+          <div className="flex-shrink-0 w-8 h-8 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/15 transition-colors">
+            {getReflectionIcon(category.toLowerCase())}
           </div>
-          <p className="text-white/60 text-sm truncate">{summary}</p>
-          {createdAt && (
-            <p className="text-white/40 text-xs mt-1">{createdAt}</p>
-          )}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center space-x-2 mb-1">
+              <span className="text-white text-sm font-medium">{name}</span>
+            </div>
+            <p className="text-white/60 text-sm truncate">{summary}</p>
+            {createdAt && (
+              <p className="text-white/40 text-xs mt-1">{createdAt}</p>
+            )}
+          </div>
         </div>
-      </div>
-    </button>
-  );
-};
+      </button>
+    );
+  };
 
 
 
- 
-// Renders a section of reflections (e.g., Outbox or Inbox)
-const ReflectionSection = ({ title, reflections, expanded, setExpanded, type }: any) => (
-  <div className="mb-6">
-    <p className="text-white text-sm font-semibold mb-2">{title}</p>
-    {loading ? (
-      <p className="text-white/50 text-sm">Loading...</p>
-    ) : error ? (
-      <p className="text-red-400 text-sm">{error}</p>
-    ) : reflections.length === 0 ? (
-      <p className="text-white/40 text-sm">No reflections yet.</p>
-    ) : (
-      <>
-        {reflections
-          .slice(0, expanded ? reflections.length : 3)
-          .map((r: any) => renderReflection(r, type))} {/* ✅ pass type here */}
-        {reflections.length > 3 && (
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="text-xs text-blue-400 hover:underline mt-2"
-          >
-            {expanded ? "See less" : "See more"}
-          </button>
-        )}
-      </>
-    )}
-  </div>
-)
+
+  // Renders a section of reflections (e.g., Outbox or Inbox)
+  const ReflectionSection = ({ title, reflections, expanded, setExpanded, type }: any) => (
+    <div className="mb-6">
+      <p className="text-white text-sm font-semibold mb-2">{title}</p>
+      {loading ? (
+        <p className="text-white/50 text-sm">Loading...</p>
+      ) : error ? (
+        <p className="text-red-400 text-sm">{error}</p>
+      ) : reflections.length === 0 ? (
+        <p className="text-white/40 text-sm">No reflections yet.</p>
+      ) : (
+        <>
+          {reflections
+            .slice(0, expanded ? reflections.length : 3)
+            .map((r: any) => renderReflection(r, type))} {/* ✅ pass type here */}
+          {reflections.length > 3 && (
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="text-xs text-blue-400 hover:underline mt-2"
+            >
+              {expanded ? "See less" : "See more"}
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  )
 
 
   // Renders the modal content based on the current step (contact or verify)
@@ -567,10 +572,12 @@ const ReflectionSection = ({ title, reflections, expanded, setExpanded, type }: 
             <div className="pt-2">
               <SarthiButton
                 onClick={verifyContactOtp}
+                disabled={isVerifyingOtp}
                 className="w-full auth-button rounded-[16px]"
               >
-                Verify
+                {isVerifyingOtp ? "Verifying…" : "Verify"}
               </SarthiButton>
+
             </div>
           </div>
         </div>
@@ -581,16 +588,16 @@ const ReflectionSection = ({ title, reflections, expanded, setExpanded, type }: 
   return (
     <>
       {/* Mobile Overlay */}
-     {isOpen && (
-  <div
-    className="fixed inset-0 bg-black/50 z-40 md:hidden"
-    onClick={(e) => {
-      if (e.target === e.currentTarget) {
-        onToggle();
-      }
-    }}
-  />
-)}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              onToggle();
+            }
+          }}
+        />
+      )}
 
 
       {/* Sidebar */}
@@ -668,38 +675,38 @@ const ReflectionSection = ({ title, reflections, expanded, setExpanded, type }: 
 
           {/* Start New Reflection Button */}
           <div className="p-6">
-      <SarthiButton
-  onClick={() => {
-    window.location.href = "/chat"; // full page reload
-    if (window.innerWidth < 768) {
-      onToggle();
-    }
-  }}
-  className="w-full justify-start auth-button rounded-[16px]"
->
-  <span className="text-lg mr-2">+</span>
-  Start new reflection
-</SarthiButton>
+            <SarthiButton
+              onClick={() => {
+                window.location.href = "/chat"; // full page reload
+                if (window.innerWidth < 768) {
+                  onToggle();
+                }
+              }}
+              className="w-full justify-start auth-button rounded-[16px]"
+            >
+              <span className="text-lg mr-2">+</span>
+              Start new reflection
+            </SarthiButton>
 
           </div>
 
           {/* Reflections */}
-       <div className="flex-1 overflow-y-auto px-8 pb-6">
-  <ReflectionSection
-    title="Outbox"
-    reflections={outbox}
-    expanded={outboxExpanded}
-    setExpanded={setOutboxExpanded}
-    type="outbox"   // ✅
-  />
-  <ReflectionSection
-    title="Inbox"
-    reflections={inbox}
-    expanded={inboxExpanded}
-    setExpanded={setInboxExpanded}
-    type="inbox"    // ✅
-  />
-</div>
+          <div className="flex-1 overflow-y-auto px-8 pb-6">
+            <ReflectionSection
+              title="Outbox"
+              reflections={outbox}
+              expanded={outboxExpanded}
+              setExpanded={setOutboxExpanded}
+              type="outbox"   // ✅
+            />
+            <ReflectionSection
+              title="Inbox"
+              reflections={inbox}
+              expanded={inboxExpanded}
+              setExpanded={setInboxExpanded}
+              type="inbox"    // ✅
+            />
+          </div>
 
 
 

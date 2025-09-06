@@ -8,27 +8,57 @@ export default function ReflectionConfirmationPage() {
   const searchParams = useSearchParams()
   const router = useRouter();
 
-  const [deliveryMethod, setDeliveryMethod] = useState<'keep-private' | 'email' | 'phone'>('keep-private')
+  const [deliveryMethod, setDeliveryMethod] = useState<'keep-private' | 'email' | 'phone' | 'phone_email'>('keep-private')
 
   useEffect(() => {
     const method = searchParams.get('method')
-    if (method === 'email' || method === 'phone') {
+    if (method === 'email' || method === 'phone' || method === 'phone_email') {
       setDeliveryMethod(method)
     }
 
     const timer = setTimeout(() => {
       router.push(`/reflections/closure/${id}`)
-    }, 12)
-
+    }, 1200) // increased to 1.2s so user can read the confirmation
     return () => clearTimeout(timer)
   }, [searchParams, router, id])
+
+  const getMessage = () => {
+    switch (deliveryMethod) {
+      case 'keep-private':
+        return {
+          heading: 'Reflection saved',
+          text: 'Your reflection has been saved privately.'
+        }
+      case 'email':
+        return {
+          heading: 'Message sent',
+          text: 'Your message has been sent via email.'
+        }
+      case 'phone':
+        return {
+          heading: 'Message sent',
+          text: 'Your message has been sent via WhatsApp.'
+        }
+      case 'phone_email':
+        return {
+          heading: 'Message sent',
+          text: 'Your message has been sent via email and WhatsApp.'
+        }
+      default:
+        return {
+          heading: 'Reflection saved',
+          text: 'Your reflection has been saved privately.'
+        }
+    }
+  }
+
+  const { heading, text } = getMessage()
 
   return (
     <div className="min-h-screen bg-[#121212] flex flex-col items-center justify-center p-4 sm:p-6">
       <div className="text-center space-y-6 sm:space-y-8 max-w-xs sm:max-w-md">
-        {/* Responsive icon container size */}
+        {/* Icon */}
         <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto bg-green-500/20 rounded-full flex items-center justify-center">
-          {/* Responsive SVG size */}
           <svg
             className="h-8 w-8 sm:h-10 sm:w-10 text-green-400"
             fill="none"
@@ -41,16 +71,8 @@ export default function ReflectionConfirmationPage() {
         </div>
 
         <div className="space-y-3 sm:space-y-4">
-          {/* Responsive heading font size */}
-          <h1 className="text-2xl sm:text-3xl font-medium text-white">
-            {deliveryMethod === 'keep-private' ? 'Reflection saved' : 'Message sent'}
-          </h1>
-          {/* Responsive paragraph font size */}
-          <p className="text-[#cbd5e1] text-sm sm:text-lg leading-normal sm:leading-relaxed">
-            {deliveryMethod === 'keep-private'
-              ? 'Your reflection has been saved privately.'
-              : `Your message has been sent ${deliveryMethod === 'email' ? 'via email' : 'via WhatsApp'}.`}
-          </p>
+          <h1 className="text-2xl sm:text-3xl font-medium text-white">{heading}</h1>
+          <p className="text-[#cbd5e1] text-sm sm:text-lg leading-normal sm:leading-relaxed">{text}</p>
         </div>
       </div>
     </div>

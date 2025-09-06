@@ -26,6 +26,7 @@ export default function DeliveryMethodPage() {
   const [phoneNumber, setPhoneNumber] = useState("")
   const [emailError, setEmailError] = useState("")
   const [phoneError, setPhoneError] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
   const [selectedCountry, setSelectedCountry] = useState<Country>({
     name: "India",
     code: "IN",
@@ -34,144 +35,133 @@ export default function DeliveryMethodPage() {
   })
   const [deliveryMethod, setDeliveryMethod] = useState<"keep-private" | "send">("send")
 
-const handleNext = async () => {
-  let hasError = false
+  const handleNext = async () => {
+    let hasError = false
 
-  // Validate email
-  if (emailContact.trim()) {
-    const error = validateEmail(emailContact)
-    if (error) {
-      setEmailError(error)
+    // Reset errors
+    setEmailError("")
+    setPhoneError("")
+
+    // Validate email
+    if (emailContact.trim()) {
+      const error = validateEmail(emailContact)
+      if (error) {
+        setEmailError(error)
+        hasError = true
+      }
+    }
+
+    // Validate phone
+    if (phoneNumber.trim()) {
+      const error = validatePhone(phoneNumber)
+      if (error) {
+        setPhoneError(error)
+        hasError = true
+      }
+    }
+
+    // Require at least one contact method if delivery is "send"
+    if (deliveryMethod !== "keep-private" && !emailContact.trim() && !phoneNumber.trim()) {
+      setEmailError("Please provide at least one contact method")
       hasError = true
     }
-  }
 
-  // Validate phone
-  if (phoneNumber.trim()) {
-    const error = validatePhone(phoneNumber)
-    if (error) {
-      setPhoneError(error)
-      hasError = true
-    }
-  }
+    if (hasError) return
 
-  // Require at least one contact method if delivery is "send"
-  if (deliveryMethod !== "keep-private" && !emailContact.trim() && !phoneNumber.trim()) {
-    setEmailError("Please provide at least one contact method")
-    hasError = true
-  }
-
-  if (hasError) return
-
-  const reflectionId = id
-
-  if (deliveryMethod === "send") {
-    // Decide delivery mode
-    let deliveryMode = 0
-    if (emailContact.trim() && phoneNumber.trim()) {
-      deliveryMode = 2
-    } else if (phoneNumber.trim()) {
-      deliveryMode = 1
-    } else {
-      deliveryMode = 0
-    }
-
-    // 🔹 Track delivery channel selected
-    mixpanel.track("delivery_channel_selected", {
-      channel:
-        deliveryMode === 0
-          ? "email"
-          : deliveryMode === 1
-          ? "whatsapp"
-          : "email+whatsapp",
-      reflection_id: reflectionId,
-    })
-
-  const payload = {
-  reflection_id: reflectionId,
-  message:
-    deliveryMode === 0
-      ? "Send my reflection via email"
-      : deliveryMode === 1
-      ? "Send my reflection via WhatsApp"
-      : deliveryMode === 2
-      ? "Send via both channels"
-      : "Keep private",
-  data: [
-    {
-      delivery_mode: deliveryMode,
-      ...(emailContact.trim() ? { recipient_email: emailContact.trim() } : {}),
-      ...(phoneNumber.trim()
-        ? { recipient_phone: selectedCountry.dialCode + phoneNumber.trim() }
-        : {}),
-    },
-  ],
-};
-
+    setIsLoading(true) // ⬅️ Start loading
 
     try {
-      await authFetch("/chat", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      })
+      const reflectionId = id
 
-      // 🔹 Track send successful
-      mixpanel.track("send_successful", {
-        reflection_id: reflectionId,
-        channel:
-          deliveryMode === 0
-            ? "email"
-            : deliveryMode === 1
-            ? "whatsapp"
-            : "email+whatsapp",
-      })
+      if (deliveryMethod === "send") {
+        let deliveryMode = 0
+        if (emailContact.trim() && phoneNumber.trim()) {
+          deliveryMode = 2
+        } else if (phoneNumber.trim()) {
+          deliveryMode = 1
+        } else {
+          deliveryMode = 0
+        }
 
-      // 🔔 Let sidebar know a new reflection is ready
-      window.dispatchEvent(new Event("reflection-completed"))
+        mixpanel.track("delivery_channel_selected", {
+          channel:
+            deliveryMode === 0
+              ? "email"
+              : deliveryMode === 1
+                ? "whatsapp"
+                : "email+whatsapp",
+          reflection_id: reflectionId,
+        })
+
+        const payload = {
+          reflection_id: reflectionId,
+          message:
+            deliveryMode === 0
+              ? "Send my reflection via email"
+              : deliveryMode === 1
+                ? "Send my reflection via WhatsApp"
+                : "Send via both channels",
+          data: [
+            {
+              delivery_mode: deliveryMode,
+              ...(emailContact.trim() ? { recipient_email: emailContact.trim() } : {}),
+              ...(phoneNumber.trim()
+                ? { recipient_phone: selectedCountry.dialCode + phoneNumber.trim() }
+                : {}),
+            },
+          ],
+        }
+
+        await authFetch("/chat", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        })
+
+        mixpanel.track("send_successful", {
+          reflection_id: reflectionId,
+          channel:
+            deliveryMode === 0
+              ? "email"
+              : deliveryMode === 1
+                ? "whatsapp"
+                : "email+whatsapp",
+        })
+
+        window.dispatchEvent(new Event("reflection-completed"))
+
+        if (deliveryMode === 0) {
+          router.push(`/reflections/confirm/${id}?method=email`)
+        } else if (deliveryMode === 1) {
+          router.push(`/reflections/confirm/${id}?method=phone`)
+        } else {
+          router.push(`/reflections/confirm/${id}?method=phone_email`)
+        }
+      }
+
+      if (deliveryMethod === "keep-private") {
+        mixpanel.track("delivery_channel_selected", {
+          channel: "keep-private",
+          reflection_id: reflectionId,
+        })
+
+        window.dispatchEvent(new Event("reflection-completed"))
+        router.push(`/reflections/confirm/${id}`)
+      }
     } catch (error) {
       console.error("Error submitting delivery details:", error)
 
-      // 🔹 Track send failed
       mixpanel.track("send_failed", {
-        reflection_id: reflectionId,
-        channel:
-          deliveryMode === 0
-            ? "email"
-            : deliveryMode === 1
-            ? "whatsapp"
-            : "email+whatsapp",
+        reflection_id: id,
         error: String(error),
       })
-
-      return
-    }
-
-    if (deliveryMode === 0) {
-      router.push(`/reflections/confirm/${id}?method=email`)
-    } else if (deliveryMode === 1) {
-      router.push(`/reflections/confirm/${id}?method=phone`)
-    } else {
-      router.push(`/reflections/share/${id}`)
+    } finally {
+      setIsLoading(false) // ⬅️ Stop loading
     }
   }
-
-  if (deliveryMethod === "keep-private") {
-    // 🔹 Track delivery channel selected (keep private)
-    mixpanel.track("delivery_channel_selected", {
-      channel: "keep-private",
-      reflection_id: reflectionId,
-    })
-
-    // 🔔 Even for private reflections, trigger the update
-    window.dispatchEvent(new Event("reflection-completed"))
-    router.push(`/reflections/confirm/${id}`)
-  }
-}
-
 
   useEffect(() => {
-  initMixpanel();
-}, []);
+    initMixpanel();
+  }, []);
 
 
   return (
@@ -260,11 +250,10 @@ const handleNext = async () => {
             <div className="border-t border-white/10 pt-4 sm:pt-6">
               <button
                 onClick={() => setDeliveryMethod("keep-private")}
-                className={`w-full p-4 sm:p-6 rounded-3xl border text-left group ${
-                  deliveryMethod === "keep-private"
+                className={`w-full p-4 sm:p-6 rounded-3xl border text-left group ${deliveryMethod === "keep-private"
                     ? "border-white/30 bg-white/10"
                     : "border-white/10 hover:border-white/20 hover:bg-white/5"
-                }`}
+                  }`}
               >
                 <div className="flex items-start gap-3 sm:gap-4">
                   <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-white/10 rounded-full flex items-center justify-center">
@@ -284,9 +273,18 @@ const handleNext = async () => {
 
             {/* Continue Button */}
             <div className="text-center pt-2 sm:pt-4">
-              <SarthiButton onClick={handleNext} className="w-full px-6 py-3 sm:px-8 sm:py-4">
-                {deliveryMethod === "keep-private" ? "Save Reflection" : "Send Message"}
+              <SarthiButton
+                onClick={handleNext}
+                className="w-full px-6 py-3 sm:px-8 sm:py-4"
+                disabled={isLoading} 
+              >
+                {isLoading
+                  ? "Sending..."
+                  : deliveryMethod === "keep-private"
+                    ? "Save Reflection"
+                    : "Send Message"}
               </SarthiButton>
+
             </div>
           </div>
         </div>
