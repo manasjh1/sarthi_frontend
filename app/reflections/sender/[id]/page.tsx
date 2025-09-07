@@ -13,6 +13,7 @@ export default function SenderSelectionPage() {
 
   const [senderName, setSenderName] = useState("")
   const [userName, setUserName] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     const fetchName = async () => {
@@ -32,40 +33,43 @@ export default function SenderSelectionPage() {
     fetchName()
   }, [])
 
-const handleSenderSelection = async (mode: "name" | "anonymous", name?: string) => {
-  let payload;
+  const handleSenderSelection = async (mode: "name" | "anonymous", name?: string) => {
+    setIsLoading(true) // ⬅️ start loading
+    let payload;
 
-  if (mode === "anonymous") {
-    payload = {
-      reflection_id: id,
-      message: "",
-      data: [{ reveal_name: false }]
-    };
-  } else {
-    payload = {
-      reflection_id: id,
-      message: "",
-      data: [{ reveal_name: true, name: (name || userName || "").trim() }]
-    };
-  }
-
-  try {
-    const res = await authFetch("/chat", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-
-    const json = await res.json();
-    if (!json.success) {
-      console.error("Failed to save sender name:", json.message);
-      return;
+    if (mode === "anonymous") {
+      payload = {
+        reflection_id: id,
+        message: "",
+        data: [{ reveal_name: false }]
+      };
+    } else {
+      payload = {
+        reflection_id: id,
+        message: "",
+        data: [{ reveal_name: true, name: (name || userName || "").trim() }]
+      };
     }
 
-    router.push(`/reflections/delivery/${id}`);
-  } catch (error) {
-    console.error("Error saving sender name:", error);
-  }
-};
+    try {
+      const res = await authFetch("/chat", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+
+      const json = await res.json();
+      if (!json.success) {
+        console.error("Failed to save sender name:", json.message);
+        return;
+      }
+
+      router.push(`/reflections/delivery/${id}`);
+    } catch (error) {
+      console.error("Error saving sender name:", error);
+    } finally {
+      setIsLoading(false)
+    }
+  };
 
 
 
@@ -81,7 +85,7 @@ const handleSenderSelection = async (mode: "name" | "anonymous", name?: string) 
             <ArrowLeft className="h-4 w-4" />
             <span>Back</span>
           </button>
-          
+
           <div className="w-20"></div>
           {/* Back button for mobile */}
           <button
@@ -134,35 +138,38 @@ const handleSenderSelection = async (mode: "name" | "anonymous", name?: string) 
 
                     <SarthiButton
                       onClick={() => handleSenderSelection("name", senderName || userName)}
-                      disabled={!senderName?.trim()}
+                      disabled={!senderName?.trim() || isLoading}
                       className="w-full"
                     >
-                      Continue with this name
+                      {isLoading ? "Saving..." : "Continue with this name"}
                     </SarthiButton>
+
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Anonymous */}
-            <button
-              onClick={() => handleSenderSelection("anonymous")}
-              className="w-full p-4 sm:p-6 rounded-3xl border border-white/10 hover:border-white/20 hover:bg-white/5 transition-all text-left group"
-            >
-              <div className="flex items-start gap-3 sm:gap-4">
-                {/* Responsive icon container size */}
-                <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/15 transition-colors">
-                  <svg className="h-5 w-5 sm:h-6 sm:w-6 text-white/80" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                    <path d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  {/* Responsive title font size */}
-                  <h3 className="text-lg sm:text-xl font-medium text-white mb-2">Send anonymously</h3>
-                  <p className="text-white/60 text-sm leading-relaxed">Don't include your name</p>
-                </div>
-              </div>
-            </button>
+         <button
+  onClick={() => handleSenderSelection("anonymous")}
+  disabled={isLoading}
+  className="w-full p-4 sm:p-6 rounded-3xl border border-white/10 hover:border-white/20 hover:bg-white/5 transition-all text-left group"
+>
+  <div className="flex items-start gap-3 sm:gap-4">
+    <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/15 transition-colors">
+      <svg className="h-5 w-5 sm:h-6 sm:w-6 text-white/80" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+        <path d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+      </svg>
+    </div>
+    <div className="flex-1">
+      <h3 className="text-lg sm:text-xl font-medium text-white mb-2">
+        {isLoading ? "Saving..." : "Send anonymously"}
+      </h3>
+      <p className="text-white/60 text-sm leading-relaxed">Don't include your name</p>
+    </div>
+  </div>
+</button>
+
           </div>
 
           {/* Disclaimer */}
