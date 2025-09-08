@@ -558,7 +558,6 @@ const fetchHistory = async (pageNum: number) => {
   }
 
 const handleChoiceSelect = async (choice: string) => {
-  // Find the selected choice to show as user message
   console.log(choice);
   const selectedChoice = choices.find(c => c.choice === choice);
   if (selectedChoice) {
@@ -567,7 +566,6 @@ const handleChoiceSelect = async (choice: string) => {
 
   setIsThinking(true);
   try {
-    // Detect special "continue?" case (Yes/No)
     const isContinuePrompt =
       choices.length === 2 &&
       choices.some(c => c.label.toLowerCase() === "yes") &&
@@ -593,19 +591,36 @@ const handleChoiceSelect = async (choice: string) => {
 
       setChoices([]);
 
+      // 🔽 Moved redirect logic here
+      if (response.current_stage === 20) {
+        setTimeout(() => {
+          router.push(`/reflections/closure/${response.reflection_id}`)
+        }, 1500);
+        return;
+      }
+
       if (response.data && response.data.length > 0) {
         const firstItem = response.data[0];
         if ("choice" in firstItem && "label" in firstItem) {
           setChoices(response.data as Choice[]);
         } else if ("category_no" in firstItem && "category_name" in firstItem) {
           setCategories(response.data as Category[]);
+        } else {
+          const summaryItem = response.data.find(item => item.summary !== undefined);
+          if (summaryItem) {
+            setTimeout(() => {
+              addMessage(`Here's your reflection: ${summaryItem.summary}`, "sarthi");
+              router.push(`/reflections/sender/${response.reflection_id}`);
+            }, 100);
+          }
         }
       }
-    setProgress({
-          current_step: response.current_stage ?? 0,
-          total_step: 100,
-          workflow_completed: response.progress?.workflow_completed ?? false
-        })
+
+      setProgress({
+        current_step: response.current_stage ?? 0,
+        total_step: 100,
+        workflow_completed: response.progress?.workflow_completed ?? false
+      });
     }
   } catch (err) {
     console.error("Choice error:", err);
@@ -614,6 +629,7 @@ const handleChoiceSelect = async (choice: string) => {
     setIsThinking(false);
   }
 };
+
 
 
 
