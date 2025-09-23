@@ -579,6 +579,10 @@ const handleChoiceSelect = async (choice: string) => {
 
     console.log("Choice response:", response);
 
+      if (response.reflection_id) {
+      setReflectionId(response.reflection_id);
+    }
+
     if (response.data?.some(item => item.session_closed === true || item.session_end === true)) {
       handleSessionEnd();
       return;
