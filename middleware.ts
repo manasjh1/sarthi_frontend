@@ -5,7 +5,7 @@ import type { NextRequest } from 'next/server'
 const publicRoutes = ['/auth', '/']
 
 // Define protected routes that require authentication
-const protectedRoutes = ['/onboarding', '/chat', '/dashboard', '/journal', '/conversation', '/reflection']
+const protectedRoutes = ['/onboarding', '/chat', '/dashboard', '/journal', '/conversation', '/reflection','/ELS-Test']
 
 // Simple JWT validation (basic check - not cryptographic verification)
 function isValidJWT(token: string): boolean {
