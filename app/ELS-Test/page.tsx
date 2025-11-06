@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { ChevronRight, Heart, Brain, TrendingUp, MessageCircle, Loader2 } from "lucide-react";
 import { authFetch } from "@/lib/api";
+import { useRouter } from "next/navigation";
 
 interface Message {
   id: string;
@@ -89,6 +90,7 @@ export default function EmotionalLoadTest() {
   const [categoryIntroData, setCategoryIntroData] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -331,23 +333,23 @@ export default function EmotionalLoadTest() {
   };
 
   useEffect(() => {
-  (async () => {
-    try {
-      const response = await authFetch('/api/emotional-test/process', {
-        method: 'POST',
-        body: JSON.stringify({ initialize: true })
-      });
+    (async () => {
+      try {
+        const response = await authFetch('/api/emotional-test/process', {
+          method: 'POST',
+          body: JSON.stringify({ initialize: true })
+        });
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (data.completed && data.elt_result) {
-        setEltResult(data.elt_result);
+        if (data.completed && data.elt_result) {
+          setEltResult(data.elt_result);
+        }
+      } catch (e) {
+        console.log(e);
       }
-    } catch (e) {
-      console.log(e);
-    }
-  })();
-}, []);
+    })();
+  }, []);
 
 
   // Stage 0: Landing Page
@@ -498,8 +500,8 @@ export default function EmotionalLoadTest() {
                   </div>
                 )}
                 <div className={`px-5 py-3 rounded-2xl max-w-[80%] ${msg.role === "user"
-                    ? "bg-white text-black"
-                    : "bg-white/5 text-white border border-white/5"
+                  ? "bg-white text-black"
+                  : "bg-white/5 text-white border border-white/5"
                   }`}>
                   {msg.content}
                 </div>
@@ -597,8 +599,8 @@ export default function EmotionalLoadTest() {
                         onClick={() => handleMultiSelectToggle(opt.text)}
                         disabled={isLoading}
                         className={`px-6 py-3 rounded-xl font-normal transition-all ${multiSelectValues.includes(opt.text)
-                            ? "bg-white text-black"
-                            : "bg-white/10 text-white hover:bg-white/20"
+                          ? "bg-white text-black"
+                          : "bg-white/10 text-white hover:bg-white/20"
                           } disabled:opacity-50 disabled:cursor-not-allowed`}
                       >
                         {opt.text}
@@ -726,7 +728,10 @@ export default function EmotionalLoadTest() {
               <p className="text-[#cbd5e1] mb-4 leading-relaxed">
                 Sarthi is tuned to lighten this exact kind of weight. Let's express what feels unsaid - safely, clearly, and in your own way.
               </p>
-              <button className="w-full px-6 py-4 bg-white text-black rounded-xl font-normal transition-all transform hover:scale-105 flex items-center justify-center gap-2 text-lg">
+              <button
+                onClick={() => router.push('/chat')}
+                className="w-full px-6 py-4 bg-white text-black rounded-xl font-normal transition-all transform hover:scale-105 flex items-center justify-center gap-2 text-lg"
+              >
                 <MessageCircle className="w-5 h-5" />
                 Talk to Sarthi
                 <ChevronRight className="w-5 h-5" />
