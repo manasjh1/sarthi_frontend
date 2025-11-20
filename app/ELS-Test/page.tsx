@@ -133,7 +133,11 @@ export default function EmotionalLoadTest() {
       current += text[i];
       setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, content: current } : m)));
       i++;
-      if (i >= text.length) clearInterval(interval);
+      if (i >= text.length) {
+        clearInterval(interval);
+        // SET questionReady to true ONLY after typing animation completes
+        setTimeout(() => setQuestionReady(true), 200);
+      }
     }, 15);
   };
 
@@ -151,7 +155,7 @@ export default function EmotionalLoadTest() {
       });
 
       const data = await response.json();
-
+      console.log(data);
       if (!data.success) {
         setError(data.message || "Failed to initialize test");
         setIsLoading(false);
@@ -171,7 +175,7 @@ export default function EmotionalLoadTest() {
 
         // Wait for state to settle before showing question
         setTimeout(() => {
-          setQuestionReady(true);
+
           showAssistantMessage(data.question.question);
         }, 300);
       }
@@ -203,6 +207,7 @@ export default function EmotionalLoadTest() {
       });
 
       const data = await response.json();
+      console.log(data);
 
       if (!data.success) {
         setError(data.message || "Failed to submit answer");
@@ -251,7 +256,7 @@ export default function EmotionalLoadTest() {
           // Same domain, show next question directly
           setLastDomainName(data.question.domain_name);
           setTimeout(() => {
-            setQuestionReady(true);
+
             showAssistantMessage(data.question.question);
           }, 800);
         }
@@ -341,7 +346,7 @@ export default function EmotionalLoadTest() {
         });
 
         const data = await response.json();
-
+        console.log(data);
         if (data.completed && data.elt_result) {
           setEltResult(data.elt_result);
         }
@@ -352,93 +357,97 @@ export default function EmotionalLoadTest() {
   }, []);
 
 
-  // Stage 0: Landing Page
-  if (stage === 0) {
-    return (
-      <div className="min-h-screen bg-[#121212] relative overflow-hidden">
-        <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-12">
-          <div className="max-w-3xl mx-auto text-center space-y-8">
-            <div className="flex justify-center mb-6">
-              <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-sm">
-                <Heart className="w-10 h-10 text-white" />
-              </div>
+
+if (stage === 0) {
+  return (
+    <div className="min-h-screen bg-[#121212] relative overflow-hidden">
+      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-6 md:py-12">
+        <div className="max-w-3xl mx-auto text-center space-y-5 md:space-y-8">
+          {/* Icon - smaller on mobile */}
+          <div className="flex justify-center mb-4 md:mb-6">
+            <div className="w-14 h-14 md:w-20 md:h-20 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-sm">
+              <Heart className="w-7 h-7 md:w-10 md:h-10 text-white" />
             </div>
+          </div>
 
-            <h1 className="text-5xl md:text-6xl font-normal text-white leading-tight">
-              Understand your<br />
-              <span className="text-white/70">Emotional Load</span>
-            </h1>
+          {/* Title - responsive text size */}
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-normal text-white leading-tight">
+            Understand your<br />
+            <span className="text-white/70">Emotional Load</span>
+          </h1>
 
-            <div className="max-w-2xl mx-auto space-y-4 text-lg text-[#cbd5e1] leading-relaxed">
-              <p>
-                Everyone carries an invisible weight - unspoken feelings, misunderstood moments.
-              </p>
-              <p className="text-white/90">
-                We call this <span className="text-white">Emotional Load</span>.
-              </p>
+          {/* Description - responsive text */}
+          <div className="max-w-2xl mx-auto space-y-3 md:space-y-4 text-base md:text-lg text-[#cbd5e1] leading-relaxed px-2">
+            <p>
+              Everyone carries an invisible weight - unspoken feelings, misunderstood moments.
+            </p>
+            <p className="text-white/90">
+              We call this <span className="text-white">Emotional Load</span>.
+            </p>
+          </div>
+
+          {/* Feature cards - stack on mobile */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 max-w-3xl mx-auto mt-8 md:mt-12 px-2">
+            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 md:p-6 border border-white/5">
+              <Brain className="w-6 h-6 md:w-8 md:h-8 text-white/80 mb-2 md:mb-3 mx-auto" />
+              <h3 className="text-white font-normal mb-1 md:mb-2 text-sm md:text-base">5-Minute Test</h3>
+              <p className="text-[#cbd5e1] text-xs md:text-sm">Quick assessment</p>
             </div>
-
-            <div className="grid md:grid-cols-3 gap-4 max-w-3xl mx-auto mt-12">
-              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/5">
-                <Brain className="w-8 h-8 text-white/80 mb-3 mx-auto" />
-                <h3 className="text-white font-normal mb-2">5-Minute Test</h3>
-                <p className="text-[#cbd5e1] text-sm">Quick assessment</p>
-              </div>
-              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/5">
-                <TrendingUp className="w-8 h-8 text-white/80 mb-3 mx-auto" />
-                <h3 className="text-white font-normal mb-2">Personal Score</h3>
-                <p className="text-[#cbd5e1] text-sm">Understand your state</p>
-              </div>
-              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/5">
-                <MessageCircle className="w-8 h-8 text-white/80 mb-3 mx-auto" />
-                <h3 className="text-white font-normal mb-2">Guided Relief</h3>
-                <p className="text-[#cbd5e1] text-sm">Express what's hard</p>
-              </div>
+            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 md:p-6 border border-white/5">
+              <TrendingUp className="w-6 h-6 md:w-8 md:h-8 text-white/80 mb-2 md:mb-3 mx-auto" />
+              <h3 className="text-white font-normal mb-1 md:mb-2 text-sm md:text-base">Personal Score</h3>
+              <p className="text-[#cbd5e1] text-xs md:text-sm">Understand your state</p>
             </div>
-
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-red-400">
-                {error}
-              </div>
-            )}
-
-            <div className="pt-8">
-              <button
-                onClick={() => {
-                  if (eltResult) {
-                    setStage(3);   // Go to results screen
-                  } else {
-                    initializeTest();
-                  }
-                }}
-                disabled={isLoading}
-                className="px-10 py-4 bg-white text-black text-lg font-normal rounded-xl transition-all transform hover:scale-105 flex items-center gap-3 mx-auto disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Loading...
-                  </>
-                ) : eltResult ? (
-                  <>
-                    See Your Score
-                    <ChevronRight className="w-5 h-5" />
-                  </>
-                ) : (
-                  <>
-                    Take the Test
-                    <ChevronRight className="w-5 h-5" />
-                  </>
-                )}
-              </button>
-
+            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 md:p-6 border border-white/5">
+              <MessageCircle className="w-6 h-6 md:w-8 md:h-8 text-white/80 mb-2 md:mb-3 mx-auto" />
+              <h3 className="text-white font-normal mb-1 md:mb-2 text-sm md:text-base">Guided Relief</h3>
+              <p className="text-[#cbd5e1] text-xs md:text-sm">Express what's hard</p>
             </div>
+          </div>
+
+          {/* Error message */}
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 md:p-4 text-red-400 text-sm md:text-base mx-2">
+              {error}
+            </div>
+          )}
+
+          {/* CTA Button - responsive sizing */}
+          <div className="pt-6 md:pt-8 px-2">
+            <button
+              onClick={() => {
+                if (eltResult) {
+                  setStage(3);
+                } else {
+                  initializeTest();
+                }
+              }}
+              disabled={isLoading}
+              className="w-full sm:w-auto px-8 md:px-10 py-3 md:py-4 bg-white text-black text-base md:text-lg font-normal rounded-xl transition-all transform hover:scale-105 flex items-center justify-center gap-2 md:gap-3 mx-auto disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
+                  Loading...
+                </>
+              ) : eltResult ? (
+                <>
+                  See Your Score
+                  <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
+                </>
+              ) : (
+                <>
+                  Take the Test
+                  <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>
-    );
-  }
-
+    </div>
+  );
+}
   // Stage 2: Category Intro (Auto-proceed after 3 seconds)
   if (stage === 2 && showCategoryIntro && categoryIntroData) {
     return (
@@ -460,18 +469,19 @@ export default function EmotionalLoadTest() {
     const progress = progressPercentage;
 
     return (
-      <div className="h-screen bg-[#121212] flex flex-col">
-        <div className="border-b border-white/5 p-4 backdrop-blur-sm bg-black/20">
+      <div className="h-screen bg-[#121212] flex flex-col overflow-hidden">
+        {/* Header - more compact on mobile */}
+        <div className="border-b border-white/5 p-3 md:p-4 backdrop-blur-sm bg-black/20 flex-shrink-0">
           <div className="max-w-3xl mx-auto">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
-                <span className="text-2xl">💭</span>
+            <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-3">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
+                <span className="text-xl md:text-2xl">💭</span>
               </div>
-              <div className="flex-1">
-                <h1 className="text-white font-normal text-xl">Emotional Load Assessment</h1>
-                <p className="text-white/60 text-sm">{currentQuestion.domain_name}</p>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-white font-normal text-base md:text-xl truncate">Emotional Load Assessment</h1>
+                <p className="text-white/60 text-xs md:text-sm truncate">{currentQuestion.domain_name}</p>
               </div>
-              <div className="text-white/40 text-sm">
+              <div className="text-white/40 text-xs md:text-sm flex-shrink-0">
                 {currentStep} / {totalSteps}
               </div>
             </div>
@@ -484,22 +494,23 @@ export default function EmotionalLoadTest() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4">
-          <div className="max-w-3xl mx-auto space-y-6 pt-4">
-            <div className="text-center mb-8">
-              <p className="text-[#cbd5e1] italic text-lg">
+        {/* Messages area - ensure proper scrolling */}
+        <div className="flex-1 overflow-y-auto p-3 md:p-4 min-h-0">
+          <div className="max-w-3xl mx-auto space-y-4 md:space-y-6 pt-2 md:pt-4 pb-4">
+            <div className="text-center mb-4 md:mb-8">
+              <p className="text-[#cbd5e1] italic text-sm md:text-lg px-2">
                 "Every question here is a mirror, not a test. Take a breath, answer honestly."
               </p>
             </div>
 
             {messages.map((msg) => (
-              <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "items-start gap-3"}`}>
+              <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "items-start gap-2 md:gap-3"}`}>
                 {msg.role === "assistant" && (
-                  <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
-                    <span className="text-sm">💭</span>
+                  <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
+                    <span className="text-xs md:text-sm">💭</span>
                   </div>
                 )}
-                <div className={`px-5 py-3 rounded-2xl max-w-[80%] ${msg.role === "user"
+                <div className={`px-4 md:px-5 py-2.5 md:py-3 rounded-2xl max-w-[85%] md:max-w-[80%] text-sm md:text-base ${msg.role === "user"
                   ? "bg-white text-black"
                   : "bg-white/5 text-white border border-white/5"
                   }`}>
@@ -509,11 +520,11 @@ export default function EmotionalLoadTest() {
             ))}
 
             {isThinking && (
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-                  <span className="text-sm">💭</span>
+              <div className="flex items-start gap-2 md:gap-3">
+                <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
+                  <span className="text-xs md:text-sm">💭</span>
                 </div>
-                <div className="bg-white/5 px-5 py-3 rounded-2xl border border-white/5">
+                <div className="bg-white/5 px-4 md:px-5 py-2.5 md:py-3 rounded-2xl border border-white/5">
                   <div className="flex gap-1">
                     <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
                     <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
@@ -527,12 +538,12 @@ export default function EmotionalLoadTest() {
           </div>
         </div>
 
-        {/* Only show options when question is ready and not thinking */}
+        {/* Options area - fixed at bottom, scrollable if needed */}
         {!isThinking && questionReady && currentQuestion && (
-          <div className="border-t border-white/5 p-4 backdrop-blur-sm bg-black/20">
-            <div className="max-w-3xl mx-auto space-y-4">
+          <div className="border-t border-white/5 p-3 md:p-4 backdrop-blur-sm bg-black/20 flex-shrink-0 max-h-[45vh] overflow-y-auto">
+            <div className="max-w-3xl mx-auto space-y-3 md:space-y-4">
               {error && (
-                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-red-400 text-sm">
+                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-red-400 text-xs md:text-sm">
                   {error}
                 </div>
               )}
@@ -542,13 +553,13 @@ export default function EmotionalLoadTest() {
                 currentQuestion.type === "radio" ||
                 currentQuestion.type === "toggle" ||
                 currentQuestion.type === "buttons") && (
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3">
                     {currentQuestion.qna_answers.options?.map((opt: any) => (
                       <button
                         key={opt.value}
                         onClick={() => handleOptionClick(opt.text)}
                         disabled={isLoading}
-                        className="px-6 py-3 bg-white text-black rounded-xl font-normal transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-4 md:px-6 py-2.5 md:py-3 bg-white text-black rounded-xl font-normal transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base"
                       >
                         {opt.text}
                       </button>
@@ -556,27 +567,27 @@ export default function EmotionalLoadTest() {
                   </div>
                 )}
 
-              {/* Scale */}
+              {/* Scale - horizontal scroll on very small screens */}
               {(currentQuestion.type === "scale" || currentQuestion.type === "rating") && (
-                <div className="space-y-4">
-                  <div className="flex justify-between text-white/60 text-sm px-2">
-                    <span className="flex items-center gap-1">😌 Strongly Disagree</span>
-                    <span className="flex items-center gap-1">Strongly Agree 😫</span>
+                <div className="space-y-3 md:space-y-4">
+                  <div className="flex justify-between text-white/60 text-xs md:text-sm px-2">
+                    <span className="flex items-center gap-1">😌 Disagree</span>
+                    <span className="flex items-center gap-1">Agree 😫</span>
                   </div>
-                  <div className="flex justify-center gap-3">
+                  <div className="flex justify-center gap-2 md:gap-3 overflow-x-auto pb-2">
                     {[1, 2, 3, 4, 5].map((num) => (
-                      <div key={num} className="flex flex-col items-center gap-2">
+                      <div key={num} className="flex flex-col items-center gap-1 md:gap-2 flex-shrink-0">
                         <button
                           onClick={() => {
                             setScaleValue(num);
                             submitAnswer(num);
                           }}
                           disabled={isLoading}
-                          className="w-16 h-16 rounded-full flex items-center justify-center font-normal text-lg bg-white/10 hover:bg-white hover:text-black text-white border-2 border-white/5 hover:border-white transition-all transform hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center font-normal text-base md:text-lg bg-white/10 hover:bg-white hover:text-black text-white border-2 border-white/5 hover:border-white transition-all transform hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {num}
                         </button>
-                        <span className="text-2xl">
+                        <span className="text-xl md:text-2xl">
                           {num === 1 && "😌"}
                           {num === 2 && "🙂"}
                           {num === 3 && "😐"}
@@ -591,14 +602,14 @@ export default function EmotionalLoadTest() {
 
               {/* Multi-Select */}
               {currentQuestion.type === "multi-select" && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-3 md:space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3">
                     {currentQuestion.qna_answers.options?.map((opt: any) => (
                       <button
                         key={opt.value}
                         onClick={() => handleMultiSelectToggle(opt.text)}
                         disabled={isLoading}
-                        className={`px-6 py-3 rounded-xl font-normal transition-all ${multiSelectValues.includes(opt.text)
+                        className={`px-4 md:px-6 py-2.5 md:py-3 rounded-xl font-normal transition-all text-sm md:text-base ${multiSelectValues.includes(opt.text)
                           ? "bg-white text-black"
                           : "bg-white/10 text-white hover:bg-white/20"
                           } disabled:opacity-50 disabled:cursor-not-allowed`}
@@ -610,7 +621,7 @@ export default function EmotionalLoadTest() {
                   <button
                     onClick={handleSubmit}
                     disabled={isLoading || multiSelectValues.length === 0}
-                    className="w-full px-6 py-3 bg-white text-black rounded-xl font-normal transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full px-4 md:px-6 py-2.5 md:py-3 bg-white text-black rounded-xl font-normal transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base"
                   >
                     {isLoading ? "Submitting..." : "Continue"}
                   </button>
@@ -619,7 +630,7 @@ export default function EmotionalLoadTest() {
 
               {/* Text/Number */}
               {(currentQuestion.type === "text" || currentQuestion.type === "number") && (
-                <div className="space-y-4">
+                <div className="space-y-3 md:space-y-4">
                   {currentQuestion.type === "text" ? (
                     <textarea
                       value={textValue}
@@ -627,8 +638,8 @@ export default function EmotionalLoadTest() {
                       placeholder={currentQuestion.qna_answers.placeholder || "Your response..."}
                       maxLength={currentQuestion.qna_answers.max_length}
                       disabled={isLoading}
-                      className="w-full px-4 py-3 bg-white/10 text-white rounded-xl border border-white/5 focus:border-white/20 outline-none resize-none disabled:opacity-50"
-                      rows={4}
+                      className="w-full px-3 md:px-4 py-2.5 md:py-3 bg-white/10 text-white rounded-xl border border-white/5 focus:border-white/20 outline-none resize-none disabled:opacity-50 text-sm md:text-base"
+                      rows={3}
                     />
                   ) : (
                     <input
@@ -639,13 +650,13 @@ export default function EmotionalLoadTest() {
                       max={currentQuestion.qna_answers.max}
                       step={currentQuestion.qna_answers.step || 1}
                       disabled={isLoading}
-                      className="w-full px-4 py-3 bg-white/10 text-white rounded-xl border border-white/5 focus:border-white/20 outline-none disabled:opacity-50"
+                      className="w-full px-3 md:px-4 py-2.5 md:py-3 bg-white/10 text-white rounded-xl border border-white/5 focus:border-white/20 outline-none disabled:opacity-50 text-sm md:text-base"
                     />
                   )}
                   <button
                     onClick={handleSubmit}
                     disabled={isLoading || !textValue.trim()}
-                    className="w-full px-6 py-3 bg-white text-black rounded-xl font-normal transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full px-4 md:px-6 py-2.5 md:py-3 bg-white text-black rounded-xl font-normal transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base"
                   >
                     {isLoading ? "Submitting..." : "Continue"}
                   </button>
