@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { ChevronRight, Heart, Brain, TrendingUp, MessageCircle, Loader2 } from "lucide-react";
 import { authFetch } from "@/lib/api";
 import { useRouter } from "next/navigation";
+import { SarthiOrb } from "@/components/sarthi-orb";
 
 interface Message {
   id: string;
@@ -247,7 +248,7 @@ export default function EmotionalLoadTest() {
           const introData = categoryIntros[data.question.domain_name] || {
             title: data.question.domain_name,
             intro: "Let's explore this area together.",
-            emoji: "💭"
+            emoji: ""
           };
           setCategoryIntroData(introData);
           setShowCategoryIntro(true);
@@ -465,23 +466,22 @@ if (stage === 0) {
   }
 
   // Stage 1: Test Section
-  if (stage === 1 && currentQuestion) {
+ if (stage === 1 && currentQuestion) {
     const progress = progressPercentage;
 
     return (
-      <div className="h-screen bg-[#121212] flex flex-col overflow-hidden">
-        {/* Header - more compact on mobile */}
-        <div className="border-b border-white/5 p-3 md:p-4 backdrop-blur-sm bg-black/20 flex-shrink-0">
+      <div className="h-screen bg-[#121212] flex flex-col">
+        <div className="border-b border-white/5 p-4 backdrop-blur-sm bg-black/20">
           <div className="max-w-3xl mx-auto">
-            <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-3">
-              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
-                <span className="text-xl md:text-2xl">💭</span>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
+                <SarthiOrb/>
               </div>
-              <div className="flex-1 min-w-0">
-                <h1 className="text-white font-normal text-base md:text-xl truncate">Emotional Load Assessment</h1>
-                <p className="text-white/60 text-xs md:text-sm truncate">{currentQuestion.domain_name}</p>
+              <div className="flex-1">
+                <h1 className="text-white font-normal text-xl">Emotional Load Assessment</h1>
+                <p className="text-white/60 text-sm">{currentQuestion.domain_name}</p>
               </div>
-              <div className="text-white/40 text-xs md:text-sm flex-shrink-0">
+              <div className="text-white/40 text-sm">
                 {currentStep} / {totalSteps}
               </div>
             </div>
@@ -494,23 +494,22 @@ if (stage === 0) {
           </div>
         </div>
 
-        {/* Messages area - ensure proper scrolling */}
-        <div className="flex-1 overflow-y-auto p-3 md:p-4 min-h-0">
-          <div className="max-w-3xl mx-auto space-y-4 md:space-y-6 pt-2 md:pt-4 pb-4">
-            <div className="text-center mb-4 md:mb-8">
-              <p className="text-[#cbd5e1] italic text-sm md:text-lg px-2">
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="max-w-3xl mx-auto space-y-6 pt-4">
+            <div className="text-center mb-8">
+              <p className="text-[#cbd5e1] italic text-lg">
                 "Every question here is a mirror, not a test. Take a breath, answer honestly."
               </p>
             </div>
 
             {messages.map((msg) => (
-              <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "items-start gap-2 md:gap-3"}`}>
+              <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "items-start gap-3"}`}>
                 {msg.role === "assistant" && (
-                  <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
-                    <span className="text-xs md:text-sm">💭</span>
+                  <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
+                    <SarthiOrb/>
                   </div>
                 )}
-                <div className={`px-4 md:px-5 py-2.5 md:py-3 rounded-2xl max-w-[85%] md:max-w-[80%] text-sm md:text-base ${msg.role === "user"
+                <div className={`px-5 py-3 rounded-2xl max-w-[80%] ${msg.role === "user"
                   ? "bg-white text-black"
                   : "bg-white/5 text-white border border-white/5"
                   }`}>
@@ -520,11 +519,11 @@ if (stage === 0) {
             ))}
 
             {isThinking && (
-              <div className="flex items-start gap-2 md:gap-3">
-                <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
-                  <span className="text-xs md:text-sm">💭</span>
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+                  <SarthiOrb/>
                 </div>
-                <div className="bg-white/5 px-4 md:px-5 py-2.5 md:py-3 rounded-2xl border border-white/5">
+                <div className="bg-white/5 px-5 py-3 rounded-2xl border border-white/5">
                   <div className="flex gap-1">
                     <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
                     <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
@@ -538,12 +537,12 @@ if (stage === 0) {
           </div>
         </div>
 
-        {/* Options area - fixed at bottom, scrollable if needed */}
+        {/* Only show options when question is ready and not thinking */}
         {!isThinking && questionReady && currentQuestion && (
-          <div className="border-t border-white/5 p-3 md:p-4 backdrop-blur-sm bg-black/20 flex-shrink-0 max-h-[45vh] overflow-y-auto">
-            <div className="max-w-3xl mx-auto space-y-3 md:space-y-4">
+          <div className="border-t border-white/5 p-4 backdrop-blur-sm bg-black/20">
+            <div className="max-w-3xl mx-auto space-y-4">
               {error && (
-                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-red-400 text-xs md:text-sm">
+                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-red-400 text-sm">
                   {error}
                 </div>
               )}
@@ -553,13 +552,13 @@ if (stage === 0) {
                 currentQuestion.type === "radio" ||
                 currentQuestion.type === "toggle" ||
                 currentQuestion.type === "buttons") && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3">
+                  <div className="grid grid-cols-2 gap-3">
                     {currentQuestion.qna_answers.options?.map((opt: any) => (
                       <button
                         key={opt.value}
                         onClick={() => handleOptionClick(opt.text)}
                         disabled={isLoading}
-                        className="px-4 md:px-6 py-2.5 md:py-3 bg-white text-black rounded-xl font-normal transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base"
+                        className="px-6 py-3 bg-white text-black rounded-xl font-normal transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {opt.text}
                       </button>
@@ -567,27 +566,27 @@ if (stage === 0) {
                   </div>
                 )}
 
-              {/* Scale - horizontal scroll on very small screens */}
+              {/* Scale */}
               {(currentQuestion.type === "scale" || currentQuestion.type === "rating") && (
-                <div className="space-y-3 md:space-y-4">
-                  <div className="flex justify-between text-white/60 text-xs md:text-sm px-2">
-                    <span className="flex items-center gap-1">😌 Disagree</span>
-                    <span className="flex items-center gap-1">Agree 😫</span>
+                <div className="space-y-4">
+                  <div className="flex justify-between text-white/60 text-sm px-2">
+                    <span className="flex items-center gap-1">😌 Strongly Disagree</span>
+                    <span className="flex items-center gap-1">Strongly Agree 😫</span>
                   </div>
-                  <div className="flex justify-center gap-2 md:gap-3 overflow-x-auto pb-2">
+                  <div className="flex justify-center gap-3">
                     {[1, 2, 3, 4, 5].map((num) => (
-                      <div key={num} className="flex flex-col items-center gap-1 md:gap-2 flex-shrink-0">
+                      <div key={num} className="flex flex-col items-center gap-2">
                         <button
                           onClick={() => {
                             setScaleValue(num);
                             submitAnswer(num);
                           }}
                           disabled={isLoading}
-                          className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center font-normal text-base md:text-lg bg-white/10 hover:bg-white hover:text-black text-white border-2 border-white/5 hover:border-white transition-all transform hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-16 h-16 rounded-full flex items-center justify-center font-normal text-lg bg-white/10 hover:bg-white hover:text-black text-white border-2 border-white/5 hover:border-white transition-all transform hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {num}
                         </button>
-                        <span className="text-xl md:text-2xl">
+                        <span className="text-2xl">
                           {num === 1 && "😌"}
                           {num === 2 && "🙂"}
                           {num === 3 && "😐"}
@@ -602,14 +601,14 @@ if (stage === 0) {
 
               {/* Multi-Select */}
               {currentQuestion.type === "multi-select" && (
-                <div className="space-y-3 md:space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
                     {currentQuestion.qna_answers.options?.map((opt: any) => (
                       <button
                         key={opt.value}
                         onClick={() => handleMultiSelectToggle(opt.text)}
                         disabled={isLoading}
-                        className={`px-4 md:px-6 py-2.5 md:py-3 rounded-xl font-normal transition-all text-sm md:text-base ${multiSelectValues.includes(opt.text)
+                        className={`px-6 py-3 rounded-xl font-normal transition-all ${multiSelectValues.includes(opt.text)
                           ? "bg-white text-black"
                           : "bg-white/10 text-white hover:bg-white/20"
                           } disabled:opacity-50 disabled:cursor-not-allowed`}
@@ -621,7 +620,7 @@ if (stage === 0) {
                   <button
                     onClick={handleSubmit}
                     disabled={isLoading || multiSelectValues.length === 0}
-                    className="w-full px-4 md:px-6 py-2.5 md:py-3 bg-white text-black rounded-xl font-normal transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base"
+                    className="w-full px-6 py-3 bg-white text-black rounded-xl font-normal transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isLoading ? "Submitting..." : "Continue"}
                   </button>
@@ -630,7 +629,7 @@ if (stage === 0) {
 
               {/* Text/Number */}
               {(currentQuestion.type === "text" || currentQuestion.type === "number") && (
-                <div className="space-y-3 md:space-y-4">
+                <div className="space-y-4">
                   {currentQuestion.type === "text" ? (
                     <textarea
                       value={textValue}
@@ -638,8 +637,8 @@ if (stage === 0) {
                       placeholder={currentQuestion.qna_answers.placeholder || "Your response..."}
                       maxLength={currentQuestion.qna_answers.max_length}
                       disabled={isLoading}
-                      className="w-full px-3 md:px-4 py-2.5 md:py-3 bg-white/10 text-white rounded-xl border border-white/5 focus:border-white/20 outline-none resize-none disabled:opacity-50 text-sm md:text-base"
-                      rows={3}
+                      className="w-full px-4 py-3 bg-white/10 text-white rounded-xl border border-white/5 focus:border-white/20 outline-none resize-none disabled:opacity-50"
+                      rows={4}
                     />
                   ) : (
                     <input
@@ -650,13 +649,13 @@ if (stage === 0) {
                       max={currentQuestion.qna_answers.max}
                       step={currentQuestion.qna_answers.step || 1}
                       disabled={isLoading}
-                      className="w-full px-3 md:px-4 py-2.5 md:py-3 bg-white/10 text-white rounded-xl border border-white/5 focus:border-white/20 outline-none disabled:opacity-50 text-sm md:text-base"
+                      className="w-full px-4 py-3 bg-white/10 text-white rounded-xl border border-white/5 focus:border-white/20 outline-none disabled:opacity-50"
                     />
                   )}
                   <button
                     onClick={handleSubmit}
                     disabled={isLoading || !textValue.trim()}
-                    className="w-full px-4 md:px-6 py-2.5 md:py-3 bg-white text-black rounded-xl font-normal transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base"
+                    className="w-full px-6 py-3 bg-white text-black rounded-xl font-normal transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isLoading ? "Submitting..." : "Continue"}
                   </button>
