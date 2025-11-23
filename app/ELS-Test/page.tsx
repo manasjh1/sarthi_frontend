@@ -191,88 +191,89 @@ export default function EmotionalLoadTest() {
     }
   };
 
-  const submitAnswer = async (answer: any) => {
-    if (!currentQuestion) return;
+const submitAnswer = async (answer: any) => {
+  if (!currentQuestion) return;
 
-    // Reset question ready state immediately
-    setQuestionReady(false);
-    setIsLoading(true);
-    setError(null);
+  setQuestionReady(false);
+  setError(null);
 
-    try {
-      const response = await authFetch('/api/emotional-test/process', {
-        method: 'POST',
-        body: JSON.stringify({
-          initialize: false,
-          answer: answer,
-          question_id: currentQuestion.id,
-          step: currentQuestion.step_number
-        })
-      });
+  const answerText = Array.isArray(answer) ? answer.join(", ") : String(answer);
+  addMessage(answerText, "user");
 
-      const data = await response.json();
-      console.log(data);
+  setIsLoading(true);
 
-      if (!data.success) {
-        setError(data.message || "Failed to submit answer");
-        setIsLoading(false);
-        setQuestionReady(true);
-        return;
-      }
+  try {
+    const response = await authFetch('/api/emotional-test/process', {
+      method: 'POST',
+      body: JSON.stringify({
+        initialize: false,
+        answer: answer,
+        question_id: currentQuestion.id,
+        step: currentQuestion.step_number
+      })
+    });
 
-      // Add user's answer to messages
-      const answerText = Array.isArray(answer) ? answer.join(", ") : String(answer);
-      addMessage(answerText, "user");
+    const data = await response.json();
+    console.log(data);
 
-      if (data.completed && data.elt_result) {
+    if (!data.success) {
+      setError(data.message || "Failed to submit answer");
+      setIsLoading(false);
+      setQuestionReady(true);
+      return;
+    }
+
+    if (data.completed && data.elt_result) {
+      setTimeout(() => {
+        showAssistantMessage("That's it! You just gave your emotions the attention they deserve. Let's see what they're trying to tell you.");
         setTimeout(() => {
-          showAssistantMessage("That's it! You just gave your emotions the attention they deserve. Let's see what they're trying to tell you.");
-          setTimeout(() => {
-            setEltResult(data.elt_result);
-            setStage(3);
-          }, 2500);
-        }, 800);
-      } else if (data.question) {
-        // Check if domain changed
-        const domainChanged = lastDomainName && lastDomainName !== data.question.domain_name;
+          setEltResult(data.elt_result);
+          setStage(3);
+        }, 2500);
+      }, 600);
+    } else if (data.question) {
+      // Check if domain changed
+      const domainChanged = lastDomainName && lastDomainName !== data.question.domain_name;
 
-        setCurrentQuestion(data.question);
-        setCurrentStep(data.current_step);
-        setProgressPercentage(data.progress_percentage);
+      setCurrentQuestion(data.question);
+      setCurrentStep(data.current_step);
+      setProgressPercentage(data.progress_percentage);
 
-        // Reset input values
-        setScaleValue(3);
-        setMultiSelectValues([]);
-        setTextValue("");
+      // Reset input values
+      setScaleValue(3);
+      setMultiSelectValues([]);
+      setTextValue("");
 
-        if (domainChanged) {
-          // Show category intro
-          setLastDomainName(data.question.domain_name);
-          const introData = categoryIntros[data.question.domain_name] || {
-            title: data.question.domain_name,
-            intro: "Let's explore this area together.",
-            emoji: ""
-          };
-          setCategoryIntroData(introData);
+      if (domainChanged) {
+        // Show category intro after a brief pause
+        setLastDomainName(data.question.domain_name);
+        const introData = categoryIntros[data.question.domain_name] || {
+          title: data.question.domain_name,
+          intro: "Let's explore this area together.",
+          emoji: ""
+        };
+        setCategoryIntroData(introData);
+        
+        setTimeout(() => {
           setShowCategoryIntro(true);
           setStage(2);
-        } else {
-          // Same domain, show next question directly
-          setLastDomainName(data.question.domain_name);
-          setTimeout(() => {
-
-            showAssistantMessage(data.question.question);
-          }, 800);
-        }
+        }, 600);
+      } else {
+        // Same domain, show next question
+        setLastDomainName(data.question.domain_name);
+        setTimeout(() => {
+          showAssistantMessage(data.question.question);
+        }, 600);
       }
-    } catch (err) {
-      setError("Network error. Please try again.");
-      console.error(err);
-      setQuestionReady(true);
-    } finally {
-      setIsLoading(false);
     }
-  };
+  } catch (err) {
+    setError("Network error. Please try again.");
+    console.error(err);
+    setQuestionReady(true);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleSubmit = () => {
     if (!currentQuestion || isLoading) return;
@@ -340,15 +341,16 @@ export default function EmotionalLoadTest() {
       default: return "bg-gray-500";
     }
   };
-  useEffect(() => {
+
+
+useEffect(() => {
   if (questionReady && messagesEndRef.current) {
-   
-    setTimeout(() => {
+    // Use requestAnimationFrame for smoother scroll
+    requestAnimationFrame(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-    }, 100);
+    });
   }
 }, [questionReady]);
-
 
   useEffect(() => {
     (async () => {
@@ -506,7 +508,7 @@ export default function EmotionalLoadTest() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 p-32">
+        <div className="flex-1 overflow-y-auto p-4 pb-32">
           <div className="max-w-3xl mx-auto space-y-6 pt-4">
             <div className="text-center mb-8">
               <p className="text-[#cbd5e1] italic text-lg">
