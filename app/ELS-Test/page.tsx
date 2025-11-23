@@ -136,8 +136,11 @@ export default function EmotionalLoadTest() {
       i++;
       if (i >= text.length) {
         clearInterval(interval);
-        // SET questionReady to true ONLY after typing animation completes
-        setTimeout(() => setQuestionReady(true), 200);
+        // Add extra scroll after typing completes
+        setTimeout(() => {
+          setQuestionReady(true);
+          messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+        }, 200);
       }
     }, 15);
   };
@@ -337,6 +340,15 @@ export default function EmotionalLoadTest() {
       default: return "bg-gray-500";
     }
   };
+  useEffect(() => {
+  if (questionReady && messagesEndRef.current) {
+   
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    }, 100);
+  }
+}, [questionReady]);
+
 
   useEffect(() => {
     (async () => {
@@ -359,96 +371,96 @@ export default function EmotionalLoadTest() {
 
 
 
-if (stage === 0) {
-  return (
-    <div className="min-h-screen bg-[#121212] relative overflow-hidden">
-      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-6 md:py-12">
-        <div className="max-w-3xl mx-auto text-center space-y-5 md:space-y-8">
-          {/* Icon - smaller on mobile */}
-          <div className="flex justify-center mb-4 md:mb-6">
-            <div className="w-14 h-14 md:w-20 md:h-20 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-sm">
-              <Heart className="w-7 h-7 md:w-10 md:h-10 text-white" />
+  if (stage === 0) {
+    return (
+      <div className="min-h-screen bg-[#121212] relative overflow-hidden">
+        <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-6 md:py-12">
+          <div className="max-w-3xl mx-auto text-center space-y-5 md:space-y-8">
+            {/* Icon - smaller on mobile */}
+            <div className="flex justify-center mb-4 md:mb-6">
+              <div className="w-14 h-14 md:w-20 md:h-20 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-sm">
+                <Heart className="w-7 h-7 md:w-10 md:h-10 text-white" />
+              </div>
             </div>
-          </div>
 
-          {/* Title - responsive text size */}
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-normal text-white leading-tight">
-            Understand your<br />
-            <span className="text-white/70">Emotional Load</span>
-          </h1>
+            {/* Title - responsive text size */}
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-normal text-white leading-tight">
+              Understand your<br />
+              <span className="text-white/70">Emotional Load</span>
+            </h1>
 
-          {/* Description - responsive text */}
-          <div className="max-w-2xl mx-auto space-y-3 md:space-y-4 text-base md:text-lg text-[#cbd5e1] leading-relaxed px-2">
-            <p>
-              Everyone carries an invisible weight - unspoken feelings, misunderstood moments.
-            </p>
-            <p className="text-white/90">
-              We call this <span className="text-white">Emotional Load</span>.
-            </p>
-          </div>
-
-          {/* Feature cards - stack on mobile */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 max-w-3xl mx-auto mt-8 md:mt-12 px-2">
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 md:p-6 border border-white/5">
-              <Brain className="w-6 h-6 md:w-8 md:h-8 text-white/80 mb-2 md:mb-3 mx-auto" />
-              <h3 className="text-white font-normal mb-1 md:mb-2 text-sm md:text-base">5-Minute Test</h3>
-              <p className="text-[#cbd5e1] text-xs md:text-sm">Quick assessment</p>
+            {/* Description - responsive text */}
+            <div className="max-w-2xl mx-auto space-y-3 md:space-y-4 text-base md:text-lg text-[#cbd5e1] leading-relaxed px-2">
+              <p>
+                Everyone carries an invisible weight - unspoken feelings, misunderstood moments.
+              </p>
+              <p className="text-white/90">
+                We call this <span className="text-white">Emotional Load</span>.
+              </p>
             </div>
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 md:p-6 border border-white/5">
-              <TrendingUp className="w-6 h-6 md:w-8 md:h-8 text-white/80 mb-2 md:mb-3 mx-auto" />
-              <h3 className="text-white font-normal mb-1 md:mb-2 text-sm md:text-base">Personal Score</h3>
-              <p className="text-[#cbd5e1] text-xs md:text-sm">Understand your state</p>
-            </div>
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 md:p-6 border border-white/5">
-              <MessageCircle className="w-6 h-6 md:w-8 md:h-8 text-white/80 mb-2 md:mb-3 mx-auto" />
-              <h3 className="text-white font-normal mb-1 md:mb-2 text-sm md:text-base">Guided Relief</h3>
-              <p className="text-[#cbd5e1] text-xs md:text-sm">Express what's hard</p>
-            </div>
-          </div>
 
-          {/* Error message */}
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 md:p-4 text-red-400 text-sm md:text-base mx-2">
-              {error}
+            {/* Feature cards - stack on mobile */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 max-w-3xl mx-auto mt-8 md:mt-12 px-2">
+              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 md:p-6 border border-white/5">
+                <Brain className="w-6 h-6 md:w-8 md:h-8 text-white/80 mb-2 md:mb-3 mx-auto" />
+                <h3 className="text-white font-normal mb-1 md:mb-2 text-sm md:text-base">5-Minute Test</h3>
+                <p className="text-[#cbd5e1] text-xs md:text-sm">Quick assessment</p>
+              </div>
+              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 md:p-6 border border-white/5">
+                <TrendingUp className="w-6 h-6 md:w-8 md:h-8 text-white/80 mb-2 md:mb-3 mx-auto" />
+                <h3 className="text-white font-normal mb-1 md:mb-2 text-sm md:text-base">Personal Score</h3>
+                <p className="text-[#cbd5e1] text-xs md:text-sm">Understand your state</p>
+              </div>
+              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 md:p-6 border border-white/5">
+                <MessageCircle className="w-6 h-6 md:w-8 md:h-8 text-white/80 mb-2 md:mb-3 mx-auto" />
+                <h3 className="text-white font-normal mb-1 md:mb-2 text-sm md:text-base">Guided Relief</h3>
+                <p className="text-[#cbd5e1] text-xs md:text-sm">Express what's hard</p>
+              </div>
             </div>
-          )}
 
-          {/* CTA Button - responsive sizing */}
-          <div className="pt-6 md:pt-8 px-2">
-            <button
-              onClick={() => {
-                if (eltResult) {
-                  setStage(3);
-                } else {
-                  initializeTest();
-                }
-              }}
-              disabled={isLoading}
-              className="w-full sm:w-auto px-8 md:px-10 py-3 md:py-4 bg-white text-black text-base md:text-lg font-normal rounded-xl transition-all transform hover:scale-105 flex items-center justify-center gap-2 md:gap-3 mx-auto disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
-                  Loading...
-                </>
-              ) : eltResult ? (
-                <>
-                  See Your Score
-                  <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
-                </>
-              ) : (
-                <>
-                  Take the Test
-                  <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
-                </>
-              )}
-            </button>
+            {/* Error message */}
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 md:p-4 text-red-400 text-sm md:text-base mx-2">
+                {error}
+              </div>
+            )}
+
+            {/* CTA Button - responsive sizing */}
+            <div className="pt-6 md:pt-8 px-2">
+              <button
+                onClick={() => {
+                  if (eltResult) {
+                    setStage(3);
+                  } else {
+                    initializeTest();
+                  }
+                }}
+                disabled={isLoading}
+                className="w-full sm:w-auto px-8 md:px-10 py-3 md:py-4 bg-white text-black text-base md:text-lg font-normal rounded-xl transition-all transform hover:scale-105 flex items-center justify-center gap-2 md:gap-3 mx-auto disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
+                    Loading...
+                  </>
+                ) : eltResult ? (
+                  <>
+                    See Your Score
+                    <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
+                  </>
+                ) : (
+                  <>
+                    Take the Test
+                    <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
   // Stage 2: Category Intro (Auto-proceed after 3 seconds)
   if (stage === 2 && showCategoryIntro && categoryIntroData) {
     return (
@@ -466,7 +478,7 @@ if (stage === 0) {
   }
 
   // Stage 1: Test Section
- if (stage === 1 && currentQuestion) {
+  if (stage === 1 && currentQuestion) {
     const progress = progressPercentage;
 
     return (
@@ -475,7 +487,7 @@ if (stage === 0) {
           <div className="max-w-3xl mx-auto">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
-                <SarthiOrb/>
+                <SarthiOrb />
               </div>
               <div className="flex-1">
                 <h1 className="text-white font-normal text-xl">Emotional Load Assessment</h1>
@@ -494,7 +506,7 @@ if (stage === 0) {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-4 p-32">
           <div className="max-w-3xl mx-auto space-y-6 pt-4">
             <div className="text-center mb-8">
               <p className="text-[#cbd5e1] italic text-lg">
@@ -506,7 +518,7 @@ if (stage === 0) {
               <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "items-start gap-3"}`}>
                 {msg.role === "assistant" && (
                   <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
-                    <SarthiOrb/>
+                    <SarthiOrb />
                   </div>
                 )}
                 <div className={`px-5 py-3 rounded-2xl max-w-[80%] ${msg.role === "user"
@@ -521,7 +533,7 @@ if (stage === 0) {
             {isThinking && (
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-                  <SarthiOrb/>
+                  <SarthiOrb />
                 </div>
                 <div className="bg-white/5 px-5 py-3 rounded-2xl border border-white/5">
                   <div className="flex gap-1">
@@ -539,7 +551,7 @@ if (stage === 0) {
 
         {/* Only show options when question is ready and not thinking */}
         {!isThinking && questionReady && currentQuestion && (
-          <div className="border-t border-white/5 p-4 backdrop-blur-sm bg-black/20">
+          <div className="border-t border-white/5 p-4 backdrop-blur-sm bg-black/20 sticky bottom-0">
             <div className="max-w-3xl mx-auto space-y-4">
               {error && (
                 <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-red-400 text-sm">
