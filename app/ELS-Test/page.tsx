@@ -191,89 +191,89 @@ export default function EmotionalLoadTest() {
     }
   };
 
-const submitAnswer = async (answer: any) => {
-  if (!currentQuestion) return;
+  const submitAnswer = async (answer: any) => {
+    if (!currentQuestion) return;
 
-  setQuestionReady(false);
-  setError(null);
+    setQuestionReady(false);
+    setError(null);
 
-  const answerText = Array.isArray(answer) ? answer.join(", ") : String(answer);
-  addMessage(answerText, "user");
+    const answerText = Array.isArray(answer) ? answer.join(", ") : String(answer);
+    addMessage(answerText, "user");
 
-  setIsLoading(true);
+    setIsLoading(true);
 
-  try {
-    const response = await authFetch('/api/emotional-test/process', {
-      method: 'POST',
-      body: JSON.stringify({
-        initialize: false,
-        answer: answer,
-        question_id: currentQuestion.id,
-        step: currentQuestion.step_number
-      })
-    });
+    try {
+      const response = await authFetch('/api/emotional-test/process', {
+        method: 'POST',
+        body: JSON.stringify({
+          initialize: false,
+          answer: answer,
+          question_id: currentQuestion.id,
+          step: currentQuestion.step_number
+        })
+      });
 
-    const data = await response.json();
-    console.log(data);
+      const data = await response.json();
+      console.log(data);
 
-    if (!data.success) {
-      setError(data.message || "Failed to submit answer");
-      setIsLoading(false);
-      setQuestionReady(true);
-      return;
-    }
-
-    if (data.completed && data.elt_result) {
-      setTimeout(() => {
-        showAssistantMessage("That's it! You just gave your emotions the attention they deserve. Let's see what they're trying to tell you.");
-        setTimeout(() => {
-          setEltResult(data.elt_result);
-          setStage(3);
-        }, 2500);
-      }, 600);
-    } else if (data.question) {
-      // Check if domain changed
-      const domainChanged = lastDomainName && lastDomainName !== data.question.domain_name;
-
-      setCurrentQuestion(data.question);
-      setCurrentStep(data.current_step);
-      setProgressPercentage(data.progress_percentage);
-
-      // Reset input values
-      setScaleValue(3);
-      setMultiSelectValues([]);
-      setTextValue("");
-
-      if (domainChanged) {
-        // Show category intro after a brief pause
-        setLastDomainName(data.question.domain_name);
-        const introData = categoryIntros[data.question.domain_name] || {
-          title: data.question.domain_name,
-          intro: "Let's explore this area together.",
-          emoji: ""
-        };
-        setCategoryIntroData(introData);
-        
-        setTimeout(() => {
-          setShowCategoryIntro(true);
-          setStage(2);
-        }, 600);
-      } else {
-        // Same domain, show next question
-        setLastDomainName(data.question.domain_name);
-        setTimeout(() => {
-          showAssistantMessage(data.question.question);
-        }, 600);
+      if (!data.success) {
+        setError(data.message || "Failed to submit answer");
+        setIsLoading(false);
+        setQuestionReady(true);
+        return;
       }
+
+      if (data.completed && data.elt_result) {
+        setTimeout(() => {
+          showAssistantMessage("That's it! You just gave your emotions the attention they deserve. Let's see what they're trying to tell you.");
+          setTimeout(() => {
+            setEltResult(data.elt_result);
+            setStage(3);
+          }, 2500);
+        }, 600);
+      } else if (data.question) {
+        // Check if domain changed
+        const domainChanged = lastDomainName && lastDomainName !== data.question.domain_name;
+
+        setCurrentQuestion(data.question);
+        setCurrentStep(data.current_step);
+        setProgressPercentage(data.progress_percentage);
+
+        // Reset input values
+        setScaleValue(3);
+        setMultiSelectValues([]);
+        setTextValue("");
+
+        if (domainChanged) {
+          // Show category intro after a brief pause
+          setLastDomainName(data.question.domain_name);
+          const introData = categoryIntros[data.question.domain_name] || {
+            title: data.question.domain_name,
+            intro: "Let's explore this area together.",
+            emoji: ""
+          };
+          setCategoryIntroData(introData);
+
+          setTimeout(() => {
+            setShowCategoryIntro(true);
+            setStage(2);
+          }, 600);
+        } else {
+          // Same domain, show next question
+          setLastDomainName(data.question.domain_name);
+          setTimeout(() => {
+            showAssistantMessage(data.question.question);
+          }, 600);
+        }
+      }
+    } catch (err) {
+      setError("Network error. Please try again.");
+      console.error(err);
+      setQuestionReady(true);
+    } finally {
+      setIsLoading(false);
     }
-  } catch (err) {
-    setError("Network error. Please try again.");
-    console.error(err);
-    setQuestionReady(true);
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   const handleSubmit = () => {
     if (!currentQuestion || isLoading) return;
@@ -343,14 +343,14 @@ const submitAnswer = async (answer: any) => {
   };
 
 
-useEffect(() => {
-  if (questionReady && messagesEndRef.current) {
-    // Use requestAnimationFrame for smoother scroll
-    requestAnimationFrame(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-    });
-  }
-}, [questionReady]);
+  useEffect(() => {
+    if (questionReady && messagesEndRef.current) {
+      // Use requestAnimationFrame for smoother scroll
+      requestAnimationFrame(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+      });
+    }
+  }, [questionReady]);
 
   useEffect(() => {
     (async () => {
@@ -392,7 +392,7 @@ useEffect(() => {
             </h1>
 
             {/* Description - responsive text */}
-            <div className="max-w-2xl mx-auto space-y-3 md:space-y-4 text-base md:text-lg text-[#cbd5e1] leading-relaxed px-2">
+            <div className="max-w-2xl mx-auto space-y-3 md:space-y-4 text-sm md:text-base lg:text-lg text-[#cbd5e1] leading-relaxed px-2">
               <p>
                 Everyone carries an invisible weight - unspoken feelings, misunderstood moments.
               </p>
