@@ -22,6 +22,7 @@ interface Question {
   is_llm: boolean;
   domain_name: string;
   domain_type: string;
+  reverse?: boolean;
 }
 
 interface ELTResult {
@@ -97,24 +98,24 @@ export default function EmotionalLoadTest() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isThinking]);
 
-  // Auto-proceed from category intro
-  useEffect(() => {
-    if (stage === 2 && showCategoryIntro) {
-      const timer = setTimeout(() => {
-        setShowCategoryIntro(false);
-        setStage(1);
-        setMessages([]);
-        setTimeout(() => {
-          setQuestionReady(true);
-          if (currentQuestion) {
-            showAssistantMessage(currentQuestion.question);
-          }
-        }, 300);
-      }, 3000);
+// Auto-proceed from category intro
+useEffect(() => {
+  if (stage === 2 && showCategoryIntro) {
+    const timer = setTimeout(() => {
+      setShowCategoryIntro(false);
+      setStage(1);
+      setMessages([]);
+      setTimeout(() => {
+        // REMOVED: setQuestionReady(true); - Let showAssistantMessage handle this
+        if (currentQuestion) {
+          showAssistantMessage(currentQuestion.question);
+        }
+      }, 300);
+    }, 3000);
 
-      return () => clearTimeout(timer);
-    }
-  }, [stage, showCategoryIntro, currentQuestion]);
+    return () => clearTimeout(timer);
+  }
+}, [stage, showCategoryIntro, currentQuestion]);
 
   const addMessage = (content: string, role: "user" | "assistant") => {
     setMessages((prev) => [...prev, { id: Date.now().toString(), content, role }]);
@@ -159,6 +160,7 @@ export default function EmotionalLoadTest() {
       });
 
       const data = await response.json();
+
       console.log(data);
       if (!data.success) {
         setError(data.message || "Failed to initialize test");
@@ -223,13 +225,14 @@ export default function EmotionalLoadTest() {
         return;
       }
 
-      if (data.completed && data.elt_result) {
+      if (data.completed && data.success) {
+        setQuestionReady(false);
         setTimeout(() => {
           showAssistantMessage("That's it! You just gave your emotions the attention they deserve. Let's see what they're trying to tell you.");
           setTimeout(() => {
             setEltResult(data.elt_result);
             setStage(3);
-          }, 2500);
+          }, 5000);
         }, 600);
       } else if (data.question) {
         // Check if domain changed
@@ -427,8 +430,9 @@ export default function EmotionalLoadTest() {
               </div>
             )}
 
+
             {/* CTA Button - responsive sizing */}
-            <div className="pt-6 md:pt-8 px-2">
+            <div className="pt-6 md:pt-8 px-2 pb-8">
               <button
                 onClick={() => {
                   if (eltResult) {
@@ -438,7 +442,7 @@ export default function EmotionalLoadTest() {
                   }
                 }}
                 disabled={isLoading}
-                className="w-full sm:w-auto px-8 md:px-10 py-3 md:py-4 bg-white text-black text-base md:text-lg font-normal rounded-xl transition-all transform hover:scale-105 flex items-center justify-center gap-2 md:gap-3 mx-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full sm:w-auto px-8 md:px-10 py-3 md:py-4 bg-white text-black text-base md:text-lg font-normal rounded-xl transition-all transform hover:scale-105 flex items-center justify-center gap-2 md:gap-3 mx-auto disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
               >
                 {isLoading ? (
                   <>
@@ -584,31 +588,36 @@ export default function EmotionalLoadTest() {
               {(currentQuestion.type === "scale" || currentQuestion.type === "rating") && (
                 <div className="space-y-4">
                   <div className="flex justify-between text-white/60 text-sm px-2">
-                    <span className="flex items-center gap-1">😌 Strongly Disagree</span>
-                    <span className="flex items-center gap-1">Strongly Agree 😫</span>
+                    <span className="flex items-center gap-1">
+                      {currentQuestion.reverse ? "😫 Strongly Disagree" : "😌 Strongly Disagree"}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      {currentQuestion.reverse ? "Strongly Agree 😌" : "Strongly Agree 😫"}
+                    </span>
                   </div>
                   <div className="flex justify-center gap-3">
-                    {[1, 2, 3, 4, 5].map((num) => (
-                      <div key={num} className="flex flex-col items-center gap-2">
-                        <button
-                          onClick={() => {
-                            setScaleValue(num);
-                            submitAnswer(num);
-                          }}
-                          disabled={isLoading}
-                          className="w-16 h-16 rounded-full flex items-center justify-center font-normal text-lg bg-white/10 hover:bg-white hover:text-black text-white border-2 border-white/5 hover:border-white transition-all transform hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {num}
-                        </button>
-                        <span className="text-2xl">
-                          {num === 1 && "😌"}
-                          {num === 2 && "🙂"}
-                          {num === 3 && "😐"}
-                          {num === 4 && "😟"}
-                          {num === 5 && "😫"}
-                        </span>
-                      </div>
-                    ))}
+                    {[1, 2, 3, 4, 5].map((num) => {
+                      // Reverse emoji mapping if reverse is true
+                      const emojiMap = currentQuestion.reverse
+                        ? { 1: "😫", 2: "😟", 3: "😐", 4: "🙂", 5: "😌" }
+                        : { 1: "😌", 2: "🙂", 3: "😐", 4: "😟", 5: "😫" };
+
+                      return (
+                        <div key={num} className="flex flex-col items-center gap-2">
+                          <button
+                            onClick={() => {
+                              setScaleValue(num);
+                              submitAnswer(num);
+                            }}
+                            disabled={isLoading}
+                            className="w-16 h-16 rounded-full flex items-center justify-center font-normal text-lg bg-white/10 hover:bg-white hover:text-black text-white border-2 border-white/5 hover:border-white transition-all transform hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {num}
+                          </button>
+                          <span className="text-2xl">{emojiMap[num as keyof typeof emojiMap]}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -709,14 +718,7 @@ export default function EmotionalLoadTest() {
               <p className="text-white/70 text-lg">{eltResult.zone_message}</p>
             </div>
 
-            {/* Score breakdown for debugging */}
-            <div className="bg-white/5 rounded-xl p-4 border border-white/5 mb-6 text-sm">
-              <div className="text-white/60 space-y-1">
-                <p>Total Score: {eltResult.total_score.toFixed(2)}</p>
-                <p>Weighted Score: {eltResult.weighted_score.toFixed(2)}</p>
-                <p>ELS Score: {eltResult.els_score}</p>
-              </div>
-            </div>
+
 
             {eltResult.top_stress_drivers && eltResult.top_stress_drivers.length > 0 && (
               <div className="bg-white/5 rounded-xl p-6 border border-white/5 mb-6">
@@ -778,3 +780,5 @@ export default function EmotionalLoadTest() {
 
   return null;
 }
+
+//for this this has been told : Take test btn is not visible, of possible can you do relative position according to screensize so that it can be visible in first page.total scrore, weighted score, els score, all doesnt make any sense to me. either tell me how much stressed i am or tell me what is the meaning of each one
