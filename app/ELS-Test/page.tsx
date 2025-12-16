@@ -225,16 +225,20 @@ useEffect(() => {
         return;
       }
 
-      if (data.completed && data.success) {
-        setQuestionReady(false);
-        setTimeout(() => {
-          showAssistantMessage("That's it! You just gave your emotions the attention they deserve. Let's see what they're trying to tell you.");
-          setTimeout(() => {
-            setEltResult(data.elt_result);
-            setStage(3);
-          }, 5000);
-        }, 600);
-      } else if (data.question) {
+     if (data.completed && data.success) {
+  setQuestionReady(false);
+  setIsLoading(false); // Stop loading immediately
+  
+  // Show completion message without setting new question
+  setTimeout(() => {
+    showAssistantMessage("That's it! You just gave your emotions the attention they deserve. Let's see what they're trying to tell you.");
+    setTimeout(() => {
+      setEltResult(data.elt_result);
+      setStage(3);
+    }, 4000); // Reduced from 5000ms
+  }, 600);
+  return; // Exit early
+} else if (data.question) {
         // Check if domain changed
         const domainChanged = lastDomainName && lastDomainName !== data.question.domain_name;
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { Edit3, RotateCcw, Check } from 'lucide-react'
 import { CleanCardTemplate } from "@/components/message-templates/clean-card"
 import { HandwrittenTemplate } from "@/components/message-templates/handwritten"
@@ -11,6 +11,7 @@ import { authFetch } from "@/lib/api"
 
 export default function ReflectionPreviewPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { id } = useParams() as { id: string }
 
   const [loading, setLoading] = useState(false)
@@ -18,14 +19,22 @@ export default function ReflectionPreviewPage() {
   const [editedMessage, setEditedMessage] = useState('')
   const [isEditingMessage, setIsEditingMessage] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
-  const [currentStep, setCurrentStep] = useState<'chat' | 'template-selection'>('chat')
+  const [deliveryChoice, setDeliveryChoice] = useState<'deliver' | 'keep' | null>(null)
+
+  // Read delivery choice from query parameter
+  useEffect(() => {
+    const delivery = searchParams.get('delivery')
+    if (delivery === 'deliver' || delivery === 'keep') {
+      setDeliveryChoice(delivery)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     const fetchReflection = async () => {
       setLoading(true)
       try {
-        const res = await authFetch("/chat/history", {
-          method: "POST",
+        const res = await authFetch("/reflection/history", {
+          method: "GET",
           body: JSON.stringify({
             data: {
               mode: "get_reflections",
@@ -37,7 +46,6 @@ export default function ReflectionPreviewPage() {
         const json = await res.json()
         if (json.success) {
           setEditedMessage(json.data.summary || '')
-          setCurrentStep('template-selection')
         } else {
           setError(json.message || "Failed to fetch reflection.")
         }
@@ -62,7 +70,7 @@ export default function ReflectionPreviewPage() {
   const handleSaveEditedMessage = async () => {
     setIsEditingMessage(false)
     try {
-      const res = await authFetch('/chat', {
+      const res = await authFetch('/reflection', {
         method: 'POST',
         body: JSON.stringify({
           reflection_id: id,
@@ -72,7 +80,7 @@ export default function ReflectionPreviewPage() {
       })
 
       const json = await res.json()
-     // console.log('Edit response:', json)
+      // console.log('Edit response:', json)
     } catch (err) {
       console.error('Failed to edit:', err)
     }
@@ -82,7 +90,7 @@ export default function ReflectionPreviewPage() {
     setIsEditingMessage(false)
     setLoading(true)
     try {
-      const res = await authFetch('/chat', {
+      const res = await authFetch('/reflection', {
         method: 'POST',
         body: JSON.stringify({
           reflection_id: id,
@@ -92,7 +100,7 @@ export default function ReflectionPreviewPage() {
       })
 
       const json = await res.json()
-    //  console.log('Regenerate response:', json)
+      // console.log('Regenerate response:', json)
       if (json.success && json.data[0].summary) {
         setEditedMessage(json.data[0].summary)
       } else {
@@ -106,16 +114,16 @@ export default function ReflectionPreviewPage() {
   }
 
   const handleContinueWithTemplate = () => {
-   // console.log("📝 Reflection ID:", id)
-   // console.log("✍️ Selected Template:", selectedTemplate)
-   // console.log("📄 Final Message:", editedMessage)
-    
+    if (deliveryChoice === 'deliver') {
       router.push(`/reflections/sender/${id}`)
+    } else if (deliveryChoice === 'keep') {
+      router.push(`/reflections/closure/${id}`)
+    }
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black text-white">
+      <div className="min-h-screen flex items-center justify-center bg-[#121212] text-white">
         <p>Loading your reflection...</p>
       </div>
     )
@@ -123,7 +131,7 @@ export default function ReflectionPreviewPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black text-red-500">
+      <div className="min-h-screen flex items-center justify-center bg-[#121212] text-red-500">
         <p>{error}</p>
       </div>
     )
