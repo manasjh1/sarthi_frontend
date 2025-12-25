@@ -8,7 +8,7 @@ import { SarthiInput } from "@/components/ui/sarthi-input"
 import { CountrySelector } from "@/components/ui/country-selector"
 import { validateEmail, validatePhone } from "@/lib/validators"
 import { authFetch } from "@/lib/api"
-import mixpanel, { initMixpanel } from "@/lib/mixpanel";
+//import mixpanel, { initMixpanel } from "@/lib/mixpanel";
 import { useEffect } from "react";
 
 type Country = {
@@ -83,15 +83,15 @@ export default function DeliveryMethodPage() {
           deliveryMode = 0
         }
 
-        mixpanel.track("delivery_channel_selected", {
-          channel:
-            deliveryMode === 0
-              ? "email"
-              : deliveryMode === 1
-                ? "whatsapp"
-                : "email+whatsapp",
-          reflection_id: reflectionId,
-        })
+        // mixpanel.track("delivery_channel_selected", {
+        //   channel:
+        //     deliveryMode === 0
+        //       ? "email"
+        //       : deliveryMode === 1
+        //         ? "whatsapp"
+        //         : "email+whatsapp",
+        //   reflection_id: reflectionId,
+        // })
 
         const payload = {
           reflection_id: reflectionId,
@@ -117,15 +117,15 @@ export default function DeliveryMethodPage() {
           body: JSON.stringify(payload),
         })
 
-        mixpanel.track("send_successful", {
-          reflection_id: reflectionId,
-          channel:
-            deliveryMode === 0
-              ? "email"
-              : deliveryMode === 1
-                ? "whatsapp"
-                : "email+whatsapp",
-        })
+        // mixpanel.track("send_successful", {
+        //   reflection_id: reflectionId,
+        //   channel:
+        //     deliveryMode === 0
+        //       ? "email"
+        //       : deliveryMode === 1
+        //         ? "whatsapp"
+        //         : "email+whatsapp",
+        // })
 
         window.dispatchEvent(new Event("reflection-completed"))
 
@@ -139,10 +139,10 @@ export default function DeliveryMethodPage() {
       }
 
       if (deliveryMethod === "keep-private") {
-        mixpanel.track("delivery_channel_selected", {
-          channel: "keep-private",
-          reflection_id: reflectionId,
-        })
+        // mixpanel.track("delivery_channel_selected", {
+        //   channel: "keep-private",
+        //   reflection_id: reflectionId,
+        // })
 
         window.dispatchEvent(new Event("reflection-completed"))
         router.push(`/reflections/confirm/${id}`)
@@ -150,18 +150,18 @@ export default function DeliveryMethodPage() {
     } catch (error) {
       console.error("Error submitting delivery details:", error)
 
-      mixpanel.track("send_failed", {
-        reflection_id: id,
-        error: String(error),
-      })
+      // mixpanel.track("send_failed", {
+      //   reflection_id: id,
+      //   error: String(error),
+      // })
     } finally {
       setIsLoading(false) // ⬅️ Stop loading
     }
   }
 
-  useEffect(() => {
-    initMixpanel();
-  }, []);
+  // useEffect(() => {
+  //   initMixpanel();
+  // }, []);
 
 
   return (

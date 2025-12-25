@@ -8,7 +8,7 @@ import { SarthiInput } from "@/components/ui/sarthi-input"
 import { ApologyIcon } from "@/components/icons/apology-icon"
 import { Heart, MessageCircle, User, UserX } from "lucide-react"
 import { authFetch } from "@/lib/api"
-import mixpanel, { initMixpanel } from "@/lib/mixpanel";
+//import mixpanel, { initMixpanel } from "@/lib/mixpanel";
 
 
 type OnboardingStep = "success" | "name-entry" | "space-setup" | "reflection-prompt" | "complete"
@@ -50,9 +50,9 @@ useEffect(() => {
   fetchUser();
 }, []);
 
-useEffect(() => {
-  initMixpanel();
-}, []);
+// useEffect(() => {
+//   initMixpanel();
+// }, []);
 
 
   // Space setup progress animation
@@ -105,11 +105,11 @@ const handleNameSubmit = async () => {
       })
 
       // 🔹 Track profile name set (Anonymous)
-      mixpanel.track("profile_name_set", {
-        name_setup: true,
-        is_anonymous: true,
-        name: "Anonymous"
-      })
+      // mixpanel.track("profile_name_set", {
+      //   name_setup: true,
+      //   is_anonymous: true,
+      //   name: "Anonymous"
+      // })
     } catch (err) {
       console.error("Onboarding error:", err)
     }
@@ -147,11 +147,11 @@ const handleNameSubmit = async () => {
     })
 
     // 🔹 Track profile name set (Named)
-    mixpanel.track("profile_name_set", {
-      name_setup: true,
-      is_anonymous: false,
-      name: name.trim()
-    })
+    // mixpanel.track("profile_name_set", {
+    //   name_setup: true,
+    //   is_anonymous: false,
+    //   name: name.trim()
+    // })
   } catch (err) {
     console.error("Onboarding error:", err)
   }
@@ -170,9 +170,9 @@ const handleReflectionSelect = (reflectionType: string) => {
   setIsNavigating(true)
 
   // 🔹 Track reflection selected
-  mixpanel.track("reflection_selected", {
-    reflection_type: reflectionType // "apologize" | "gratitude" | "boundary"
-  })
+  // mixpanel.track("reflection_selected", {
+  //   reflection_type: reflectionType // "apologize" | "gratitude" | "boundary"
+  // })
 
   // Add a smooth transition before navigating
   setTimeout(() => {
