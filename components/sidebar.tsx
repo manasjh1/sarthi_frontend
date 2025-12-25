@@ -10,7 +10,7 @@ import { Heart, MessageCircle, User, UserPlus, Edit3, LogOut, X, Lock, Check, Sh
 import { authFetch } from "@/lib/api"
 import { CountrySelector } from "@/components/ui/country-selector"
 import { getCookie } from "@/app/actions/auth"
-import mixpanel, { initMixpanel } from "@/lib/mixpanel";
+//import mixpanel, { initMixpanel } from "@/lib/mixpanel";
 // Interface for the component props
 interface SidebarProps {
   isOpen: boolean
@@ -130,10 +130,10 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
         const defaultMessage = `Hey! I've been using Sarthi for my reflections and wanted to share the link with you. It's a great tool for personal growth.`;
         setInviteMessage(`${defaultMessage}\n\n${inviteUrl}`);
 
-        mixpanel.track("share_link_generated", {
-          invite_code: json.invite_code,
-          invite_url: inviteUrl,
-        })
+        // mixpanel.track("share_link_generated", {
+        //   invite_code: json.invite_code,
+        //   invite_url: inviteUrl,
+        // })
       } else {
         setInviteMessage(json.message || "Error fetching link. Please try again.");
       }
@@ -169,10 +169,10 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
         setCopyStatus("Copied!");
 
         // 🔹 Track copy to clipboard
-        mixpanel.track("invite_copied", {
-          invite_message: inviteMessage,
-          invite_link: inviteLink,
-        })
+        // mixpanel.track("invite_copied", {
+        //   invite_message: inviteMessage,
+        //   invite_link: inviteLink,
+        // })
 
         setTimeout(() => setCopyStatus("Copy"), 2000);
       } catch (err) {
@@ -267,9 +267,9 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
   }, [isOpen]); // 🔹 re-run every time sidebar opens
 
 
-  useEffect(() => {
-    initMixpanel();
-  }, []);
+  // useEffect(() => {
+  //   initMixpanel();
+  // }, []);
 
 
 

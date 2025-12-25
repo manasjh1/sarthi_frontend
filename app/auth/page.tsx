@@ -9,7 +9,7 @@ import { CountrySelector } from "@/components/ui/country-selector"
 import { validateInviteCode, verifyOTP } from "@/app/actions/auth"
 import { SarthiIcon } from "@/components/ui/sarthi-icon"
 import { authFetch } from "@/lib/api";
-import mixpanel, { initMixpanel } from "@/lib/mixpanel";
+//import mixpanel, { initMixpanel } from "@/lib/mixpanel";
 
 
 type AuthStep = "entry" | "invite-code" | "otp-verification" | "success" | "redirecting"
@@ -60,9 +60,9 @@ export default function AuthPage() {
 
 
   const handleContinue = async () => {
-    mixpanel.track("signup_started", {
-      auth_method: contactType // "email" or "phone"
-    });
+    // mixpanel.track("signup_started", {
+    //   auth_method: contactType // "email" or "phone"
+    // });
     const contact = getFullContact();
     if (contactType === "email") {
 
@@ -137,10 +137,10 @@ export default function AuthPage() {
       // console.log("Invite validation result:", result)
 
       if (result.success && result.valid) {
-        mixpanel.track("invite_code_submitted", {
-          invite_code_source: "direct", // or email/whatsapp if you can detect
-          code_valid: result.success && result.valid
-        });
+        // mixpanel.track("invite_code_submitted", {
+        //   invite_code_source: "direct", // or email/whatsapp if you can detect
+        //   code_valid: result.success && result.valid
+        // });
 
         setInviteToken(result.inviteToken)
         setStep("success")
@@ -176,20 +176,20 @@ export default function AuthPage() {
 
       if (result.success) {
         if (result.isNewUser) {
-          mixpanel.track("signup_completed", {
-            auth_method: contactType,
-            signup_status: "success"
-          });
+          // mixpanel.track("signup_completed", {
+          //   auth_method: contactType,
+          //   signup_status: "success"
+          // });
         }
       }
 
 
       if (result.success) {
   if (!result.isNewUser) {
-    mixpanel.track("login_success", {
-      auth_method: contactType,
-      login: "success"
-    });
+    // mixpanel.track("login_success", {
+    //   auth_method: contactType,
+    //   login: "success"
+    // });
   }
 }
 
@@ -302,9 +302,9 @@ export default function AuthPage() {
     }
   }, []);
 
-  useEffect(() => {
-    initMixpanel();
-  }, []);
+  // useEffect(() => {
+  //   initMixpanel();
+  // }, []);
 
   const resetToEntry = () => {
     setStep("entry")
