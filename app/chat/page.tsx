@@ -930,7 +930,7 @@ useEffect(() => {
               </h1>
               {progress && (
                 <p className="text-white/60 text-xs sm:text-sm">
-                  Step {progress.current_step} of {progress.total_step}
+                 
                   {progress.workflow_completed && " - Complete"}
                 </p>
               )}

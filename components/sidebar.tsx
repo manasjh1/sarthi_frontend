@@ -11,6 +11,7 @@ import { authFetch } from "@/lib/api"
 import { CountrySelector } from "@/components/ui/country-selector"
 import { getCookie } from "@/app/actions/auth"
 import mixpanel, { initMixpanel } from "@/lib/mixpanel";
+import { ChevronDown, ChevronUp } from "lucide-react"
 // Interface for the component props
 interface SidebarProps {
   isOpen: boolean
@@ -103,6 +104,39 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
   const [outboxExpanded, setOutboxExpanded] = useState(false)
   const [inboxExpanded, setInboxExpanded] = useState(false)
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+
+  // Add these new state variables after the existing state declarations (around line 60)
+const [elsTestExpanded, setElsTestExpanded] = useState(false)
+const [drafts, setDrafts] = useState<Reflection[]>([])
+const [draftsExpanded, setDraftsExpanded] = useState(false);
+const [isProfileOpen, setIsProfileOpen] = useState(false)
+
+// Add dummy ELS test data after state declarations
+const dummyElsTests = [
+  { id: "els-1", title: "ELS Test - Dec 20, 2024", score: 65, zone: "Yellow", date: "2024-12-20" },
+  { id: "els-2", title: "ELS Test - Dec 15, 2024", score: 45, zone: "Green", date: "2024-12-15" },
+  { id: "els-3", title: "ELS Test - Dec 10, 2024", score: 75, zone: "Red", date: "2024-12-10" },
+]
+
+// Add dummy drafts data
+const dummyDrafts: Reflection[] = [
+  {
+    reflection_id: "draft-1",
+    summary: "Unsent apology to my colleague about the meeting",
+    created_at: "2024-12-22T10:30:00Z",
+    to: "Sarah",
+    category: "apology"
+  },
+  {
+    reflection_id: "draft-2",
+    summary: "Gratitude message for my team's support",
+    created_at: "2024-12-21T15:45:00Z",
+    to: "Team",
+    category: "gratitude"
+  },
+]
+
+// Replace the existing "Reflections" section (around line 570) with this:
 
   // Function to fetch the invite link
   const fetchInviteLink = async () => {
@@ -604,74 +638,116 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
       <div className={`fixed left-0 top-0 h-full w-80 bg-[#1a1a1a] border-r border-white/10 transform transition-transform duration-300 ease-in-out z-50 ${isOpen ? "translate-x-0" : "-translate-x-full"
         } md:relative md:translate-x-0 ${isOpen ? "md:block" : "md:hidden"}`}
         onClick={(e) => e.stopPropagation()} ><div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="p-6 border-b border-white/10 flex justify-between items-center">
-            <div className="flex items-center space-x-3 cursor-pointer"
-              onClick={() => {
-                router.push("/onboarding");
-                if (window.innerWidth < 768) {
-                  onToggle();
-                }
-              }}>
-              <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
-                <SarthiIcon size="sm" />
-              </div>
-              <div>
-                <h2 className="text-white font-medium">Sarthi</h2>
-                <p className="text-white/60 text-sm">Your reflection space</p>
-              </div>
-            </div>
-            <button onClick={onToggle} className="p-2 hover:bg-white/10 rounded-lg">
-              <X className="h-5 w-5 text-white/60" />
-            </button>
-          </div>
+        
+{/* Header */}
+<div className="p-4 border-b border-white/10 flex items-center justify-between gap-2">
+  
+  {/* Sarthi Branding */}
+  <div
+    className="flex items-center gap-3 cursor-pointer flex-shrink-0"
+    onClick={() => {
+      router.push("/onboarding");
+      if (window.innerWidth < 768) {
+        onToggle();
+      }
+    }}
+  >
+    <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
+      <SarthiIcon size="sm" />
+    </div>
 
-          {/* Profile Section with conditional display for name and contacts */}
-          <div className="p-4 border-b border-white/10">
-            <div className="flex items-start space-x-3">
-              <User className="h-5 w-5 text-white/60 mt-1" />
-              <div className="flex-1 space-y-1">
-                {isEditingName ? (
-                  <div className="space-y-2">
-                    <SarthiInput value={editedName} onChange={(e) => setEditedName(e.target.value)} placeholder="Your name" />
-                    <div className="flex space-x-2">
-                      <button onClick={handleSaveName} className="text-xs text-green-400">Save</button>
-                      <button onClick={handleCancelEdit} className="text-xs text-white/60">Cancel</button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center space-x-2">
-                    <span className="text-white text-sm font-medium">{editedName || "Your name"}</span>
-                    <Edit3 onClick={() => setIsEditingName(true)} className="h-3 w-3 text-white/60 cursor-pointer" />
-                  </div>
-                )}
-                <div className="space-y-1 mt-1">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-white/40 text-xs flex items-center">
-                      {phone && <Lock className="h-3 w-3 inline-block mr-1 text-white/60" />}
-                      Phone: {phone || "Not added"}
-                    </span>
-                    {!phone && (
-                      <button onClick={() => { setContactType("phone"); setOtpModalOpen(true); }} className="text-blue-400 text-xs">
-                        Add
-                      </button>
-                    )}
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-white/40 text-xs flex items-center">
-                      {email && <Lock className="h-3 w-3 inline-block mr-1 text-white/60" />}
-                      Email: {email || "Not added"}
-                    </span>
-                    {!email && (
-                      <button onClick={() => { setContactType("email"); setOtpModalOpen(true); }} className="text-blue-400 text-xs">
-                        Add
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
+    {/* Hide subtitle on very small screens */}
+    <div className="leading-tight">
+      <h2 className="text-white font-medium text-sm sm:text-base">
+        Sarthi
+      </h2>
+      <p className="text-white/60 text-xs hidden sm:block">
+        Your reflection space
+      </p>
+    </div>
+  </div>
+
+  {/* Right Controls */}
+  <div className="flex items-center gap-2">
+    
+    {/* Profile Button */}
+    <button
+      onClick={() => setIsProfileOpen(!isProfileOpen)}
+      className="flex items-center justify-center hover:bg-white/10 rounded-lg p-2 transition-colors min-w-[40px]"
+      aria-label="Profile menu"
+    >
+      <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center">
+        <User className="h-4 w-4 text-white/60" />
+      </div>
+
+      {/* Desktop chevron only */}
+      <ChevronDown
+        className={`h-4 w-4 text-white/40 transition-transform hidden md:block ml-1 ${
+          isProfileOpen ? "rotate-180" : ""
+        }`}
+      />
+    </button>
+
+    {/* Mobile Close Button */}
+    <button
+      onClick={onToggle}
+      className="p-2 hover:bg-white/10 rounded-lg md:hidden"
+      aria-label="Close sidebar"
+    >
+      <X className="h-5 w-5 text-white/60" />
+    </button>
+  </div>
+</div>
+
+
+  {/* Profile Dropdown */}
+{isProfileOpen && (
+  <div className="mx-4 mt-4 mb-4 bg-white/5 rounded-lg border border-white/10 p-4">
+    <div className="flex items-start space-x-3">
+      <User className="h-5 w-5 text-white/60 mt-1" />
+      <div className="flex-1 space-y-1">
+        {isEditingName ? (
+          <div className="space-y-2">
+            <SarthiInput value={editedName} onChange={(e) => setEditedName(e.target.value)} placeholder="Your name" />
+            <div className="flex space-x-2">
+              <button onClick={handleSaveName} className="text-xs text-green-400">Save</button>
+              <button onClick={handleCancelEdit} className="text-xs text-white/60">Cancel</button>
             </div>
           </div>
+        ) : (
+          <div className="flex items-center space-x-2">
+            <span className="text-white text-sm font-medium">{editedName || "Your name"}</span>
+            <Edit3 onClick={() => setIsEditingName(true)} className="h-3 w-3 text-white/60 cursor-pointer" />
+          </div>
+        )}
+        <div className="space-y-1 mt-2">
+          <div className="flex items-center space-x-2">
+            <span className="text-white/40 text-xs flex items-center">
+              {phone && <Lock className="h-3 w-3 inline-block mr-1 text-white/60" />}
+              Phone: {phone || "Not added"}
+            </span>
+            {!phone && (
+              <button onClick={() => { setContactType("phone"); setOtpModalOpen(true); }} className="text-blue-400 text-xs">
+                Add
+              </button>
+            )}
+          </div>
+          <div className="flex items-center space-x-2">
+            <span className="text-white/40 text-xs flex items-center">
+              {email && <Lock className="h-3 w-3 inline-block mr-1 text-white/60" />}
+              Email: {email || "Not added"}
+            </span>
+            {!email && (
+              <button onClick={() => { setContactType("email"); setOtpModalOpen(true); }} className="text-blue-400 text-xs">
+                Add
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
 
           {/* Start New Reflection Button */}
           <div className="p-6">
@@ -690,25 +766,153 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
 
           </div>
 
-          {/* Reflections */}
-          <div className="flex-1 overflow-y-auto px-8 pb-6">
-            <ReflectionSection
-              title="Outbox"
-              reflections={outbox}
-              expanded={outboxExpanded}
-              setExpanded={setOutboxExpanded}
-              type="outbox"   // ✅
-            />
-            <ReflectionSection
-              title="Inbox"
-              reflections={inbox}
-              expanded={inboxExpanded}
-              setExpanded={setInboxExpanded}
-              type="inbox"    // ✅
-            />
+   {/* Reflections - Replace the entire section from "Reflections" comment to Sign Out Section */}
+          <div className="flex-1 overflow-y-auto px-6 pb-6">
+            {/* ELS Test Section */}
+            <div className="mb-4">
+              <button
+                onClick={() => setElsTestExpanded(!elsTestExpanded)}
+                className="w-full flex items-center justify-between text-white text-sm font-semibold mb-2 hover:text-white/80 transition-colors p-2 rounded-lg hover:bg-white/5"
+              >
+                <span>ELS Test</span>
+                {elsTestExpanded ? (
+                  <ChevronUp className="h-4 w-4 text-white/40" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-white/40" />
+                )}
+              </button>
+              
+              {elsTestExpanded && (
+                <div className="space-y-2 ml-4">
+                  <SarthiButton
+                    onClick={() => {
+                      router.push("/els-test");
+                      if (window.innerWidth < 768) onToggle();
+                    }}
+                    className="w-full justify-start text-sm py-2"
+                  >
+                    Continue Test
+                  </SarthiButton>
+                  <SarthiButton
+                    onClick={() => {
+                      router.push("/els-test");
+                      if (window.innerWidth < 768) onToggle();
+                    }}
+                    className="w-full justify-start text-sm py-2"
+                  >
+                    Restart Test
+                  </SarthiButton>
+                  <div className="border-t border-white/10 pt-2 mt-2">
+                    <p className="text-white/40 text-xs mb-2 px-2">Previous Tests</p>
+                    {dummyElsTests.map((test) => (
+                      <button
+                        key={test.id}
+                        onClick={() => {
+                          router.push(`/els-test/${test.id}`);
+                          if (window.innerWidth < 768) onToggle();
+                        }}
+                        className="w-full text-left p-3 rounded-lg hover:bg-white/5 transition-colors group mb-2"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-white/70 text-xs">{test.title}</span>
+                          <span className={`text-xs px-2 py-1 rounded ${
+                            test.zone === "Green" ? "bg-green-500/20 text-green-400" :
+                            test.zone === "Yellow" ? "bg-yellow-500/20 text-yellow-400" :
+                            "bg-red-500/20 text-red-400"
+                          }`}>
+                            {test.score}
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Outbox Section - Collapsed by default */}
+            <div className="mb-4">
+              <button
+                onClick={() => setOutboxExpanded(!outboxExpanded)}
+                className="w-full flex items-center justify-between text-white text-sm font-semibold mb-2 hover:text-white/80 transition-colors p-2 rounded-lg hover:bg-white/5"
+              >
+                <span>Outbox</span>
+                {outboxExpanded ? (
+                  <ChevronUp className="h-4 w-4 text-white/40" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-white/40" />
+                )}
+              </button>
+              
+              {outboxExpanded && (
+                <div className="ml-4">
+                  {loading ? (
+                    <p className="text-white/50 text-sm">Loading...</p>
+                  ) : error ? (
+                    <p className="text-red-400 text-sm">{error}</p>
+                  ) : outbox.length === 0 ? (
+                    <p className="text-white/40 text-sm">No reflections yet.</p>
+                  ) : (
+                    outbox.map((r: any) => renderReflection(r, "outbox"))
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Inbox Section - Collapsed by default */}
+            <div className="mb-4">
+              <button
+                onClick={() => setInboxExpanded(!inboxExpanded)}
+                className="w-full flex items-center justify-between text-white text-sm font-semibold mb-2 hover:text-white/80 transition-colors p-2 rounded-lg hover:bg-white/5"
+              >
+                <span>Inbox</span>
+                {inboxExpanded ? (
+                  <ChevronUp className="h-4 w-4 text-white/40" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-white/40" />
+                )}
+              </button>
+              
+              {inboxExpanded && (
+                <div className="ml-4">
+                  {loading ? (
+                    <p className="text-white/50 text-sm">Loading...</p>
+                  ) : error ? (
+                    <p className="text-red-400 text-sm">{error}</p>
+                  ) : inbox.length === 0 ? (
+                    <p className="text-white/40 text-sm">No reflections yet.</p>
+                  ) : (
+                    inbox.map((r: any) => renderReflection(r, "inbox"))
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Drafts Section - Collapsed by default */}
+            <div className="mb-4">
+              <button
+                onClick={() => setDraftsExpanded(!draftsExpanded)}
+                className="w-full flex items-center justify-between text-white text-sm font-semibold mb-2 hover:text-white/80 transition-colors p-2 rounded-lg hover:bg-white/5"
+              >
+                <span>Drafts</span>
+                {draftsExpanded ? (
+                  <ChevronUp className="h-4 w-4 text-white/40" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-white/40" />
+                )}
+              </button>
+              
+              {draftsExpanded && (
+                <div className="ml-4">
+                  {dummyDrafts.length === 0 ? (
+                    <p className="text-white/40 text-sm">No drafts yet.</p>
+                  ) : (
+                    dummyDrafts.map((r: any) => renderReflection(r, "outbox"))
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-
-
 
           {/* Invite friends button with new design and icon */}
           <div className="p-4">
