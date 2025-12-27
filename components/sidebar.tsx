@@ -111,6 +111,27 @@ const [drafts, setDrafts] = useState<Reflection[]>([])
 const [draftsExpanded, setDraftsExpanded] = useState(false);
 const [isProfileOpen, setIsProfileOpen] = useState(false)
 const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
+// Replace the dummy data declaration (around line 60-65) with state for real data
+// In sidebar.tsx - Update state declarations (around line 60)
+const [elsTests, setElsTests] = useState<any[]>([])
+const [elsLoading, setElsLoading] = useState(false)
+
+// Replace fetchElsTests function
+const fetchElsTests = async () => {
+  setElsLoading(true);
+  try {
+    const res = await authFetch('/api/emotional-test/history');
+    const data = await res.json();
+    
+    if (data.success) {
+      setElsTests(data.data || []);
+    }
+  } catch (err) {
+    console.error("Failed to fetch ELS tests:", err);
+  } finally {
+    setElsLoading(false);
+  }
+}
 
 // Add dummy ELS test data after state declarations
 const dummyElsTests = [
@@ -291,6 +312,7 @@ const dummyDrafts: Reflection[] = [
 
         setLoading(true);
         await fetchReflections();
+         await fetchElsTests();
         setLoading(false);
       } catch (err) {
         console.error("Failed to fetch user:", err);
@@ -695,67 +717,101 @@ const dummyDrafts: Reflection[] = [
 
    {/* Reflections - Replace the entire section from "Reflections" comment to Sign Out Section */}
           <div className="flex-1 overflow-y-auto px-6 pb-6">
-            {/* ELS Test Section */}
-            <div className="mb-4">
-              <button
-                onClick={() => setElsTestExpanded(!elsTestExpanded)}
-                className="w-full flex items-center justify-between text-white text-sm font-semibold mb-2 hover:text-white/80 transition-colors p-2 rounded-lg hover:bg-white/5"
-              >
-                <span>ELS Test</span>
-                {elsTestExpanded ? (
-                  <ChevronUp className="h-4 w-4 text-white/40" />
-                ) : (
-                  <ChevronDown className="h-4 w-4 text-white/40" />
-                )}
-              </button>
+<div className="mb-4">
+  <button
+    onClick={() => setElsTestExpanded(!elsTestExpanded)}
+    className="w-full flex items-center justify-between text-white text-sm font-semibold mb-2 hover:text-white/80 transition-colors p-2 rounded-lg hover:bg-white/5"
+  >
+    <span>ELS Test</span>
+    {elsTestExpanded ? (
+      <ChevronUp className="h-4 w-4 text-white/40" />
+    ) : (
+      <ChevronDown className="h-4 w-4 text-white/40" />
+    )}
+  </button>
+  
+  {elsTestExpanded && (
+    <div className="space-y-2 ml-4">
+      {/* Check if there's an incomplete test */}
+      {elsTests.some(test => !test.is_completed) ? (
+        <SarthiButton
+          onClick={() => {
+            router.push("/ELS-Test");
+            if (window.innerWidth < 768) onToggle();
+          }}
+          className="w-full justify-start text-sm py-2"
+        >
+          Continue Test (Step {elsTests.find(t => !t.is_completed)?.current_step || 1}/13)
+        </SarthiButton>
+      ) : (
+        <SarthiButton
+          onClick={async () => {
+            try {
+              const res = await authFetch('/api/emotional-test/reset', {
+                method: 'POST',
+                body: JSON.stringify({ action: 2 })
+              });
+              const data = await res.json();
               
-              {elsTestExpanded && (
-                <div className="space-y-2 ml-4">
-                  <SarthiButton
-                    onClick={() => {
-                      router.push("/els-test");
-                      if (window.innerWidth < 768) onToggle();
-                    }}
-                    className="w-full justify-start text-sm py-2"
-                  >
-                    Continue Test
-                  </SarthiButton>
-                  <SarthiButton
-                    onClick={() => {
-                      router.push("/els-test");
-                      if (window.innerWidth < 768) onToggle();
-                    }}
-                    className="w-full justify-start text-sm py-2"
-                  >
-                    Restart Test
-                  </SarthiButton>
-                  <div className="border-t border-white/10 pt-2 mt-2">
-                    <p className="text-white/40 text-xs mb-2 px-2">Previous Tests</p>
-                    {dummyElsTests.map((test) => (
-                      <button
-                        key={test.id}
-                        onClick={() => {
-                          router.push(`/els-test/${test.id}`);
-                          if (window.innerWidth < 768) onToggle();
-                        }}
-                        className="w-full text-left p-3 rounded-lg hover:bg-white/5 transition-colors group mb-2"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-white/70 text-xs">{test.title}</span>
-                          <span className={`text-xs px-2 py-1 rounded ${
-                            test.zone === "Green" ? "bg-green-500/20 text-green-400" :
-                            test.zone === "Yellow" ? "bg-yellow-500/20 text-yellow-400" :
-                            "bg-red-500/20 text-red-400"
-                          }`}>
-                            {test.score}
-                          </span>
-                        </div>
-                      </button>
-                    ))}
+              if (data.success && data.can_retest) {
+                router.push("/ELS-Test");
+                if (window.innerWidth < 768) onToggle();
+              } else {
+                alert(data.message || "Please complete your current test first");
+              }
+            } catch (err) {
+              console.error("Error starting test:", err);
+            }
+          }}
+          className="w-full justify-start text-sm py-2"
+        >
+          {elsTests.length > 0 ? "Take Test Again" : "Start Test"}
+        </SarthiButton>
+      )}
+      
+      {/* Show previous completed tests */}
+      {elsTests.filter(test => test.is_completed).length > 0 && (
+        <div className="border-t border-white/10 pt-2 mt-2">
+          <p className="text-white/40 text-xs mb-2 px-2">Previous Tests</p>
+          {elsLoading ? (
+            <p className="text-white/50 text-sm px-2">Loading...</p>
+          ) : (
+            elsTests
+              .filter(test => test.is_completed)
+              .map((test) => (
+                <button
+                  key={test.session_id}
+                  onClick={() => {
+                    router.push(`/ELS-Test/results/${test.session_id}`);
+                    if (window.innerWidth < 768) onToggle();
+                  }}
+                  className="w-full text-left p-3 rounded-lg hover:bg-white/5 transition-colors group mb-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/70 text-xs">
+                      {new Date(test.created_at).toLocaleDateString("en-IN", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric"
+                      })}
+                    </span>
+                    <span className={`text-xs px-2 py-1 rounded ${
+                      test.els_zone === "Green" ? "bg-green-500/20 text-green-400" :
+                      test.els_zone === "Yellow" ? "bg-yellow-500/20 text-yellow-400" :
+                      test.els_zone === "Orange" ? "bg-orange-500/20 text-orange-400" :
+                      "bg-red-500/20 text-red-400"
+                    }`}>
+                      {Math.round(test.els_score)}
+                    </span>
                   </div>
-                </div>
-              )}
-            </div>
+                </button>
+              ))
+          )}
+        </div>
+      )}
+    </div>
+  )}
+</div>
 
             {/* Outbox Section - Collapsed by default */}
             <div className="mb-4">
