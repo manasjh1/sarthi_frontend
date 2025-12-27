@@ -10,6 +10,7 @@ export async function authFetch(endpoint: string, options: RequestInit = {}) {
     ...options,
     headers: {
       "Content-Type": "application/json",
+      "Accept": "application/json",
       ...(token && { Authorization: `Bearer ${token}` }),
       ...options.headers,
     },

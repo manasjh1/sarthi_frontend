@@ -11,7 +11,7 @@ import { ArrowLeft } from "lucide-react"
 import { ApologyIcon } from "@/components/icons/apology-icon"
 import { Heart, MessageCircle } from "lucide-react"
 import { getCurrentUser, getAuthHeaders } from "@/app/actions/auth"
-import mixpanel, { initMixpanel } from "@/lib/mixpanel"
+//import mixpanel, { initMixpanel } from "@/lib/mixpanel"
 import { authFetch } from "@/lib/api"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"
@@ -180,14 +180,14 @@ const [previousScrollHeight, setPreviousScrollHeight] = useState(0);
   }, [messages])
 
  useEffect(() => {
-initMixpanel();
+//initMixpanel();
 
 const inviteCode = searchParams.get("invite");
 if (inviteCode) {
-mixpanel.track("invite_link_opened", {
-invite_code_source: "direct", 
-sender_detail: inviteCode,
-});
+// mixpanel.track("invite_link_opened", {
+// invite_code_source: "direct", 
+// sender_detail: inviteCode,
+// });
 }
 
 
@@ -469,7 +469,7 @@ const fetchHistory = async (pageNum: number) => {
       }
 
       if (response && response.success) {
-        mixpanel.track("profile_name_set", { name_setup: true });
+        //mixpanel.track("profile_name_set", { name_setup: true });
         await simulateThinkingAndResponse(response.sarthi_message)
 
         // Clear categories after selection
