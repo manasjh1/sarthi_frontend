@@ -110,6 +110,7 @@ const [elsTestExpanded, setElsTestExpanded] = useState(false)
 const [drafts, setDrafts] = useState<Reflection[]>([])
 const [draftsExpanded, setDraftsExpanded] = useState(false);
 const [isProfileOpen, setIsProfileOpen] = useState(false)
+const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
 
 // Add dummy ELS test data after state declarations
 const dummyElsTests = [
@@ -639,9 +640,7 @@ const dummyDrafts: Reflection[] = [
         } md:relative md:translate-x-0 ${isOpen ? "md:block" : "md:hidden"}`}
         onClick={(e) => e.stopPropagation()} ><div className="flex flex-col h-full">
         
-{/* Header */}
 <div className="p-4 border-b border-white/10 flex items-center justify-between gap-2">
-  
   {/* Sarthi Branding */}
   <div
     className="flex items-center gap-3 cursor-pointer flex-shrink-0"
@@ -655,8 +654,6 @@ const dummyDrafts: Reflection[] = [
     <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
       <SarthiIcon size="sm" />
     </div>
-
-    {/* Hide subtitle on very small screens */}
     <div className="leading-tight">
       <h2 className="text-white font-medium text-sm sm:text-base">
         Sarthi
@@ -667,87 +664,17 @@ const dummyDrafts: Reflection[] = [
     </div>
   </div>
 
-  {/* Right Controls */}
-  <div className="flex items-center gap-2">
-    
-    {/* Profile Button */}
-    <button
-      onClick={() => setIsProfileOpen(!isProfileOpen)}
-      className="flex items-center justify-center hover:bg-white/10 rounded-lg p-2 transition-colors min-w-[40px]"
-      aria-label="Profile menu"
-    >
-      <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center">
-        <User className="h-4 w-4 text-white/60" />
-      </div>
-
-      {/* Desktop chevron only */}
-      <ChevronDown
-        className={`h-4 w-4 text-white/40 transition-transform hidden md:block ml-1 ${
-          isProfileOpen ? "rotate-180" : ""
-        }`}
-      />
-    </button>
-
-    {/* Mobile Close Button */}
-    <button
-      onClick={onToggle}
-      className="p-2 hover:bg-white/10 rounded-lg md:hidden"
-      aria-label="Close sidebar"
-    >
-      <X className="h-5 w-5 text-white/60" />
-    </button>
-  </div>
+  {/* Mobile Close Button Only */}
+  <button
+    onClick={onToggle}
+    className="p-2 hover:bg-white/10 rounded-lg md:hidden"
+    aria-label="Close sidebar"
+  >
+    <X className="h-5 w-5 text-white/60" />
+  </button>
 </div>
 
 
-  {/* Profile Dropdown */}
-{isProfileOpen && (
-  <div className="mx-4 mt-4 mb-4 bg-white/5 rounded-lg border border-white/10 p-4">
-    <div className="flex items-start space-x-3">
-      <User className="h-5 w-5 text-white/60 mt-1" />
-      <div className="flex-1 space-y-1">
-        {isEditingName ? (
-          <div className="space-y-2">
-            <SarthiInput value={editedName} onChange={(e) => setEditedName(e.target.value)} placeholder="Your name" />
-            <div className="flex space-x-2">
-              <button onClick={handleSaveName} className="text-xs text-green-400">Save</button>
-              <button onClick={handleCancelEdit} className="text-xs text-white/60">Cancel</button>
-            </div>
-          </div>
-        ) : (
-          <div className="flex items-center space-x-2">
-            <span className="text-white text-sm font-medium">{editedName || "Your name"}</span>
-            <Edit3 onClick={() => setIsEditingName(true)} className="h-3 w-3 text-white/60 cursor-pointer" />
-          </div>
-        )}
-        <div className="space-y-1 mt-2">
-          <div className="flex items-center space-x-2">
-            <span className="text-white/40 text-xs flex items-center">
-              {phone && <Lock className="h-3 w-3 inline-block mr-1 text-white/60" />}
-              Phone: {phone || "Not added"}
-            </span>
-            {!phone && (
-              <button onClick={() => { setContactType("phone"); setOtpModalOpen(true); }} className="text-blue-400 text-xs">
-                Add
-              </button>
-            )}
-          </div>
-          <div className="flex items-center space-x-2">
-            <span className="text-white/40 text-xs flex items-center">
-              {email && <Lock className="h-3 w-3 inline-block mr-1 text-white/60" />}
-              Email: {email || "Not added"}
-            </span>
-            {!email && (
-              <button onClick={() => { setContactType("email"); setOtpModalOpen(true); }} className="text-blue-400 text-xs">
-                Add
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
 
           {/* Start New Reflection Button */}
           <div className="p-6">
@@ -894,7 +821,7 @@ const dummyDrafts: Reflection[] = [
                 onClick={() => setDraftsExpanded(!draftsExpanded)}
                 className="w-full flex items-center justify-between text-white text-sm font-semibold mb-2 hover:text-white/80 transition-colors p-2 rounded-lg hover:bg-white/5"
               >
-                <span>Drafts</span>
+                <span>Your Chats</span>
                 {draftsExpanded ? (
                   <ChevronUp className="h-4 w-4 text-white/40" />
                 ) : (
@@ -926,15 +853,134 @@ const dummyDrafts: Reflection[] = [
           </div>
 
           {/* Sign Out Section with the correct function */}
-          <div className="p-4 border-t border-white/10 mt-auto">
-            <button
-              onClick={handleSignOut}
-              className="flex items-center space-x-3 text-white/60 hover:text-white/80 focus:text-white/80 focus:outline-none focus:ring-2 focus:ring-white/20 transition-colors w-full min-h-[44px] p-2 rounded-lg"
-            >
-              <LogOut className="h-4 w-4" />
-              <span className="text-sm">Sign out</span>
-            </button>
+     <div className="p-4 border-t border-white/10 mt-auto relative">
+  <button
+    onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+    className="flex items-center space-x-3 text-white hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/20 transition-colors w-full min-h-[44px] p-2 rounded-lg"
+  >
+    <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center flex-shrink-0">
+      <User className="h-4 w-4 text-white/60" />
+    </div>
+    <span className="text-sm font-medium flex-1 text-left truncate">
+      {editedName || "Your name"}
+    </span>
+    <ChevronUp className={`h-4 w-4 text-white/40 transition-transform ${isProfileMenuOpen ? "" : "rotate-180"}`} />
+  </button>
+
+  {/* Profile Popup Menu */}
+  {isProfileMenuOpen && (
+    <>
+      {/* Backdrop for mobile */}
+      <div 
+        className="fixed inset-0 z-40 md:hidden" 
+        onClick={() => setIsProfileMenuOpen(false)}
+      />
+      
+      {/* Popup */}
+      <div className="absolute bottom-full left-4 right-4 mb-2 bg-[#1a1a1a] rounded-lg border border-white/10 shadow-xl z-50 overflow-hidden">
+        {/* User Info Section */}
+        <div className="p-4 border-b border-white/10">
+          <div className="flex items-start space-x-3">
+            <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center flex-shrink-0">
+              <User className="h-5 w-5 text-white/60" />
+            </div>
+            <div className="flex-1 min-w-0">
+              {isEditingName ? (
+                <div className="space-y-2">
+                  <SarthiInput 
+                    value={editedName} 
+                    onChange={(e) => setEditedName(e.target.value)} 
+                    placeholder="Your name"
+                    className="text-sm"
+                  />
+                  <div className="flex space-x-2">
+                    <button 
+                      onClick={handleSaveName} 
+                      className="text-xs text-green-400 hover:text-green-300 px-2 py-1"
+                    >
+                      Save
+                    </button>
+                    <button 
+                      onClick={handleCancelEdit} 
+                      className="text-xs text-white/60 hover:text-white/80 px-2 py-1"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <span className="text-white text-sm font-medium truncate">
+                    {editedName || "Your name"}
+                  </span>
+                  <button
+                    onClick={() => setIsEditingName(true)}
+                    className="ml-2 p-1 hover:bg-white/10 rounded"
+                  >
+                    <Edit3 className="h-3 w-3 text-white/60" />
+                  </button>
+                </div>
+              )}
+              
+              {/* Contact Info */}
+              <div className="space-y-1 mt-3">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-white/40 flex items-center">
+                    {phone && <Lock className="h-3 w-3 inline-block mr-1 text-white/60" />}
+                    Phone: {phone || "Not added"}
+                  </span>
+                  {!phone && (
+                    <button 
+                      onClick={() => { 
+                        setContactType("phone"); 
+                        setOtpModalOpen(true);
+                        setIsProfileMenuOpen(false);
+                      }} 
+                      className="text-blue-400 hover:text-blue-300"
+                    >
+                      Add
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-white/40 flex items-center">
+                    {email && <Lock className="h-3 w-3 inline-block mr-1 text-white/60" />}
+                    Email: {email || "Not added"}
+                  </span>
+                  {!email && (
+                    <button 
+                      onClick={() => { 
+                        setContactType("email"); 
+                        setOtpModalOpen(true);
+                        setIsProfileMenuOpen(false);
+                      }} 
+                      className="text-blue-400 hover:text-blue-300"
+                    >
+                      Add
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
+        </div>
+
+        {/* Sign Out Button */}
+        <button
+          onClick={() => {
+            setIsProfileMenuOpen(false);
+            handleSignOut();
+          }}
+          className="flex items-center space-x-3 text-white/60 hover:bg-white/5 hover:text-white transition-colors w-full p-4 text-left"
+        >
+          <LogOut className="h-4 w-4" />
+          <span className="text-sm">Sign out</span>
+        </button>
+      </div>
+    </>
+  )}
+</div>
+
         </div>
       </div>
 
