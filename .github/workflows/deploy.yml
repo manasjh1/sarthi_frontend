@@ -10,69 +10,40 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
-      - name: Setup SSH Key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.FRONTEND_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.FRONTEND_EC2_HOST }} >> ~/.ssh/known_hosts
-
-      - name: Deploy Frontend to EC2
-        run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.FRONTEND_EC2_USER }}@${{ secrets.FRONTEND_EC2_HOST }} '
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.FRONTEND_EC2_HOST }}
+          username: ${{ secrets.FRONTEND_EC2_USER }}
+          key: ${{ secrets.FRONTEND_SSH_KEY }}
+          script: |
             set -e
             
-            echo "📁 Setting up frontend directory..."
-            sudo mkdir -p /opt/sarthi
-            sudo chown -R ubuntu:ubuntu /opt/sarthi
+            # 1. Go to your existing folder
+            # We use $HOME so it automatically finds /home/ec2-user
+            cd $HOME/sarthi_frontend
 
-            echo "📦 Installing Node.js if needed..."
-            if ! command -v node &> /dev/null; then
-              curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-              sudo apt-get install -y nodejs
-            fi
+            # 2. PULL CHANGES (The core request)
+            # We use 'git reset --hard' first to discard any server-side junk files
+            # This guarantees the 'git pull' never fails with conflicts.
+            echo "⬇️  Pulling latest changes..."
+            git reset --hard HEAD
+            git pull origin main
 
-            echo "📦 Installing PM2 if needed..."
-            if ! command -v pm2 &> /dev/null; then
-              sudo npm install -g pm2
-            fi
-
-            echo "🔄 Cloning/Updating frontend repo..."
-            if [ -d /opt/sarthi/sarthi_frontend ]; then
-              echo "Directory exists, updating..."
-              cd /opt/sarthi/sarthi_frontend
-              if [ -d .git ]; then
-                git pull origin main
-              else
-                echo "Not a git repo, removing and cloning fresh..."
-                cd /opt/sarthi
-                rm -rf sarthi_frontend
-                git clone https://github.com/manasjh1/sarthi_frontend.git sarthi_frontend
-              fi
-            else
-              echo "Directory does not exist, cloning..."
-              git clone https://github.com/manasjh1/sarthi_frontend.git /opt/sarthi/sarthi_frontend
-            fi
-
-            cd /opt/sarthi/sarthi_frontend
-
+            # 3. Install & Build
             echo "📦 Installing dependencies..."
             npm install
 
             echo "🏗️  Building application..."
+            # We remove the cache (.next) to fix the 'Ghost Code' bug permanently
+            rm -rf .next
             npm run build
 
-            echo "🚀 Starting/Restarting application with PM2..."
-            pm2 stop sarthi-frontend 2>/dev/null || true
-            pm2 start npm --name sarthi-frontend -- run start
+            # 4. Restart with Memory Protection (Prevents server crash)
+            echo "🚀 Restarting..."
+            # We delete the old process first to ensure the new memory limits apply
+            pm2 delete sarthi-frontend 2>/dev/null || true
+            pm2 start npm --name "sarthi-frontend" --max-memory-restart 400M -- start
             pm2 save
 
-            echo "✅ Frontend deployment completed!"
-          '
-
-      - name: Verify Deployment
-        run: |
-          echo "🔍 Deployment finished. Frontend should be available at http://${{ secrets.FRONTEND_EC2_HOST }}:3000"
+            echo "✅ Deployed successfully!"
