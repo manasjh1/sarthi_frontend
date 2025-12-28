@@ -595,14 +595,14 @@ const handleChoiceSelect = async (choice: string) => {
 
       setChoices([]);
 
-      // 🔽 Moved redirect logic here
-      if (response.current_stage === 20) {
-        setTimeout(() => {
-          router.push(`/reflections/closure/${response.reflection_id}`)
-        }, 1500);
-        return;
-      }
-
+if (response.current_stage === 20) {
+  // Get the delivery choice from the selected choice
+  const deliveryChoice = choice === "0" ? "keep" : "deliver";
+  setTimeout(() => {
+    router.push(`/api/reflections/preview/${response.reflection_id}?delivery=${deliveryChoice}`)
+  }, 1500);
+  return;
+}
       if (response.data && response.data.length > 0) {
         const firstItem = response.data[0];
         if ("choice" in firstItem && "label" in firstItem) {
@@ -610,13 +610,14 @@ const handleChoiceSelect = async (choice: string) => {
         } else if ("category_no" in firstItem && "category_name" in firstItem) {
           setCategories(response.data as Category[]);
         } else {
-          const summaryItem = response.data.find(item => item.summary !== undefined);
-          if (summaryItem) {
-            setTimeout(() => {
-              addMessage(`Here's your reflection: ${summaryItem.summary}`, "sarthi");
-              router.push(`/reflections/sender/${response.reflection_id}`);
-            }, 100);
-          }
+         const summaryItem = response.data.find(item => item.summary !== undefined);
+if (summaryItem) {
+  const deliveryChoice = choice === "0" ? "keep" : "deliver";
+  setTimeout(() => {
+    addMessage(`Here's your reflection: ${summaryItem.summary}`, "sarthi");
+    router.push(`/api/reflections/preview/${response.reflection_id}?delivery=${deliveryChoice}`);
+  }, 100);
+}
         }
       }
 
@@ -691,12 +692,12 @@ const checkForDistress = (data: Array<{ [key: string]: any }>) => {
           workflow_completed: response.progress?.workflow_completed ?? false
         })
 
-          if (response.current_stage === 20) {
-    setTimeout(() => {
-      router.push(`/reflections/closure/${response.reflection_id}`)
-    }, 1500)
-    return
-  }
+     if (response.current_stage === 20) {
+  setTimeout(() => {
+    router.push(`/api/reflections/preview/${response.reflection_id}`)
+  }, 1500);
+  return;
+}
 
 
         if (response.data && response.data.length > 0) {
@@ -709,13 +710,13 @@ const checkForDistress = (data: Array<{ [key: string]: any }>) => {
             setChoices([])
           } else {
       
-            const summaryItem = response.data.find(item => item.summary !== undefined)
-            if (summaryItem) {
-              setTimeout(() => {
-                addMessage(`Here's your reflection: ${summaryItem.summary}`, "sarthi")
-                router.push(`/reflections/sender/${response.reflection_id}`)
-              }, 100)
-            }
+            const summaryItem = response.data.find(item => item.summary !== undefined);
+if (summaryItem) {
+  setTimeout(() => {
+    addMessage(`Here's your reflection: ${summaryItem.summary}`, "sarthi");
+    router.push(`/api/reflections/preview/${response.reflection_id}`);
+  }, 100);
+}
           }
         }
       }
@@ -930,8 +931,7 @@ useEffect(() => {
               </h1>
               {progress && (
                 <p className="text-white/60 text-xs sm:text-sm">
-                  Step {progress.current_step} of {progress.total_step}
-                  {progress.workflow_completed && " - Complete"}
+                {progress.workflow_completed && " - Complete"}
                 </p>
               )}
             </div>

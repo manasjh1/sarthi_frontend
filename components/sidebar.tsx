@@ -10,7 +10,10 @@ import { Heart, MessageCircle, User, UserPlus, Edit3, LogOut, X, Lock, Check, Sh
 import { authFetch } from "@/lib/api"
 import { CountrySelector } from "@/components/ui/country-selector"
 import { getCookie } from "@/app/actions/auth"
-//import mixpanel, { initMixpanel } from "@/lib/mixpanel";
+
+import mixpanel, { initMixpanel } from "@/lib/mixpanel";
+import { ChevronDown, ChevronUp } from "lucide-react"
+
 // Interface for the component props
 interface SidebarProps {
   isOpen: boolean
@@ -103,6 +106,61 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
   const [outboxExpanded, setOutboxExpanded] = useState(false)
   const [inboxExpanded, setInboxExpanded] = useState(false)
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+
+  // Add these new state variables after the existing state declarations (around line 60)
+const [elsTestExpanded, setElsTestExpanded] = useState(false)
+const [drafts, setDrafts] = useState<Reflection[]>([])
+const [draftsExpanded, setDraftsExpanded] = useState(false);
+const [isProfileOpen, setIsProfileOpen] = useState(false)
+const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
+// Replace the dummy data declaration (around line 60-65) with state for real data
+// In sidebar.tsx - Update state declarations (around line 60)
+const [elsTests, setElsTests] = useState<any[]>([])
+const [elsLoading, setElsLoading] = useState(false)
+
+// Replace fetchElsTests function
+const fetchElsTests = async () => {
+  setElsLoading(true);
+  try {
+    const res = await authFetch('/api/emotional-test/history');
+    const data = await res.json();
+    
+    if (data.success) {
+      setElsTests(data.data || []);
+    }
+  } catch (err) {
+    console.error("Failed to fetch ELS tests:", err);
+  } finally {
+    setElsLoading(false);
+  }
+}
+
+// Add dummy ELS test data after state declarations
+const dummyElsTests = [
+  { id: "els-1", title: "ELS Test - Dec 20, 2024", score: 65, zone: "Yellow", date: "2024-12-20" },
+  { id: "els-2", title: "ELS Test - Dec 15, 2024", score: 45, zone: "Green", date: "2024-12-15" },
+  { id: "els-3", title: "ELS Test - Dec 10, 2024", score: 75, zone: "Red", date: "2024-12-10" },
+]
+
+// Add dummy drafts data
+const dummyDrafts: Reflection[] = [
+  {
+    reflection_id: "draft-1",
+    summary: "Unsent apology to my colleague about the meeting",
+    created_at: "2024-12-22T10:30:00Z",
+    to: "Sarah",
+    category: "apology"
+  },
+  {
+    reflection_id: "draft-2",
+    summary: "Gratitude message for my team's support",
+    created_at: "2024-12-21T15:45:00Z",
+    to: "Team",
+    category: "gratitude"
+  },
+]
+
+// Replace the existing "Reflections" section (around line 570) with this:
 
   // Function to fetch the invite link
   const fetchInviteLink = async () => {
@@ -256,6 +314,7 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
 
         setLoading(true);
         await fetchReflections();
+         await fetchElsTests();
         setLoading(false);
       } catch (err) {
         console.error("Failed to fetch user:", err);
@@ -604,74 +663,42 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
       <div className={`fixed left-0 top-0 h-full w-80 bg-[#1a1a1a] border-r border-white/10 transform transition-transform duration-300 ease-in-out z-50 ${isOpen ? "translate-x-0" : "-translate-x-full"
         } md:relative md:translate-x-0 ${isOpen ? "md:block" : "md:hidden"}`}
         onClick={(e) => e.stopPropagation()} ><div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="p-6 border-b border-white/10 flex justify-between items-center">
-            <div className="flex items-center space-x-3 cursor-pointer"
-              onClick={() => {
-                router.push("/onboarding");
-                if (window.innerWidth < 768) {
-                  onToggle();
-                }
-              }}>
-              <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
-                <SarthiIcon size="sm" />
-              </div>
-              <div>
-                <h2 className="text-white font-medium">Sarthi</h2>
-                <p className="text-white/60 text-sm">Your reflection space</p>
-              </div>
-            </div>
-            <button onClick={onToggle} className="p-2 hover:bg-white/10 rounded-lg">
-              <X className="h-5 w-5 text-white/60" />
-            </button>
-          </div>
+        
+<div className="p-4 border-b border-white/10 flex items-center justify-between gap-2">
+  {/* Sarthi Branding */}
+  <div
+    className="flex items-center gap-3 cursor-pointer flex-shrink-0"
+    onClick={() => {
+      router.push("/onboarding");
+      if (window.innerWidth < 768) {
+        onToggle();
+      }
+    }}
+  >
+    <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
+      <SarthiIcon size="sm" />
+    </div>
+    <div className="leading-tight">
+      <h2 className="text-white font-medium text-sm sm:text-base">
+        Sarthi
+      </h2>
+      <p className="text-white/60 text-xs hidden sm:block">
+        Your reflection space
+      </p>
+    </div>
+  </div>
 
-          {/* Profile Section with conditional display for name and contacts */}
-          <div className="p-4 border-b border-white/10">
-            <div className="flex items-start space-x-3">
-              <User className="h-5 w-5 text-white/60 mt-1" />
-              <div className="flex-1 space-y-1">
-                {isEditingName ? (
-                  <div className="space-y-2">
-                    <SarthiInput value={editedName} onChange={(e) => setEditedName(e.target.value)} placeholder="Your name" />
-                    <div className="flex space-x-2">
-                      <button onClick={handleSaveName} className="text-xs text-green-400">Save</button>
-                      <button onClick={handleCancelEdit} className="text-xs text-white/60">Cancel</button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center space-x-2">
-                    <span className="text-white text-sm font-medium">{editedName || "Your name"}</span>
-                    <Edit3 onClick={() => setIsEditingName(true)} className="h-3 w-3 text-white/60 cursor-pointer" />
-                  </div>
-                )}
-                <div className="space-y-1 mt-1">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-white/40 text-xs flex items-center">
-                      {phone && <Lock className="h-3 w-3 inline-block mr-1 text-white/60" />}
-                      Phone: {phone || "Not added"}
-                    </span>
-                    {!phone && (
-                      <button onClick={() => { setContactType("phone"); setOtpModalOpen(true); }} className="text-blue-400 text-xs">
-                        Add
-                      </button>
-                    )}
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-white/40 text-xs flex items-center">
-                      {email && <Lock className="h-3 w-3 inline-block mr-1 text-white/60" />}
-                      Email: {email || "Not added"}
-                    </span>
-                    {!email && (
-                      <button onClick={() => { setContactType("email"); setOtpModalOpen(true); }} className="text-blue-400 text-xs">
-                        Add
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+  {/* Mobile Close Button Only */}
+  <button
+    onClick={onToggle}
+    className="p-2 hover:bg-white/10 rounded-lg md:hidden"
+    aria-label="Close sidebar"
+  >
+    <X className="h-5 w-5 text-white/60" />
+  </button>
+</div>
+
+
 
           {/* Start New Reflection Button */}
           <div className="p-6">
@@ -690,25 +717,187 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
 
           </div>
 
-          {/* Reflections */}
-          <div className="flex-1 overflow-y-auto px-8 pb-6">
-            <ReflectionSection
-              title="Outbox"
-              reflections={outbox}
-              expanded={outboxExpanded}
-              setExpanded={setOutboxExpanded}
-              type="outbox"   // ✅
-            />
-            <ReflectionSection
-              title="Inbox"
-              reflections={inbox}
-              expanded={inboxExpanded}
-              setExpanded={setInboxExpanded}
-              type="inbox"    // ✅
-            />
+   {/* Reflections - Replace the entire section from "Reflections" comment to Sign Out Section */}
+          <div className="flex-1 overflow-y-auto px-6 pb-6">
+<div className="mb-4">
+  <button
+    onClick={() => setElsTestExpanded(!elsTestExpanded)}
+    className="w-full flex items-center justify-between text-white text-sm font-semibold mb-2 hover:text-white/80 transition-colors p-2 rounded-lg hover:bg-white/5"
+  >
+    <span>ELS Test</span>
+    {elsTestExpanded ? (
+      <ChevronUp className="h-4 w-4 text-white/40" />
+    ) : (
+      <ChevronDown className="h-4 w-4 text-white/40" />
+    )}
+  </button>
+  
+  {elsTestExpanded && (
+    <div className="space-y-2 ml-4">
+      {/* Check if there's an incomplete test */}
+      {elsTests.some(test => !test.is_completed) ? (
+        <SarthiButton
+          onClick={() => {
+            router.push("/ELS-Test");
+            if (window.innerWidth < 768) onToggle();
+          }}
+          className="w-full justify-start text-sm py-2"
+        >
+          Continue Test (Step {elsTests.find(t => !t.is_completed)?.current_step || 1}/13)
+        </SarthiButton>
+      ) : (
+        <SarthiButton
+          onClick={async () => {
+            try {
+              const res = await authFetch('/api/emotional-test/reset', {
+                method: 'POST',
+                body: JSON.stringify({ action: 2 })
+              });
+              const data = await res.json();
+              
+              if (data.success && data.can_retest) {
+                router.push("/ELS-Test");
+                if (window.innerWidth < 768) onToggle();
+              } else {
+                alert(data.message || "Please complete your current test first");
+              }
+            } catch (err) {
+              console.error("Error starting test:", err);
+            }
+          }}
+          className="w-full justify-start text-sm py-2"
+        >
+          {elsTests.length > 0 ? "Take Test Again" : "Start Test"}
+        </SarthiButton>
+      )}
+      
+      {/* Show previous completed tests */}
+      {elsTests.filter(test => test.is_completed).length > 0 && (
+        <div className="border-t border-white/10 pt-2 mt-2">
+          <p className="text-white/40 text-xs mb-2 px-2">Previous Tests</p>
+          {elsLoading ? (
+            <p className="text-white/50 text-sm px-2">Loading...</p>
+          ) : (
+            elsTests
+              .filter(test => test.is_completed)
+              .map((test) => (
+                <button
+                  key={test.session_id}
+                  onClick={() => {
+                    router.push(`/ELS-Test/results/${test.session_id}`);
+                    if (window.innerWidth < 768) onToggle();
+                  }}
+                  className="w-full text-left p-3 rounded-lg hover:bg-white/5 transition-colors group mb-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/70 text-xs">
+                      {new Date(test.created_at).toLocaleDateString("en-IN", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric"
+                      })}
+                    </span>
+                    <span className={`text-xs px-2 py-1 rounded ${
+                      test.els_zone === "Green" ? "bg-green-500/20 text-green-400" :
+                      test.els_zone === "Yellow" ? "bg-yellow-500/20 text-yellow-400" :
+                      test.els_zone === "Orange" ? "bg-orange-500/20 text-orange-400" :
+                      "bg-red-500/20 text-red-400"
+                    }`}>
+                      {Math.round(test.els_score)}
+                    </span>
+                  </div>
+                </button>
+              ))
+          )}
+        </div>
+      )}
+    </div>
+  )}
+</div>
+
+            {/* Outbox Section - Collapsed by default */}
+            <div className="mb-4">
+              <button
+                onClick={() => setOutboxExpanded(!outboxExpanded)}
+                className="w-full flex items-center justify-between text-white text-sm font-semibold mb-2 hover:text-white/80 transition-colors p-2 rounded-lg hover:bg-white/5"
+              >
+                <span>Outbox</span>
+                {outboxExpanded ? (
+                  <ChevronUp className="h-4 w-4 text-white/40" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-white/40" />
+                )}
+              </button>
+              
+              {outboxExpanded && (
+                <div className="ml-4">
+                  {loading ? (
+                    <p className="text-white/50 text-sm">Loading...</p>
+                  ) : error ? (
+                    <p className="text-red-400 text-sm">{error}</p>
+                  ) : outbox.length === 0 ? (
+                    <p className="text-white/40 text-sm">No reflections yet.</p>
+                  ) : (
+                    outbox.map((r: any) => renderReflection(r, "outbox"))
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Inbox Section - Collapsed by default */}
+            <div className="mb-4">
+              <button
+                onClick={() => setInboxExpanded(!inboxExpanded)}
+                className="w-full flex items-center justify-between text-white text-sm font-semibold mb-2 hover:text-white/80 transition-colors p-2 rounded-lg hover:bg-white/5"
+              >
+                <span>Inbox</span>
+                {inboxExpanded ? (
+                  <ChevronUp className="h-4 w-4 text-white/40" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-white/40" />
+                )}
+              </button>
+              
+              {inboxExpanded && (
+                <div className="ml-4">
+                  {loading ? (
+                    <p className="text-white/50 text-sm">Loading...</p>
+                  ) : error ? (
+                    <p className="text-red-400 text-sm">{error}</p>
+                  ) : inbox.length === 0 ? (
+                    <p className="text-white/40 text-sm">No reflections yet.</p>
+                  ) : (
+                    inbox.map((r: any) => renderReflection(r, "inbox"))
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Drafts Section - Collapsed by default */}
+            <div className="mb-4">
+              <button
+                onClick={() => setDraftsExpanded(!draftsExpanded)}
+                className="w-full flex items-center justify-between text-white text-sm font-semibold mb-2 hover:text-white/80 transition-colors p-2 rounded-lg hover:bg-white/5"
+              >
+                <span>Your Chats</span>
+                {draftsExpanded ? (
+                  <ChevronUp className="h-4 w-4 text-white/40" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-white/40" />
+                )}
+              </button>
+              
+              {draftsExpanded && (
+                <div className="ml-4">
+                  {dummyDrafts.length === 0 ? (
+                    <p className="text-white/40 text-sm">No drafts yet.</p>
+                  ) : (
+                    dummyDrafts.map((r: any) => renderReflection(r, "outbox"))
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-
-
 
           {/* Invite friends button with new design and icon */}
           <div className="p-4">
@@ -722,15 +911,134 @@ export function Sidebar({ isOpen, onToggle, userName, onUserNameChange }: Sideba
           </div>
 
           {/* Sign Out Section with the correct function */}
-          <div className="p-4 border-t border-white/10 mt-auto">
-            <button
-              onClick={handleSignOut}
-              className="flex items-center space-x-3 text-white/60 hover:text-white/80 focus:text-white/80 focus:outline-none focus:ring-2 focus:ring-white/20 transition-colors w-full min-h-[44px] p-2 rounded-lg"
-            >
-              <LogOut className="h-4 w-4" />
-              <span className="text-sm">Sign out</span>
-            </button>
+     <div className="p-4 border-t border-white/10 mt-auto relative">
+  <button
+    onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+    className="flex items-center space-x-3 text-white hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/20 transition-colors w-full min-h-[44px] p-2 rounded-lg"
+  >
+    <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center flex-shrink-0">
+      <User className="h-4 w-4 text-white/60" />
+    </div>
+    <span className="text-sm font-medium flex-1 text-left truncate">
+      {editedName || "Your name"}
+    </span>
+    <ChevronUp className={`h-4 w-4 text-white/40 transition-transform ${isProfileMenuOpen ? "" : "rotate-180"}`} />
+  </button>
+
+  {/* Profile Popup Menu */}
+  {isProfileMenuOpen && (
+    <>
+      {/* Backdrop for mobile */}
+      <div 
+        className="fixed inset-0 z-40 md:hidden" 
+        onClick={() => setIsProfileMenuOpen(false)}
+      />
+      
+      {/* Popup */}
+      <div className="absolute bottom-full left-4 right-4 mb-2 bg-[#1a1a1a] rounded-lg border border-white/10 shadow-xl z-50 overflow-hidden">
+        {/* User Info Section */}
+        <div className="p-4 border-b border-white/10">
+          <div className="flex items-start space-x-3">
+            <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center flex-shrink-0">
+              <User className="h-5 w-5 text-white/60" />
+            </div>
+            <div className="flex-1 min-w-0">
+              {isEditingName ? (
+                <div className="space-y-2">
+                  <SarthiInput 
+                    value={editedName} 
+                    onChange={(e) => setEditedName(e.target.value)} 
+                    placeholder="Your name"
+                    className="text-sm"
+                  />
+                  <div className="flex space-x-2">
+                    <button 
+                      onClick={handleSaveName} 
+                      className="text-xs text-green-400 hover:text-green-300 px-2 py-1"
+                    >
+                      Save
+                    </button>
+                    <button 
+                      onClick={handleCancelEdit} 
+                      className="text-xs text-white/60 hover:text-white/80 px-2 py-1"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <span className="text-white text-sm font-medium truncate">
+                    {editedName || "Your name"}
+                  </span>
+                  <button
+                    onClick={() => setIsEditingName(true)}
+                    className="ml-2 p-1 hover:bg-white/10 rounded"
+                  >
+                    <Edit3 className="h-3 w-3 text-white/60" />
+                  </button>
+                </div>
+              )}
+              
+              {/* Contact Info */}
+              <div className="space-y-1 mt-3">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-white/40 flex items-center">
+                    {phone && <Lock className="h-3 w-3 inline-block mr-1 text-white/60" />}
+                    Phone: {phone || "Not added"}
+                  </span>
+                  {!phone && (
+                    <button 
+                      onClick={() => { 
+                        setContactType("phone"); 
+                        setOtpModalOpen(true);
+                        setIsProfileMenuOpen(false);
+                      }} 
+                      className="text-blue-400 hover:text-blue-300"
+                    >
+                      Add
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-white/40 flex items-center">
+                    {email && <Lock className="h-3 w-3 inline-block mr-1 text-white/60" />}
+                    Email: {email || "Not added"}
+                  </span>
+                  {!email && (
+                    <button 
+                      onClick={() => { 
+                        setContactType("email"); 
+                        setOtpModalOpen(true);
+                        setIsProfileMenuOpen(false);
+                      }} 
+                      className="text-blue-400 hover:text-blue-300"
+                    >
+                      Add
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
+        </div>
+
+        {/* Sign Out Button */}
+        <button
+          onClick={() => {
+            setIsProfileMenuOpen(false);
+            handleSignOut();
+          }}
+          className="flex items-center space-x-3 text-white/60 hover:bg-white/5 hover:text-white transition-colors w-full p-4 text-left"
+        >
+          <LogOut className="h-4 w-4" />
+          <span className="text-sm">Sign out</span>
+        </button>
+      </div>
+    </>
+  )}
+</div>
+
         </div>
       </div>
 
