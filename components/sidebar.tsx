@@ -11,7 +11,6 @@ import { authFetch } from "@/lib/api"
 import { CountrySelector } from "@/components/ui/country-selector"
 import { getCookie } from "@/app/actions/auth"
 
-import mixpanel, { initMixpanel } from "@/lib/mixpanel";
 import { ChevronDown, ChevronUp } from "lucide-react"
 
 // Interface for the component props
@@ -23,10 +22,12 @@ interface SidebarProps {
 }
 
 // Interface for reflection data
+// Interface for reflection data
 interface Reflection {
   reflection_id: string;
   summary: string;
   created_at: string;
+  updated_at?: string;
   // Inbox-only
   from?: string;
   // Outbox-only
@@ -34,6 +35,10 @@ interface Reflection {
   status?: string;
   // Optional because not all endpoints provide them
   category?: string;
+  // For the /reflection/all API
+  type?: "sent" | "received";
+  is_draft?: boolean;
+  flow_type?: string;
 }
 
 
@@ -117,12 +122,15 @@ const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
 // In sidebar.tsx - Update state declarations (around line 60)
 const [elsTests, setElsTests] = useState<any[]>([])
 const [elsLoading, setElsLoading] = useState(false)
+const [chats, setChats] = useState<Reflection[]>([])
+const [chatsExpanded, setChatsExpanded] = useState(false)
+const [chatsLoading, setChatsLoading] = useState(false)
 
 // Replace fetchElsTests function
 const fetchElsTests = async () => {
   setElsLoading(true);
   try {
-    const res = await authFetch('/api/emotional-test/history');
+    const res = await authFetch('/api/emotional-test/admin/tests/all');
     const data = await res.json();
     
     if (data.success) {
@@ -135,6 +143,26 @@ const fetchElsTests = async () => {
   }
 }
 
+const fetchChats = async () => {
+  setChatsLoading(true);
+  try {
+    const res = await authFetch('/reflection/all?page=1&limit=50&include_drafts=false&include_chat=true', {
+      method: 'GET',
+      credentials: 'include'
+    });
+    const data = await res.json();
+    
+    if (data.success) {
+      // Filter to only show "sent" type reflections (exclude received/inbox)
+      const sentChats = (data.data || []).filter((chat: Reflection) => chat.type === "sent");
+      setChats(sentChats);
+    }
+  } catch (err) {
+    console.error("Failed to fetch chats:", err);
+  } finally {
+    setChatsLoading(false);
+  }
+}
 // Add dummy ELS test data after state declarations
 const dummyElsTests = [
   { id: "els-1", title: "ELS Test - Dec 20, 2024", score: 65, zone: "Yellow", date: "2024-12-20" },
@@ -315,6 +343,7 @@ const dummyDrafts: Reflection[] = [
         setLoading(true);
         await fetchReflections();
          await fetchElsTests();
+         await fetchChats();
         setLoading(false);
       } catch (err) {
         console.error("Failed to fetch user:", err);
@@ -782,9 +811,9 @@ const dummyDrafts: Reflection[] = [
               .filter(test => test.is_completed)
               .map((test) => (
                 <button
-                  key={test.session_id}
+                  key={test.test_id}
                   onClick={() => {
-                    router.push(`/ELS-Test/results/${test.session_id}`);
+                    router.push(`/ELS-Test/results/${test.test_id}`);
                     if (window.innerWidth < 768) onToggle();
                   }}
                   className="w-full text-left p-3 rounded-lg hover:bg-white/5 transition-colors group mb-2"
@@ -874,29 +903,62 @@ const dummyDrafts: Reflection[] = [
             </div>
 
             {/* Drafts Section - Collapsed by default */}
-            <div className="mb-4">
-              <button
-                onClick={() => setDraftsExpanded(!draftsExpanded)}
-                className="w-full flex items-center justify-between text-white text-sm font-semibold mb-2 hover:text-white/80 transition-colors p-2 rounded-lg hover:bg-white/5"
-              >
-                <span>Your Chats</span>
-                {draftsExpanded ? (
-                  <ChevronUp className="h-4 w-4 text-white/40" />
-                ) : (
-                  <ChevronDown className="h-4 w-4 text-white/40" />
-                )}
-              </button>
-              
-              {draftsExpanded && (
-                <div className="ml-4">
-                  {dummyDrafts.length === 0 ? (
-                    <p className="text-white/40 text-sm">No drafts yet.</p>
-                  ) : (
-                    dummyDrafts.map((r: any) => renderReflection(r, "outbox"))
-                  )}
-                </div>
-              )}
+        <div className="mb-4">
+  <button
+    onClick={() => setChatsExpanded(!chatsExpanded)}
+    className="w-full flex items-center justify-between text-white text-sm font-semibold mb-2 hover:text-white/80 transition-colors p-2 rounded-lg hover:bg-white/5"
+  >
+    <span>Your Chats</span>
+    {chatsExpanded ? (
+      <ChevronUp className="h-4 w-4 text-white/40" />
+    ) : (
+      <ChevronDown className="h-4 w-4 text-white/40" />
+    )}
+  </button>
+  
+{chatsExpanded && (
+  <div className="ml-4">
+    {chatsLoading ? (
+      <p className="text-white/50 text-sm">Loading...</p>
+    ) : chats.length === 0 ? (
+      <p className="text-white/40 text-sm">No chats yet.</p>
+    ) : (
+      chats.map((chat) => (
+        <button
+          key={chat.reflection_id}
+          onClick={() => {
+            // Since we're only showing "sent" type, always use "outbox"
+            router.push(`/reflection/${chat.reflection_id}?type=outbox`);
+            if (window.innerWidth < 768) onToggle();
+          }}
+          className="w-full text-left p-4 rounded-lg hover:bg-white/5 transition-colors group min-h-[44px]"
+        >
+          <div className="flex items-start space-x-3">
+            <div className="flex-shrink-0 w-8 h-8 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/15 transition-colors">
+              {getReflectionIcon(chat.flow_type?.split('_')[0] || "reflection")}
             </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center space-x-2 mb-1">
+                <span className="text-white text-sm font-medium">
+                  {chat.to}
+                </span>
+              </div>
+              <p className="text-white/60 text-sm truncate">{chat.summary}</p>
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-white/40 text-xs">
+                  {new Date(chat.created_at).toLocaleDateString("en-IN")}
+                </p>
+                <span className="text-white/40 text-xs">•</span>
+                <p className="text-white/40 text-xs capitalize">{chat.status}</p>
+              </div>
+            </div>
+          </div>
+        </button>
+      ))
+    )}
+  </div>
+)}
+</div>
           </div>
 
           {/* Invite friends button with new design and icon */}
