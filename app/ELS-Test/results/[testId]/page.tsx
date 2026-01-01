@@ -10,17 +10,32 @@ import { SarthiButton } from '@/components/ui/sarthi-button'
 export default function ElsTestResultsPage() {
   const params = useParams()
   const router = useRouter()
-  const sessionId = params.sessionId as string
 
+  // ✅ Try to get testId from different possible param names
+  const testId = (params.testId || params.id) as string
+  
   const [loading, setLoading] = useState(true)
   const [testData, setTestData] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchTestDetails = async () => {
+      // ✅ Add logging to debug
+      console.log('Params:', params)
+      console.log('Test ID:', testId)
+      
+      if (!testId) {
+        setError('No test ID provided')
+        setLoading(false)
+        return
+      }
+
       try {
-        const res = await authFetch(`/api/emotional-test/history/${sessionId}`)
+        console.log('Fetching test details for ID:', testId)
+        const res = await authFetch(`/api/emotional-test/admin/tests/${testId}`)
         const data = await res.json()
+        
+        console.log('API Response:', data)
 
         if (data.success) {
           setTestData(data.data)
@@ -29,43 +44,45 @@ export default function ElsTestResultsPage() {
         }
       } catch (err) {
         setError('Error loading test results')
-        console.error(err)
+        console.error('Fetch error:', err)
       } finally {
         setLoading(false)
       }
     }
 
-    if (sessionId) {
-      fetchTestDetails()
-    }
-  }, [sessionId])
+    fetchTestDetails()
+  }, [testId, params]) // ✅ Added params to dependency array
 
   const getZoneColor = (zone: string) => {
     switch (zone) {
-      case "Green": return "from-green-500 to-emerald-500"
-      case "Yellow": return "from-yellow-500 to-orange-500"
-      case "Orange": return "from-orange-500 to-yellow-600"
-      case "Red": return "from-red-500 to-rose-500"
-      case "Red+": return "from-red-700 to-red-900"
-      default: return "from-gray-500 to-gray-700"
+      case "Green": return "from-green-500 to-emerald-500";
+      case "Yellow": return "from-yellow-500 to-orange-500";
+      case "Orange": return "from-orange-500 to-yellow-600";
+      case "Red": return "from-red-500 to-rose-500";
+      case "Red+": return "from-red-700 to-red-900";
+      default: return "from-gray-500 to-gray-700";
     }
-  }
+  };
 
   const getZoneBgColor = (zone: string) => {
     switch (zone) {
-      case "Green": return "bg-green-500"
-      case "Yellow": return "bg-yellow-500"
-      case "Orange": return "bg-orange-500"
-      case "Red": return "bg-red-500"
-      case "Red+": return "bg-red-700"
-      default: return "bg-gray-500"
+      case "Green": return "bg-green-500";
+      case "Yellow": return "bg-yellow-500";
+       case "Orange": return "bg-orange-500"; 
+      case "Red": return "bg-red-500";
+      case "Red+": return "bg-red-700";
+      default: return "bg-gray-500";
     }
-  }
+  };
+
 
   if (loading) {
     return (
       <div className="min-h-screen bg-[#121212] flex items-center justify-center">
-        <p className="text-white">Loading test results...</p>
+        <div className="text-center">
+          <p className="text-white mb-2">Loading test results...</p>
+          <p className="text-white/40 text-xs">Test ID: {testId || 'Not found'}</p>
+        </div>
       </div>
     )
   }
@@ -73,7 +90,13 @@ export default function ElsTestResultsPage() {
   if (error || !testData) {
     return (
       <div className="min-h-screen bg-[#121212] flex items-center justify-center">
-        <p className="text-red-400">{error || 'Test not found'}</p>
+        <div className="text-center space-y-4">
+          <p className="text-red-400">{error || 'Test not found'}</p>
+          <p className="text-white/40 text-xs">Test ID: {testId || 'undefined'}</p>
+          <SarthiButton onClick={() => router.push('/onboarding')}>
+            Go Back
+          </SarthiButton>
+        </div>
       </div>
     )
   }
