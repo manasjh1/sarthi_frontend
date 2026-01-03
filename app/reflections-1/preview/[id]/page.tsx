@@ -35,9 +35,13 @@ useEffect(() => {
     setError(null)
 
     try {
+      // ✅ Use the detail API
       const res = await authFetch(
-        `/reflection/history?page=1&limit=10`,
-        { method: "GET" }
+        `/reflection/detail/${id}`,
+        { 
+          method: "GET",
+          credentials: "include"
+        }
       )
 
       if (!res.ok) {
@@ -45,21 +49,19 @@ useEffect(() => {
       }
 
       const json = await res.json()
-      console.log("History response:", json)
+      console.log("Detail response:", json)
 
       if (!json.success) {
         throw new Error(json.message || "API failed")
       }
 
-      const reflection = json.data.find(
-        (r: any) => r.reflection_id === id
-      )
-
-      if (!reflection) {
+      // ✅ Access summary directly from data object
+      if (!json.data || !json.data.summary) {
         throw new Error("Reflection not found")
       }
 
-      setEditedMessage(reflection.summary || "")
+      // ✅ Set the summary from the response
+      setEditedMessage(json.data.summary)
     } catch (err: any) {
       console.error("Fetch reflection error:", err)
       setError(err.message || "Failed to fetch reflection")

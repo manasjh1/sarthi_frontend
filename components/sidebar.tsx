@@ -457,10 +457,10 @@ const dummyDrafts: Reflection[] = [
   // Handle the sign-out process
   const handleSignOut = async () => {
     try {
-      const response = await fetch("/api/auth/signout", {
-        method: "POST",
-        credentials: "include",
-      })
+      const response = await fetch(`${window.location.origin}/api/auth/signout`, {
+  method: "POST",
+  credentials: "include",
+})
 
       if (!response.ok) {
         throw new Error("Sign out failed")
