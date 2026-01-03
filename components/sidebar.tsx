@@ -145,24 +145,29 @@ const fetchElsTests = async () => {
 
 const fetchChats = async () => {
   setChatsLoading(true);
+
   try {
-    const res = await authFetch('/reflection/all?page=1&limit=50&include_drafts=false&include_chat=true', {
-      method: 'GET',
-      credentials: 'include'
-    });
+    const res = await authFetch(
+      '/reflection/all?page=1&limit=50&include_drafts=true&include_chat=true',
+      {
+        method: 'GET',
+        credentials: 'include',
+      }
+    );
+
     const data = await res.json();
-    
+    console.log(data);
+
     if (data.success) {
-      // Filter to only show "sent" type reflections (exclude received/inbox)
-      const sentChats = (data.data || []).filter((chat: Reflection) => chat.type === "sent");
-      setChats(sentChats);
+      setChats(data.data || []);
     }
   } catch (err) {
     console.error("Failed to fetch chats:", err);
   } finally {
     setChatsLoading(false);
   }
-}
+};
+
 // Add dummy ELS test data after state declarations
 const dummyElsTests = [
   { id: "els-1", title: "ELS Test - Dec 20, 2024", score: 65, zone: "Yellow", date: "2024-12-20" },
@@ -927,8 +932,8 @@ const dummyDrafts: Reflection[] = [
         <button
           key={chat.reflection_id}
           onClick={() => {
-            // Since we're only showing "sent" type, always use "outbox"
-            router.push(`/reflection/${chat.reflection_id}?type=outbox`);
+           
+            router.push(`/your-chat/${chat.reflection_id}`);
             if (window.innerWidth < 768) onToggle();
           }}
           className="w-full text-left p-4 rounded-lg hover:bg-white/5 transition-colors group min-h-[44px]"
