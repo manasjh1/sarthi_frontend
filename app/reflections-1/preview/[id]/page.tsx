@@ -29,35 +29,48 @@ export default function ReflectionPreviewPage() {
     }
   }, [searchParams])
 
-  useEffect(() => {
-    const fetchReflection = async () => {
-      setLoading(true)
-      try {
-        const res = await authFetch("/reflection/history", {
-          method: "GET",
-          body: JSON.stringify({
-            data: {
-              mode: "get_reflections",
-              reflection_id: id,
-            },
-          }),
-        })
+useEffect(() => {
+  const fetchReflection = async () => {
+    setLoading(true)
+    setError(null)
 
-        const json = await res.json()
-        if (json.success) {
-          setEditedMessage(json.data.summary || '')
-        } else {
-          setError(json.message || "Failed to fetch reflection.")
-        }
-      } catch (err) {
-        setError("Something went wrong while fetching reflection.")
-      } finally {
-        setLoading(false)
+    try {
+      const res = await authFetch(
+        `/reflection/history?page=1&limit=10`,
+        { method: "GET" }
+      )
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`)
       }
-    }
 
-    if (id) fetchReflection()
-  }, [id])
+      const json = await res.json()
+      console.log("History response:", json)
+
+      if (!json.success) {
+        throw new Error(json.message || "API failed")
+      }
+
+      const reflection = json.data.find(
+        (r: any) => r.reflection_id === id
+      )
+
+      if (!reflection) {
+        throw new Error("Reflection not found")
+      }
+
+      setEditedMessage(reflection.summary || "")
+    } catch (err: any) {
+      console.error("Fetch reflection error:", err)
+      setError(err.message || "Failed to fetch reflection")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (id) fetchReflection()
+}, [id])
+
 
   const handleEditMessage = async () => {
     setIsEditingMessage(true)
