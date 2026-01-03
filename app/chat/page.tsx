@@ -222,60 +222,60 @@ const senderToRole = (sender: any): "user" | "assistant" => {
 };
 
 
-const fetchHistory = async (pageNum: number) => {
-  try {
-    setIsFetchingHistory(true);
-    setIsLoadingOlderMessages(true); // 👈 Add this flag
+// const fetchHistory = async (pageNum: number) => {
+//   try {
+//     setIsFetchingHistory(true);
+//     setIsLoadingOlderMessages(true); // 👈 Add this flag
 
-    // Store scroll height before loading older messages
-    if (messagesContainerRef.current) {
-      setPreviousScrollHeight(messagesContainerRef.current.scrollHeight);
-    }
+//     // Store scroll height before loading older messages
+//     if (messagesContainerRef.current) {
+//       setPreviousScrollHeight(messagesContainerRef.current.scrollHeight);
+//     }
 
-    const res = await authFetch(`/reflection/history?page=${pageNum}&limit=10`);
-    if (!res.ok) throw new Error("Failed to fetch history");
+//     const res = await authFetch(`/reflection/history?page=${pageNum}&limit=10`);
+//     if (!res.ok) throw new Error("Failed to fetch history");
 
-    const result = await res.json();
-    console.log("Fetched history:", result);
+//     const result = await res.json();
+//     console.log("Fetched history:", result);
 
-    const reflections = Array.isArray(result?.data) ? result.data : [];
+//     const reflections = Array.isArray(result?.data) ? result.data : [];
 
-    // Flatten, sanitize, and sort by time (oldest→newest) for this batch
-    const batch: Message[] = reflections.flatMap((r: any) => {
-      const chats = Array.isArray(r.chat_history) ? r.chat_history : [];
-      return chats
-        .filter(
-          (c: any) =>
-            typeof c?.message === "string" && c.message.trim().length > 0
-        )
-        .map((c: any, idx: number) => ({
-          id: `${r.reflection_id}-${c.created_at}-${idx}-${Math.random()
-            .toString(36)
-            .slice(2, 8)}`,
-          role: senderToRole(c.sender),
-          content: c.message.trim(),
-          timestamp: new Date(c.created_at),
-        }));
-    });
+//     // Flatten, sanitize, and sort by time (oldest→newest) for this batch
+//     const batch: Message[] = reflections.flatMap((r: any) => {
+//       const chats = Array.isArray(r.chat_history) ? r.chat_history : [];
+//       return chats
+//         .filter(
+//           (c: any) =>
+//             typeof c?.message === "string" && c.message.trim().length > 0
+//         )
+//         .map((c: any, idx: number) => ({
+//           id: `${r.reflection_id}-${c.created_at}-${idx}-${Math.random()
+//             .toString(36)
+//             .slice(2, 8)}`,
+//           role: senderToRole(c.sender),
+//           content: c.message.trim(),
+//           timestamp: new Date(c.created_at),
+//         }));
+//     });
 
-    batch.sort(
-      (a, b) => (a.timestamp?.getTime() ?? 0) - (b.timestamp?.getTime() ?? 0)
-    );
+//     batch.sort(
+//       (a, b) => (a.timestamp?.getTime() ?? 0) - (b.timestamp?.getTime() ?? 0)
+//     );
 
-    // Prepend older batch at the top
-    setMessages((prev) => [...batch, ...prev]);
+//     // Prepend older batch at the top
+//     setMessages((prev) => [...batch, ...prev]);
 
-    // Update pagination state
-    setHasMore(reflections.length === 10);
+//     // Update pagination state
+//     setHasMore(reflections.length === 10);
     
-  } catch (err) {
-    console.error("History fetch error:", err);
-    setHasMore(false);
-  } finally {
-    setIsFetchingHistory(false);
-    // 👈 Don't reset the flag here, let useEffect handle it
-  }
-};
+//   } catch (err) {
+//     console.error("History fetch error:", err);
+//     setHasMore(false);
+//   } finally {
+//     setIsFetchingHistory(false);
+//     // 👈 Don't reset the flag here, let useEffect handle it
+//   }
+// };
 
 
 
@@ -289,74 +289,68 @@ const fetchHistory = async (pageNum: number) => {
   }
 
   // Initialize chat - only called once
-  const initializeChat = async () => {
-    if (hasInitialized) return
+const initializeChat = async () => {
+  if (hasInitialized) return
 
-    try {
-      setIsThinking(true)
-      setCurrentStep("loading")
+  try {
+    setIsThinking(true)
+    setCurrentStep("loading")
 
-      const user = await getCurrentUser()
-      setUserName(user?.name || "there")
+    const user = await getCurrentUser()
+    setUserName(user?.name || "there")
 
-      // Step 1: probe if reflection exists
-      const initialRequest = {
-        reflection_id: null,
-        message: "",
-        data: [] // empty -> check if user has ongoing reflection
-      }
-
-      const response = await apiService.sendReflectionRequest(initialRequest)
-
-      // Case 1: distress flag
-      if (!response.success && checkForDistress(response.data)) {
-        setCurrentStep("distress-detected")
-        return
-      }
-
-      // Case 2: No active reflection found (show welcome screen)
-      if ((!response.reflection_id || response.reflection_id === null) && (!response.data || response.data.length === 0)) {
-        setCurrentStep("welcome")
-        setShowWelcome(true)
-        return
-      }
-
-      // Case 3: Reflection already exists or backend started a new one
-      if (response.reflection_id) {
-        setReflectionId(response.reflection_id)
-      }
-
-       setProgress({
-          current_step: response.current_stage ?? 0,
-          total_step: 100,
-          workflow_completed: response.progress?.workflow_completed ?? false
-        })
-
-      // Handle response data
-      if (response.data && response.data.length > 0) {
-        const firstItem = response.data[0]
-        if ('choice' in firstItem && 'label' in firstItem) {
-          setChoices(response.data as Choice[])
-          setCategories([])
-        } else if ('category_no' in firstItem && 'category_name' in firstItem) {
-          setCategories(response.data as Category[])
-          setChoices([])
-        }
-      }
-
-  if (response.sarthi_message && !showWelcome && messages.length === 0) {
-  addMessage(response.sarthi_message, "assistant");
-}
-
-      setCurrentStep("conversation")
-      setHasInitialized(true)
-    } catch (error) {
-      console.error("Failed to initialize chat:", error)
-      setApiError("Failed to start reflection. Please try again.")
-    } finally {
-      setIsThinking(false)
+    // Always start a NEW conversation - force choice "0"
+    const initialRequest = {
+      reflection_id: "",
+      message: "",
+      data: [{ choice: "0" }] // Force "start new"
     }
+
+    const response = await apiService.sendReflectionRequest(initialRequest)
+
+    // Case 1: distress flag
+    if (!response.success && checkForDistress(response.data)) {
+      setCurrentStep("distress-detected")
+      return
+    }
+
+    // Save reflection id
+    if (response.reflection_id) {
+      setReflectionId(response.reflection_id)
+    }
+
+    setProgress({
+      current_step: response.current_stage ?? 0,
+      total_step: 100,
+      workflow_completed: response.progress?.workflow_completed ?? false
+    })
+
+    // Handle response data
+    if (response.data && response.data.length > 0) {
+      const firstItem = response.data[0]
+      if ('choice' in firstItem && 'label' in firstItem) {
+        setChoices(response.data as Choice[])
+        setCategories([])
+      } else if ('category_no' in firstItem && 'category_name' in firstItem) {
+        setCategories(response.data as Category[])
+        setChoices([])
+      }
+    }
+
+    // Add Sarthi's welcome message ONLY ONCE
+    if (response.sarthi_message) {
+      addMessage(response.sarthi_message, "assistant")
+    }
+
+    setCurrentStep("conversation")
+    setHasInitialized(true)
+  } catch (error) {
+    console.error("Failed to initialize chat:", error)
+    setApiError("Failed to start reflection. Please try again.")
+  } finally {
+    setIsThinking(false)
   }
+}
 
   const addMessage = (
     content: string,
@@ -493,69 +487,7 @@ const fetchHistory = async (pageNum: number) => {
     }
   }
 
-  const handleContinueChoice = async (choice: "continue" | "new") => {
-    try {
-      setIsThinking(true)
-      setContinueChoice(choice)
-      setShowWelcome(false)
 
-      let request
-      if (choice === "continue") {
-        // Continue last reflection
-      request = { reflection_id: "", message: "", data: [{ choice: "1"}] }
-
-      } else {
-        // Start a new reflection
-        request = { reflection_id: "", message: "", data: [{ choice: "0"}] }
-
-      }
-
-      const response = await apiService.sendReflectionRequest(request)
-
-      // Distress check
-      if (!response.success && checkForDistress(response.data)) {
-        setCurrentStep("distress-detected")
-        return
-      }
-
-      // Save reflection id if given
-      if (response.reflection_id) {
-        setReflectionId(response.reflection_id)
-      }
-
-      // Save progress properly
-     setProgress({
-          current_step: response.current_stage ?? 0,
-          total_step: 100,
-          workflow_completed: response.progress?.workflow_completed ?? false
-        })
-
-      // Handle response data
-      if (response.data && response.data.length > 0) {
-        const firstItem = response.data[0]
-        if ('choice' in firstItem && 'label' in firstItem) {
-          setChoices(response.data as Choice[])
-          setCategories([])
-        } else if ('category_no' in firstItem && 'category_name' in firstItem) {
-          setCategories(response.data as Category[])
-          setChoices([])
-        }
-      }
-
-      // Add Sarthi's welcome/continue message
-      if (response.sarthi_message) {
-        addMessage(response.sarthi_message, "assistant")
-      }
-
-      // Move into conversation UI
-      setCurrentStep("conversation")
-    } catch (error) {
-      console.error("Choice error:", error)
-      setApiError("Failed to process reflection choice. Please try again.")
-    } finally {
-      setIsThinking(false)
-    }
-  }
 
 const handleChoiceSelect = async (choice: string) => {
   console.log(choice);
@@ -599,7 +531,7 @@ if (response.current_stage === 20) {
   // Get the delivery choice from the selected choice
   const deliveryChoice = choice === "0" ? "keep" : "deliver";
   setTimeout(() => {
-    router.push(`/api/reflections/preview/${response.reflection_id}?delivery=${deliveryChoice}`)
+    router.push(`/reflections-1/preview/${response.reflection_id}?delivery=${deliveryChoice}`)
   }, 1500);
   return;
 }
@@ -615,7 +547,7 @@ if (summaryItem) {
   const deliveryChoice = choice === "0" ? "keep" : "deliver";
   setTimeout(() => {
     addMessage(`Here's your reflection: ${summaryItem.summary}`, "sarthi");
-    router.push(`/api/reflections/preview/${response.reflection_id}?delivery=${deliveryChoice}`);
+    router.push(`/reflections-1/preview/${response.reflection_id}?delivery=${deliveryChoice}`);
   }, 100);
 }
         }
@@ -694,7 +626,7 @@ const checkForDistress = (data: Array<{ [key: string]: any }>) => {
 
      if (response.current_stage === 20) {
   setTimeout(() => {
-    router.push(`/api/reflections/preview/${response.reflection_id}`)
+    router.push(`/reflections-1/preview/${response.reflection_id}`)
   }, 1500);
   return;
 }
@@ -714,7 +646,7 @@ const checkForDistress = (data: Array<{ [key: string]: any }>) => {
 if (summaryItem) {
   setTimeout(() => {
     addMessage(`Here's your reflection: ${summaryItem.summary}`, "sarthi");
-    router.push(`/api/reflections/preview/${response.reflection_id}`);
+    router.push(`/reflections-1/preview/${response.reflection_id}`);
   }, 100);
 }
           }
@@ -728,51 +660,37 @@ if (summaryItem) {
     }
   }
 
-const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-  const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-  
-  // Check if user scrolled to the top and we have more data to load
-  if (scrollTop === 0 && hasMore && !isFetchingHistory) {
-    const nextPage = page + 1;
-    setPage(nextPage);
-    fetchHistory(nextPage);
-  }
-};
 
 
+// useEffect(() => {
+//   const prevLen = prevLengthRef.current;
+//   const currLen = messages.length;
 
+//   // If we're loading older messages, maintain scroll position
+//   if (isLoadingOlderMessages && messagesContainerRef.current) {
+//     const container = messagesContainerRef.current;
+//     const newScrollHeight = container.scrollHeight;
+//     const scrollDiff = newScrollHeight - previousScrollHeight;
+    
+//     // Maintain relative scroll position after older messages are loaded
+//     container.scrollTop = container.scrollTop + scrollDiff;
+    
+//     setIsLoadingOlderMessages(false); // Reset the flag
+//     return;
+//   }
 
-  useEffect(() => {
-  fetchHistory(1);
-}, []);
+//   // Only scroll to bottom for new messages (length increased) or when streaming ends
+//   if (currLen > prevLen) {
+//     scrollToBottom();
+//   } else if (prevLengthRef.current === currLen && streamingMessageId === null) {
+//     scrollToBottom();
+//   }
 
+//   prevLengthRef.current = currLen;
+// }, [messages.length, streamingMessageId, isLoadingOlderMessages, previousScrollHeight]);
 useEffect(() => {
-  const prevLen = prevLengthRef.current;
-  const currLen = messages.length;
-
-  // If we're loading older messages, maintain scroll position
-  if (isLoadingOlderMessages && messagesContainerRef.current) {
-    const container = messagesContainerRef.current;
-    const newScrollHeight = container.scrollHeight;
-    const scrollDiff = newScrollHeight - previousScrollHeight;
-    
-    // Maintain relative scroll position after older messages are loaded
-    container.scrollTop = container.scrollTop + scrollDiff;
-    
-    setIsLoadingOlderMessages(false); // Reset the flag
-    return;
-  }
-
-  // Only scroll to bottom for new messages (length increased) or when streaming ends
-  if (currLen > prevLen) {
-    scrollToBottom();
-  } else if (prevLengthRef.current === currLen && streamingMessageId === null) {
-    scrollToBottom();
-  }
-
-  prevLengthRef.current = currLen;
-}, [messages.length, streamingMessageId, isLoadingOlderMessages, previousScrollHeight]);
-
+  scrollToBottom()
+}, [messages.length])
 
 
   // Authentication Check Screen
@@ -808,48 +726,6 @@ useEffect(() => {
               </div>
             )}
           </div>
-        </div>
-      </div>
-    )
-  }
-
-  // Welcome Screen - shows in center of screen
-  if (currentStep === "welcome" || showWelcome) {
-    return (
-      <div className="min-h-screen bg-[#121212] flex items-center justify-center p-4">
-        <div className="text-center space-y-8 max-w-md">
-          <div className="w-20 h-20 mx-auto">
-            <SarthiOrb size="lg" />
-          </div>
-
-          <div className="space-y-4">
-            <h1 className="text-3xl font-light text-white">
-              Hi {userName}
-            </h1>
-            <div className="space-y-3 text-white/80 text-lg leading-relaxed">
-              <p>I'm Sarthi. This is your private, non-judgmental space.</p>
-              <p>I'm here for anything that's been sitting on your heart…</p>
-              <p>Want to start anywhere?</p>
-            </div>
-          </div>
-
-          {continueChoice === "ask" ? (
-            <div className="flex gap-4 justify-center">
-              <SarthiButton onClick={() => handleContinueChoice("continue")}>
-                Continue Last Reflection
-              </SarthiButton>
-              <SarthiButton onClick={() => handleContinueChoice("new")}>
-                Start New
-              </SarthiButton>
-            </div>
-          ) : (
-            <SarthiButton
-              onClick={() => handleContinueChoice("new")}
-              className="w-full max-w-xs"
-            >
-              Let's Start
-            </SarthiButton>
-          )}
         </div>
       </div>
     )
@@ -940,42 +816,34 @@ useEffect(() => {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto"  onScroll={handleScroll}>
+      <div className="flex-1 overflow-y-auto" ref={messagesContainerRef}>
         <div className="p-4 sm:p-6">
           <div className="max-w-full sm:max-w-4xl mx-auto space-y-6">
-             {isFetchingHistory && (
-        <div className="text-center py-4">
-          <div className="inline-flex items-center gap-2 text-white/60">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white/60"></div>
-            <span className="text-sm">Loading older messages...</span>
-          </div>
+   {messages.map((message, i) => {
+  const prevMsg = messages[i - 1]
+  const prevDate = prevMsg?.timestamp
+    ? new Date(prevMsg.timestamp).toDateString()
+    : null
+  const currDate = message.timestamp 
+    ? new Date(message.timestamp).toDateString() 
+    : new Date().toDateString()
+  const showDivider = prevDate !== currDate
+
+  return (
+    <div key={message.id}>
+      {showDivider && (
+        <div className="text-center text-xs text-gray-400 my-4">
+          ---{" "}
+          {currDate === new Date().toDateString()
+            ? "Today"
+            : currDate}
+          ---
         </div>
       )}
-            {messages.map((message, i) => {
-              const prevMsg = messages[i - 1]
-              const prevDate = prevMsg
-                ? new Date(prevMsg.timestamp).toDateString()
-                : null
-              const currDate = new Date(message.timestamp).toDateString()
-              const showDivider = prevDate !== currDate
-
-              return (
-                <div key={message.id}>
-                  {showDivider && (
-                    <div className="text-center text-xs text-gray-400 my-4">
-                      ---{" "}
-                      {currDate === new Date().toDateString()
-                        ? "Today"
-                        : currDate}
-                      ---
-                    </div>
-                  )}
-<ChatMessage message={message} isStreaming={streamingMessageId === message.id} />
-
-                </div>
-              )
-            })}
-
+      <ChatMessage message={message} isStreaming={streamingMessageId === message.id} />
+    </div>
+  )
+})}
             {/* Thinking indicator */}
             {isThinking && (
               <div className="flex items-start gap-4">
