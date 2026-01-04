@@ -271,7 +271,7 @@ const handleChatInput = async (inputMessage: string) => {
 
     const request: ApiRequest = {
       reflection_id: chatDetail.reflection_id,
-      message: inputMessage,  // Changed from inputMessage to match API structure
+      message: inputMessage,
       data: []
     }
 
@@ -288,6 +288,15 @@ const handleChatInput = async (inputMessage: string) => {
         } else if ('category_no' in firstItem && 'category_name' in firstItem) {
           setCategories(response.data as Category[])
           setChoices([])
+        } else {
+          // ADD THIS BLOCK - Handle summary case
+          const summaryItem = response.data.find(item => item.summary !== undefined)
+          if (summaryItem) {
+            setTimeout(() => {
+              router.push(`/reflections-1/preview/${response.reflection_id}`)
+            }, 1500)
+            return
+          }
         }
       }
 
@@ -306,53 +315,63 @@ const handleChatInput = async (inputMessage: string) => {
 }
 
 
-  const handleChoiceSelect = async (choice: string) => {
-    if (!chatDetail) return
+const handleChoiceSelect = async (choice: string) => {
+  if (!chatDetail) return
 
-    const selectedChoice = choices.find(c => c.choice === choice)
-    if (selectedChoice) {
-      addMessage(selectedChoice.label, "user")
-    }
+  const selectedChoice = choices.find(c => c.choice === choice)
+  if (selectedChoice) {
+    addMessage(selectedChoice.label, "user")
+  }
 
-    setIsThinking(true)
-    try {
-      const response = await sendReflectionRequest({
-        reflection_id: chatDetail.reflection_id,
-        message: "",
-        data: [{ choice }]
-      })
+  setIsThinking(true)
+  try {
+    const response = await sendReflectionRequest({
+      reflection_id: chatDetail.reflection_id,
+      message: "",
+      data: [{ choice }]
+    })
 
-      if (response.success) {
-        if (response.sarthi_message) {
-          await simulateThinkingAndResponse(response.sarthi_message)
-        }
+    if (response.success) {
+      if (response.sarthi_message) {
+        await simulateThinkingAndResponse(response.sarthi_message)
+      }
 
-        setChoices([])
+      setChoices([])
 
-        if (response.current_stage === 20) {
-          const deliveryChoice = Number(choice) === 0 ? "keep" : "deliver"
-          setTimeout(() => {
-            router.push(`/reflections-1/preview/${response.reflection_id}?delivery=${deliveryChoice}`)
-          }, 1500)
-          return
-        }
+      if (response.current_stage === 20) {
+        const deliveryChoice = Number(choice) === 0 ? "keep" : "deliver"
+        setTimeout(() => {
+          router.push(`/reflections-1/preview/${response.reflection_id}?delivery=${deliveryChoice}`)
+        }, 1500)
+        return
+      }
 
-        if (response.data && response.data.length > 0) {
-          const firstItem = response.data[0]
-          if ("choice" in firstItem && "label" in firstItem) {
-            setChoices(response.data as Choice[])
-          } else if ("category_no" in firstItem && "category_name" in firstItem) {
-            setCategories(response.data as Category[])
+      if (response.data && response.data.length > 0) {
+        const firstItem = response.data[0]
+        if ("choice" in firstItem && "label" in firstItem) {
+          setChoices(response.data as Choice[])
+        } else if ("category_no" in firstItem && "category_name" in firstItem) {
+          setCategories(response.data as Category[])
+        } else {
+          // ADD THIS BLOCK - Handle summary case
+          const summaryItem = response.data.find(item => item.summary !== undefined)
+          if (summaryItem) {
+            const deliveryChoice = Number(choice) === 0 ? "keep" : "deliver"
+            setTimeout(() => {
+              router.push(`/reflections-1/preview/${response.reflection_id}?delivery=${deliveryChoice}`)
+            }, 1500)
+            return
           }
         }
       }
-    } catch (err) {
-      console.error("Choice error:", err)
-      setApiError("Failed to process choice. Please try again.")
-    } finally {
-      setIsThinking(false)
     }
+  } catch (err) {
+    console.error("Choice error:", err)
+    setApiError("Failed to process choice. Please try again.")
+  } finally {
+    setIsThinking(false)
   }
+}
 
   const handleIntentSelection = async (categoryNo: number) => {
     if (!chatDetail) return
@@ -511,34 +530,41 @@ const handleChatInput = async (inputMessage: string) => {
           ))}
         </div>
       ) : (
-        <div className="flex gap-3">
-         <SarthiInput
-  ref={inputRef}
-  value={input}
-  onChange={(e) => {
-    setInput(e.target.value)
-    // Auto-resize textarea
-    e.target.style.height = 'auto'
-    e.target.style.height = e.target.scrollHeight + 'px'
-  }}
-  placeholder="Continue your reflection..."
-  className="flex-1"
-  onKeyDown={(e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      handleChatInput(input)
-      setInput("")
-      // Reset height after sending
-      if (inputRef.current) {
-        inputRef.current.style.height = 'auto'
-      }
-    }
-  }}
-  disabled={isThinking}
-/>
+        <div className="flex gap-3 items-end">
+          <SarthiInput
+            ref={inputRef}
+            value={input}
+            onChange={(e) => {
+              setInput(e.target.value)
+              e.target.style.height = 'auto'
+              const newHeight = Math.min(e.target.scrollHeight, 150)
+              e.target.style.height = newHeight + 'px'
+            }}
+            placeholder="Continue your reflection..."
+            className="flex-1"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault()
+                handleChatInput(input)
+                setInput("")
+                if (inputRef.current) {
+                  inputRef.current.style.height = 'auto'
+                }
+              }
+            }}
+            disabled={isThinking}
+            style={{ maxHeight: '150px', minHeight: '44px', resize: 'none' }}
+          />
           <SarthiButton
-            onClick={() => handleChatInput(input)}
+            onClick={() => {
+              handleChatInput(input)
+              setInput("")
+              if (inputRef.current) {
+                inputRef.current.style.height = 'auto'
+              }
+            }}
             disabled={!input.trim() || isThinking}
+            className="shrink-0"
           >
             Send
           </SarthiButton>

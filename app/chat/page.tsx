@@ -861,81 +861,81 @@ useEffect(() => {
       </div>
 
       {/* Input / Choices */}
-      {currentStep === "conversation" && (
-        <div className="border-t border-white/10 p-4">
-          <div className="max-w-4xl mx-auto">
-            {/* Show choice buttons if available */}
-            {choices.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {choices.map((choice, i) => (
-                  <SarthiButton
-                    key={i}
-                    onClick={() => handleChoiceSelect(choice.choice)}
-                    disabled={isThinking}
-                    className="flex-1 min-w-0"
-                  >
-                    {choice.label}
-                  </SarthiButton>
-                ))}
-              </div>
-            ) : categories.length > 0 ? (
-              // Show category buttons if available
-              <div className="flex flex-wrap gap-2">
-                {categories.map((category, i) => (
-                  <SarthiButton
-                    key={i}
-                    onClick={() => handleIntentSelection(category.category_no)}
-                    disabled={isThinking}
-                    className="flex-1 min-w-0"
-                  >
-                    {category.category_name}
-                  </SarthiButton>
-                ))}
-              </div>
-            ) : (
-              // Normal chat input
-              <div className="flex gap-3">
-                <SarthiInput
-  ref={inputRef}
-  value={input}
-  onChange={(e) => {
-    setInput(e.target.value)
-    // Auto-resize textarea
-    e.target.style.height = 'auto'
-    e.target.style.height = e.target.scrollHeight + 'px'
-  }}
-  placeholder="Share what's on your mind..."
-  className="flex-1 text-base sm:text-base"
-  onKeyDown={(e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      handleChatInput(input)
-      setInput("")
-      // Reset height after sending
-      if (inputRef.current) {
-        inputRef.current.style.height = 'auto'
-      }
-      inputRef.current?.focus()
-    }
-  }}
-  disabled={isThinking}
-/>
-                <SarthiButton
-                  onClick={() => {
-                    handleChatInput(input)
-                    setInput("")
-                    inputRef.current?.focus()
-                  }}
-                  disabled={!input.trim() || isThinking}
-                >
-                  Send
-                </SarthiButton>
-              </div>
-            )}
-          </div>
+    {currentStep === "conversation" && (
+  <div className="border-t border-white/10 p-4">
+    <div className="max-w-4xl mx-auto">
+      {choices.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {choices.map((choice, i) => (
+            <SarthiButton
+              key={i}
+              onClick={() => handleChoiceSelect(choice.choice)}
+              disabled={isThinking}
+              className="flex-1 min-w-0"
+            >
+              {choice.label}
+            </SarthiButton>
+          ))}
+        </div>
+      ) : categories.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {categories.map((category, i) => (
+            <SarthiButton
+              key={i}
+              onClick={() => handleIntentSelection(category.category_no)}
+              disabled={isThinking}
+              className="flex-1 min-w-0"
+            >
+              {category.category_name}
+            </SarthiButton>
+          ))}
+        </div>
+      ) : (
+        <div className="flex gap-3 items-end">
+          <SarthiInput
+            ref={inputRef}
+            value={input}
+            onChange={(e) => {
+              setInput(e.target.value)
+              e.target.style.height = 'auto'
+              const newHeight = Math.min(e.target.scrollHeight, 150)
+              e.target.style.height = newHeight + 'px'
+            }}
+            placeholder="Share what's on your mind..."
+            className="flex-1 text-base sm:text-base"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault()
+                handleChatInput(input)
+                setInput("")
+                if (inputRef.current) {
+                  inputRef.current.style.height = 'auto'
+                }
+                inputRef.current?.focus()
+              }
+            }}
+            disabled={isThinking}
+            style={{ maxHeight: '150px', minHeight: '44px', resize: 'none' }}
+          />
+          <SarthiButton
+            onClick={() => {
+              handleChatInput(input)
+              setInput("")
+              if (inputRef.current) {
+                inputRef.current.style.height = 'auto'
+              }
+              inputRef.current?.focus()
+            }}
+            disabled={!input.trim() || isThinking}
+            className="shrink-0"
+          >
+            Send
+          </SarthiButton>
         </div>
       )}
-
+    </div>
+  </div>
+)}
       {apiError && (
         <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-red-500/20 border border-red-500/30 text-red-400 px-4 sm:px-6 py-2 sm:py-3 rounded-[16px] backdrop-blur-sm shadow-lg">
           <div className="flex items-center gap-3">
