@@ -117,19 +117,19 @@ const ChatMessage = memo(function ChatMessage({
       )}
 
       <div className={`max-w-[90%] sm:max-w-[85%] ${message.role === "user" ? "flex flex-col items-end" : ""}`}>
-        <div
-          className={`px-4 py-3 sm:px-6 sm:py-4 rounded-3xl ${message.role === "user"
-            ? "bg-[#1e1e1e] border border-[#2a2a2a]"
-            : "bg-[#2a2a2a] border border-[#3a3a3a]"
-            }`}
-        >
-          <p className="text-white leading-relaxed text-sm sm:text-base">
-            {message.content ?? ""}
-            {isStreaming && (
-              <span className="inline-block w-2 h-5 bg-white/60 ml-1 animate-pulse" />
-            )}
-          </p>
-        </div>
+    <div
+  className={`px-4 py-3 sm:px-6 sm:py-4 rounded-3xl ${message.role === "user"
+    ? "bg-[#1e1e1e] border border-[#2a2a2a]"
+    : "bg-[#2a2a2a] border border-[#3a3a3a]"
+    }`}
+>
+  <p className="text-white leading-relaxed text-sm sm:text-base whitespace-pre-wrap">
+    {message.content ?? ""}
+    {isStreaming && (
+      <span className="inline-block w-2 h-5 bg-white/60 ml-1 animate-pulse" />
+    )}
+  </p>
+</div>
 
         <div className="mt-2 text-xs text-white/40">
           {message.timestamp?.toLocaleTimeString?.()}
@@ -164,7 +164,7 @@ const [hasMore, setHasMore] = useState(true);
 const [isFetchingHistory, setIsFetchingHistory] = useState(false);
 const prevLengthRef = useRef<number>(0);
 
-  const inputRef = useRef<HTMLInputElement>(null)
+ const inputRef = useRef<HTMLTextAreaElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
 const [isLoadingOlderMessages, setIsLoadingOlderMessages] = useState(false);
@@ -375,7 +375,7 @@ const initializeChat = async () => {
 
   const handleSignOut = async () => {
   try {
-    const response = await fetch(`${window.location.origin}/api/auth/signout`, {
+    const response = await fetch("https://sarthi.me/api/auth/signout", {
   method: "POST",
   credentials: "include",
 })
@@ -530,7 +530,7 @@ const handleChoiceSelect = async (choice: string) => {
 
 if (response.current_stage === 20) {
   // Get the delivery choice from the selected choice
-  const deliveryChoice = choice === "0" ? "keep" : "deliver";
+  const deliveryChoice = Number(choice) === 0 ? "keep" : "deliver";
   setTimeout(() => {
     router.push(`/reflections-1/preview/${response.reflection_id}?delivery=${deliveryChoice}`)
   }, 1500);
@@ -545,7 +545,7 @@ if (response.current_stage === 20) {
         } else {
          const summaryItem = response.data.find(item => item.summary !== undefined);
 if (summaryItem) {
-  const deliveryChoice = choice === "0" ? "keep" : "deliver";
+  const deliveryChoice = Number(choice) === 0 ? "keep" : "deliver";
   setTimeout(() => {
     addMessage(`Here's your reflection: ${summaryItem.summary}`, "sarthi");
     router.push(`/reflections-1/preview/${response.reflection_id}?delivery=${deliveryChoice}`);
@@ -896,21 +896,30 @@ useEffect(() => {
               // Normal chat input
               <div className="flex gap-3">
                 <SarthiInput
-                  ref={inputRef}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Share what's on your mind..."
-                  className="flex-1 text-base sm:text-base"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault()
-                      handleChatInput(input)
-                      setInput("")
-                      inputRef.current?.focus()
-                    }
-                  }}
-                  disabled={isThinking}
-                />
+  ref={inputRef}
+  value={input}
+  onChange={(e) => {
+    setInput(e.target.value)
+    // Auto-resize textarea
+    e.target.style.height = 'auto'
+    e.target.style.height = e.target.scrollHeight + 'px'
+  }}
+  placeholder="Share what's on your mind..."
+  className="flex-1 text-base sm:text-base"
+  onKeyDown={(e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      handleChatInput(input)
+      setInput("")
+      // Reset height after sending
+      if (inputRef.current) {
+        inputRef.current.style.height = 'auto'
+      }
+      inputRef.current?.focus()
+    }
+  }}
+  disabled={isThinking}
+/>
                 <SarthiButton
                   onClick={() => {
                     handleChatInput(input)
