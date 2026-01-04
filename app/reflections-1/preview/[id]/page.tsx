@@ -85,8 +85,12 @@ useEffect(() => {
   const handleSaveEditedMessage = async () => {
     setIsEditingMessage(false)
     try {
-    const res = await authFetch(`/reflection/regenerate-summary/${id}`, {
-  method: 'POST'
+
+const res = await authFetch(`/api/reflection/edit-summary/${id}`, {
+  method: 'PUT',
+  body: JSON.stringify({
+    summary: editedMessage
+  })
 })
 
       const json = await res.json()
@@ -96,30 +100,28 @@ useEffect(() => {
     }
   }
 
-  const handleRegenerateMessage = async () => {
-    setIsEditingMessage(false)
-    setLoading(true)
-    try {
-   const res = await authFetch(`/reflection/edit-summary/${id}`, {
-  method: 'PUT',
-  body: JSON.stringify({
-    summary: editedMessage
-  })
-})
+const handleRegenerateMessage = async () => {
+  setIsEditingMessage(false)
+  setLoading(true)
+  try {
+    const res = await authFetch(`/api/reflection/regenerate-summary/${id}`, {
+      method: 'POST'
+    })
 
-      const json = await res.json()
-      // console.log('Regenerate response:', json)
-      if (json.success && json.data[0].summary) {
-        setEditedMessage(json.data[0].summary)
-      } else {
-        setError("Failed to regenerate message")
-      }
-    } catch (err) {
-      setError("Error occurred while regenerating")
-    } finally {
-      setLoading(false)
+    const json = await res.json()
+    console.log(json);
+    // ✅ Fix: Access summary directly from response
+    if (json.success && json.summary) {
+      setEditedMessage(json.summary)
+    } else {
+      setError("Failed to regenerate message")
     }
+  } catch (err) {
+    setError("Error occurred while regenerating")
+  } finally {
+    setLoading(false)
   }
+}
 
   const handleContinueWithTemplate = () => {
     if (deliveryChoice === 'deliver') {

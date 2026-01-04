@@ -457,7 +457,7 @@ const dummyDrafts: Reflection[] = [
   // Handle the sign-out process
   const handleSignOut = async () => {
     try {
-      const response = await fetch(`${window.location.origin}/api/auth/signout`, {
+      const response = await fetch("https://sarthi.me/api/auth/signout", {
   method: "POST",
   credentials: "include",
 })
