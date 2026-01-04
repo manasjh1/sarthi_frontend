@@ -32,6 +32,10 @@ function isValidJWT(token: string): boolean {
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+
+  if (pathname.startsWith("/api")) {
+    return NextResponse.next()
+  }
   const sessionToken = request.cookies.get('sarthi_session')?.value
 
   // Check if the current path is a protected route
@@ -56,16 +60,22 @@ export function middleware(request: NextRequest) {
   return NextResponse.next()
 }
 
+// export const config = {
+//   matcher: [
+//     /*
+//      * Match all request paths except for the ones starting with:
+//      * - api (API routes)
+//      * - _next/static (static files)
+//      * - _next/image (image optimization files)
+//      * - favicon.ico (favicon file)
+//      * - images (public images)
+//      */
+//     '/((?!api|_next/static|_next/image|favicon.ico|images).*)',
+//   ],
+// }
+
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - images (public images)
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico|images).*)',
+    '/((?!_next/static|_next/image|favicon.ico|images).*)',
   ],
 }
