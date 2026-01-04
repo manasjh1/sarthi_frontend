@@ -769,7 +769,7 @@ const handleSignOut = async () => {
           }}
           className="w-full justify-start text-sm py-2"
         >
-          Continue Test (Step {elsTests.find(t => !t.is_completed)?.current_step || 1}/13)
+          Continue Test 
         </SarthiButton>
       ) : (
         <SarthiButton
