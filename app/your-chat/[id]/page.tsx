@@ -430,7 +430,7 @@ const handleChoiceSelect = async (choice: string) => {
   }
 
   return (
-    <div className="h-screen bg-[#0f0f0f] flex flex-col">
+    <div className="h-[100dvh] bg-[#121212] flex flex-col safe-bottom">
       {/* Header */}
       <div className="border-b border-white/10 p-4">
         <div className="flex items-center gap-3">
@@ -445,7 +445,8 @@ const handleChoiceSelect = async (choice: string) => {
               {getReflectionIcon(chatDetail.type)}
             </div>
             <div>
-              <h1 className="text-white font-medium">{chatDetail.to}</h1>
+             <h1 className="text-white font-medium text-lg sm:text-xl">{chatDetail.to}</h1>
+
               <p className="text-white/60 text-sm">{formatDate(chatDetail.created_at)}</p>
             </div>
           </div>
@@ -453,8 +454,9 @@ const handleChoiceSelect = async (choice: string) => {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="max-w-4xl mx-auto space-y-6">
+      <div className="flex-1 overflow-y-auto">
+  <div className="p-4 sm:p-6">
+        <div className="max-w-full sm:max-w-4xl mx-auto space-y-6">
           {messages.map((message) => (
             <div
               key={message.id}
@@ -466,15 +468,13 @@ const handleChoiceSelect = async (choice: string) => {
                 </div>
               )}
 
-              <div className={`max-w-[85%] ${message.role === "user" ? "flex flex-col items-end" : ""}`}>
-          <div
-  className={`px-6 py-4 rounded-3xl ${
+            <div className={`max-w-[90%] sm:max-w-[85%] ${message.role === "user" ? "flex flex-col items-end" : ""}`}>
+  <div className={`px-4 py-3 sm:px-6 sm:py-4 rounded-3xl ${
     message.role === "user"
       ? "bg-[#1e1e1e] border border-[#2a2a2a]"
       : "bg-[#2a2a2a] border border-[#3a3a3a]"
-  }`}
->
-  <p className="text-white leading-relaxed whitespace-pre-wrap">
+  }`}>
+    <p className="text-white leading-relaxed text-sm sm:text-base whitespace-pre-wrap">
     {message.content}
     {streamingMessageId === message.id && (
       <span className="inline-block w-2 h-5 bg-white/60 ml-1 animate-pulse" />
@@ -493,7 +493,7 @@ const handleChoiceSelect = async (choice: string) => {
               </div>
             </div>
           )}
-
+         </div>
           <div ref={messagesEndRef} />
         </div>
       </div>
@@ -540,8 +540,8 @@ const handleChoiceSelect = async (choice: string) => {
               const newHeight = Math.min(e.target.scrollHeight, 150)
               e.target.style.height = newHeight + 'px'
             }}
-            placeholder="Continue your reflection..."
-            className="flex-1"
+            placeholder="Share what's on your mind..."
+            className="flex-1 text-base sm:text-base"
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault()
@@ -575,15 +575,32 @@ const handleChoiceSelect = async (choice: string) => {
 )}
 
       {apiError && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-red-500/20 border border-red-500/30 text-red-400 px-6 py-3 rounded-[16px]">
+       <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-red-500/20 border border-red-500/30 text-red-400 px-4 sm:px-6 py-2 sm:py-3 rounded-[16px] backdrop-blur-sm shadow-lg">
           <div className="flex items-center gap-3">
+            <svg
+  className="h-5 w-5 flex-shrink-0"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth={2}
+  viewBox="0 0 24 24"
+>
+  <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z" />
+</svg>
             <p className="text-sm">{apiError}</p>
-            <button
-              onClick={() => setApiError(null)}
-              className="text-red-400/60 hover:text-red-400"
-            >
-              ×
-            </button>
+           <button
+  onClick={() => setApiError(null)}
+  className="ml-2 text-red-400/60 hover:text-red-400 transition-colors min-h-[24px] min-w-[24px]"
+>
+  <svg
+    className="h-4 w-4"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    viewBox="0 0 24 24"
+  >
+    <path d="M6 18L18 6M6 6l12 12" />
+  </svg>
+</button>
           </div>
         </div>
       )}
