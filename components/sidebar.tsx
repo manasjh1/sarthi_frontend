@@ -9,7 +9,7 @@ import { ApologyIcon } from "@/components/icons/apology-icon"
 import { Heart, MessageCircle, User, UserPlus, Edit3, LogOut, X, Lock, Check, Share, Copy, Plus } from "lucide-react"
 import { authFetch } from "@/lib/api"
 import { CountrySelector } from "@/components/ui/country-selector"
-import { getCookie } from "@/app/actions/auth"
+import { getCookie, logout } from "@/app/actions/auth"
 
 import { ChevronDown, ChevronUp } from "lucide-react"
 
@@ -457,16 +457,7 @@ const dummyDrafts: Reflection[] = [
   // Handle the sign-out process
 const handleSignOut = async () => {
   try {
-    // Call the local API route instead
-    const response = await fetch("/api/auth/signout", {
-      method: "POST",
-      credentials: "include",
-    })
-
-    if (!response.ok) {
-      throw new Error("Sign out failed")
-    }
-
+    await logout()
     console.log("Successfully signed out.")
   } catch (error) {
     console.warn("Error signing out:", error)
@@ -585,7 +576,7 @@ const handleSignOut = async () => {
               ) : (
                 <SarthiInput
                   id="contact"
-                  type="email"
+                  
                   className="w-full bg-white/5 border-white/20 text-white"
                   value={contactInput}
                   onChange={(e) => setContactInput(e.target.value)}

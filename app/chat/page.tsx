@@ -10,7 +10,7 @@ import { SarthiThinking } from "@/components/sarthi-thinking"
 import { ArrowLeft } from "lucide-react"
 import { ApologyIcon } from "@/components/icons/apology-icon"
 import { Heart, MessageCircle } from "lucide-react"
-import { getCurrentUser, getAuthHeaders } from "@/app/actions/auth"
+import { getCurrentUser, getAuthHeaders, logout } from "@/app/actions/auth"
 //import mixpanel, { initMixpanel } from "@/lib/mixpanel"
 import { authFetch } from "@/lib/api"
 
@@ -375,16 +375,7 @@ const initializeChat = async () => {
 
 const handleSignOut = async () => {
   try {
-    // Call the local API route instead
-    const response = await fetch("/api/auth/signout", {
-      method: "POST",
-      credentials: "include",
-    })
-
-    if (!response.ok) {
-      throw new Error("Sign out failed")
-    }
-
+    await logout()
     console.log("Successfully signed out.")
   } catch (error) {
     console.warn("Error signing out:", error)
@@ -394,7 +385,6 @@ const handleSignOut = async () => {
     window.location.href = "/auth"
   }
 }
-
   const simulateThinkingAndResponse = async (
     content: string,
     thinkingDuration = 0,

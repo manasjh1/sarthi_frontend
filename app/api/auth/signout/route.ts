@@ -1,19 +1,27 @@
 import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 
-async function deleteCookie(name: string) {
-  const cookieStore = await cookies() 
-
-  cookieStore.delete({
-    name,
-    domain: ".sarthi.me",
-    path: "/",
-  })
-}
-
 export async function POST() {
-  await deleteCookie("sarthi_session")
-  await deleteCookie("sarthi_user_id")
+  try {
+    const cookieStore = await cookies()
 
-  return NextResponse.json({ success: true })
+    // Delete cookies exactly as they were set (without domain parameter)
+    cookieStore.delete({
+      name: "sarthi_session",
+      path: "/",
+    })
+
+    cookieStore.delete({
+      name: "sarthi_user_id",
+      path: "/",
+    })
+
+    return NextResponse.json({ success: true }, { status: 200 })
+  } catch (error) {
+    console.error("Signout error:", error)
+    return NextResponse.json(
+      { success: false, error: "Failed to sign out" },
+      { status: 500 }
+    )
+  }
 }
