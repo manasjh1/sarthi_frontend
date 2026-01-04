@@ -373,27 +373,27 @@ const initializeChat = async () => {
   }
 
 
-  const handleSignOut = async () => {
+const handleSignOut = async () => {
   try {
-    const response = await fetch("https://sarthi.me/api/auth/signout", {
-  method: "POST",
-  credentials: "include",
-})
-
+    // Call the local API route instead
+    const response = await fetch("/api/auth/signout", {
+      method: "POST",
+      credentials: "include",
+    })
 
     if (!response.ok) {
-      throw new Error("Sign out failed");
+      throw new Error("Sign out failed")
     }
 
-    console.log("Successfully signed out.");
+    console.log("Successfully signed out.")
   } catch (error) {
-    console.warn("Error signing out:", error);
+    console.warn("Error signing out:", error)
   } finally {
-    localStorage.clear();
-    sessionStorage.clear();
-    window.location.href = "/auth"; // Redirect to the auth page
+    localStorage.clear()
+    sessionStorage.clear()
+    window.location.href = "/auth"
   }
-};
+}
 
   const simulateThinkingAndResponse = async (
     content: string,

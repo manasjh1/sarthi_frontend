@@ -455,26 +455,27 @@ const dummyDrafts: Reflection[] = [
   }
 
   // Handle the sign-out process
-  const handleSignOut = async () => {
-    try {
-      const response = await fetch("https://sarthi.me/api/auth/signout", {
-  method: "POST",
-  credentials: "include",
-})
+const handleSignOut = async () => {
+  try {
+    // Call the local API route instead
+    const response = await fetch("/api/auth/signout", {
+      method: "POST",
+      credentials: "include",
+    })
 
-      if (!response.ok) {
-        throw new Error("Sign out failed")
-      }
-
-      console.log("Successfully signed out.")
-    } catch (error) {
-      console.warn("Error signing out:", error)
-    } finally {
-      localStorage.clear()
-      sessionStorage.clear()
-      window.location.href = "/auth" // Redirect to the auth page
+    if (!response.ok) {
+      throw new Error("Sign out failed")
     }
-  };
+
+    console.log("Successfully signed out.")
+  } catch (error) {
+    console.warn("Error signing out:", error)
+  } finally {
+    localStorage.clear()
+    sessionStorage.clear()
+    window.location.href = "/auth"
+  }
+}
 
   // Renders a single reflection item
   const renderReflection = (reflection: any, type: "inbox" | "outbox") => {

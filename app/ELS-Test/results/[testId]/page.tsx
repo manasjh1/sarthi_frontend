@@ -78,9 +78,9 @@ export default function ElsTestResultsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#121212] flex items-center justify-center">
+      <div className="min-h-[100dvh] bg-[#121212] flex items-center justify-center p-4">
         <div className="text-center">
-          <p className="text-white mb-2">Loading test results...</p>
+          <p className="text-white mb-2 text-sm sm:text-base">Loading test results...</p>
           <p className="text-white/40 text-xs">Test ID: {testId || 'Not found'}</p>
         </div>
       </div>
@@ -89,9 +89,9 @@ export default function ElsTestResultsPage() {
 
   if (error || !testData) {
     return (
-      <div className="min-h-screen bg-[#121212] flex items-center justify-center">
+      <div className="min-h-[100dvh] bg-[#121212] flex items-center justify-center p-4">
         <div className="text-center space-y-4">
-          <p className="text-red-400">{error || 'Test not found'}</p>
+          <p className="text-red-400 text-sm sm:text-base">{error || 'Test not found'}</p>
           <p className="text-white/40 text-xs">Test ID: {testId || 'undefined'}</p>
           <SarthiButton onClick={() => router.push('/onboarding')}>
             Go Back
@@ -106,35 +106,35 @@ export default function ElsTestResultsPage() {
   const zoneBgColor = getZoneBgColor(zone)
 
   return (
-    <div className="min-h-screen bg-[#121212] flex items-center justify-center p-4">
-      <div className="max-w-3xl w-full space-y-6">
+    <div className="min-h-[100dvh] bg-[#121212] flex items-center justify-center p-4 sm:p-6 safe-bottom">
+      <div className="max-w-3xl w-full space-y-4 sm:space-y-6">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/5 p-8"
+          className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/5 p-4 sm:p-6 md:p-8"
         >
           <motion.h2
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-2xl font-normal text-white text-center mb-8"
+            className="text-xl sm:text-2xl font-normal text-white text-center mb-6 sm:mb-8"
           >
             Your Emotional Load Test Results
           </motion.h2>
 
-          <div className="text-center mb-8">
+          <div className="text-center mb-6 sm:mb-8">
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 200, delay: 0.3 }}
-              className={`w-56 h-56 mx-auto rounded-full bg-gradient-to-br ${zoneColor} flex items-center justify-center mb-6`}
+              className={`w-40 h-40 sm:w-48 sm:h-48 md:w-56 md:h-56 mx-auto rounded-full bg-gradient-to-br ${zoneColor} flex items-center justify-center mb-4 sm:mb-6`}
             >
               <div className="relative">
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.6 }}
-                  className="text-6xl font-normal text-white"
+                  className="text-4xl sm:text-5xl md:text-6xl font-normal text-white"
                 >
                   {Math.round(testData.els_score)}
                 </motion.div>
@@ -142,7 +142,7 @@ export default function ElsTestResultsPage() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.7 }}
-                  className="text-white/90 text-base mt-2 font-normal"
+                  className="text-white/90 text-sm sm:text-base mt-1 sm:mt-2 font-normal"
                 >
                   Stress Level
                 </motion.div>
@@ -153,7 +153,7 @@ export default function ElsTestResultsPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.9 }}
-              className={`inline-block px-6 py-2 rounded-full ${zoneBgColor} text-white font-normal text-lg mb-3`}
+              className={`inline-block px-4 py-1.5 sm:px-6 sm:py-2 rounded-full ${zoneBgColor} text-white font-normal text-base sm:text-lg mb-2 sm:mb-3`}
             >
               {zone} Zone
             </motion.div>
@@ -162,7 +162,7 @@ export default function ElsTestResultsPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 1 }}
-              className="text-white/70 text-sm max-w-xl mx-auto"
+              className="text-white/70 text-xs sm:text-sm max-w-xl mx-auto px-4"
             >
               Taken on {new Date(testData.created_at).toLocaleDateString("en-IN", {
                 month: "long",
@@ -177,19 +177,19 @@ export default function ElsTestResultsPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1.1 }}
-              className="bg-white/5 rounded-xl p-6 border border-white/5 mb-6"
+              className="bg-white/5 rounded-xl p-4 sm:p-6 border border-white/5 mb-4 sm:mb-6"
             >
-              <h3 className="text-white font-normal text-lg mb-4">Top Stress Areas</h3>
-              <div className="space-y-3">
+              <h3 className="text-white font-normal text-base sm:text-lg mb-3 sm:mb-4">Top Stress Areas</h3>
+              <div className="space-y-3 sm:space-y-4">
                 {testData.domain_scores.map((driver: any, idx: number) => {
                   const percentage = (driver.score / testData.weighted_score) * 100
                   return (
                     <div key={driver.domain}>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-white/90 text-sm">{driver.domain}</span>
-                        <span className="text-white/60 text-sm">{Math.round(driver.score)}</span>
+                      <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+                        <span className="text-white/90 text-xs sm:text-sm">{driver.domain}</span>
+                        <span className="text-white/60 text-xs sm:text-sm">{Math.round(driver.score)}</span>
                       </div>
-                      <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                      <div className="h-1.5 sm:h-2 bg-white/10 rounded-full overflow-hidden">
                         <motion.div
                           initial={{ width: 0 }}
                           animate={{ width: `${percentage}%` }}
@@ -210,20 +210,20 @@ export default function ElsTestResultsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.4 }}
-            className="flex gap-4"
+            className="flex flex-col sm:flex-row gap-3 sm:gap-4"
           >
             <SarthiButton
               onClick={() => router.push('/chat')}
-              className="flex-1 px-6 py-4 bg-white text-black rounded-xl font-normal transition-all flex items-center justify-center gap-2 text-lg"
+              className="w-full sm:flex-1 px-4 sm:px-6 py-3 sm:py-4 bg-white text-black rounded-xl font-normal transition-all flex items-center justify-center gap-2 text-base sm:text-lg"
             >
-              <MessageCircle className="w-5 h-5" />
+              <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
               Talk to Sarthi
             </SarthiButton>
             
             <SarthiButton
               variant="secondary"
               onClick={() => router.push('/ELS-Test')}
-              className="flex-1"
+              className="w-full sm:flex-1"
             >
               Take Test Again
             </SarthiButton>
