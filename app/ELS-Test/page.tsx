@@ -938,7 +938,7 @@ export default function EmotionalLoadTest() {
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => router.push('/chat')}
+                  onClick={() => router.push('/chat?from=els')}
                   className="w-full px-6 py-4 bg-white text-black rounded-xl font-normal transition-all flex items-center justify-center gap-2 text-lg"
                 >
                   <MessageCircle className="w-5 h-5" />

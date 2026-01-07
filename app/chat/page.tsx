@@ -299,12 +299,25 @@ const initializeChat = async () => {
     const user = await getCurrentUser()
     setUserName(user?.name || "there")
 
-    // Always start a NEW conversation - force choice "0"
-    const initialRequest = {
+   // Check if user is coming from ELS test
+const fromELS = searchParams.get("from") === "els";
+
+const initialRequest = fromELS
+  ? {
+      reflection_id: "",
+      message: "",
+      data: [
+        {
+          type: "els_transition",
+          els_to_reflection: 1
+        }
+      ]
+    }
+  : {
       reflection_id: "",
       message: "",
       data: [{ choice: "0" }] // Force "start new"
-    }
+    };
 
     const response = await apiService.sendReflectionRequest(initialRequest)
 
