@@ -937,7 +937,7 @@ useEffect(() => {
                 </motion.div>
               )}
 
-              <motion.div
+              {/* <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1.4 }}
@@ -957,7 +957,7 @@ useEffect(() => {
                 Take Test Again
                 <ChevronRight className="w-5 h-5" />
               </motion.button>
-            </motion.div>
+            </motion.div> */}
           </motion.div>
 
 
