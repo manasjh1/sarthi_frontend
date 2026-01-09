@@ -96,7 +96,21 @@ export default function EmotionalLoadTest() {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
+  const [testStatus, setTestStatus] = useState<any>(null);
   const router = useRouter();
+
+  useEffect(() => {
+  const fetchTestStatus = async () => {
+    try {
+      const response = await authFetch('/api/emotional-test/status');
+      const data = await response.json();
+      setTestStatus(data);
+    } catch (err) {
+      console.error('Error fetching test status:', err);
+    }
+  };
+  fetchTestStatus();
+}, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -465,43 +479,121 @@ useEffect(() => {
                 </motion.div>
               )}
 
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.7 }}
-                className="pt-6 md:pt-8 px-2"
-              >
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => {
-                    if (eltResult) {
-                      setStage(3);
-                    } else {
-                      initializeTest();
-                    }
-                  }}
-                  disabled={isLoading}
-                  className="w-full sm:w-auto px-8 md:px-10 py-3 md:py-4 bg-white text-black text-base md:text-lg font-normal rounded-xl transition-all flex items-center justify-center gap-2 md:gap-3 mx-auto disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
-                      Loading...
-                    </>
-                  ) : eltResult ? (
-                    <>
-                      See Your Score
-                      <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
-                    </>
-                  ) : (
-                    <>
-                      Take the Test
-                      <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
-                    </>
-                  )}
-                </motion.button>
-              </motion.div>
+           <motion.div 
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ delay: 0.7 }}
+  className="pt-6 md:pt-8 px-2 space-y-4"
+>
+  {testStatus?.has_incomplete ? (
+    // User has incomplete test - show "Continue Test" button
+    <>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 text-yellow-400 text-sm text-center"
+      >
+        You have an incomplete test at step {testStatus.current_step}. Continue where you left off!
+      </motion.div>
+      
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={initializeTest}
+        disabled={isLoading}
+        className="w-full sm:w-auto px-8 md:px-10 py-3 md:py-4 bg-white text-black text-base md:text-lg font-normal rounded-xl transition-all flex items-center justify-center gap-2 md:gap-3 mx-auto disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+      >
+        {isLoading ? (
+          <>
+            <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
+            Loading...
+          </>
+        ) : (
+          <>
+            Continue Test
+            <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
+          </>
+        )}
+      </motion.button>
+    </>
+  ) : testStatus?.has_completed || eltResult ? (
+    // User has completed test - show "Take Test Again" button
+    <>
+     
+      
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={async () => {
+          try {
+            setIsLoading(true);
+            // Call reset endpoint with action=2 (retest)
+            const response = await authFetch('/api/emotional-test/reset', {
+              method: 'POST',
+              body: JSON.stringify({ action: 2 })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success && data.can_retest) {
+              // Reset state and start fresh test
+              setMessages([]);
+              setCurrentQuestion(null);
+              setEltResult(null);
+              setCurrentStep(0);
+              setHasInitialized(false);
+              
+              // Initialize new test
+              setTimeout(() => initializeTest(), 300);
+            } else {
+              setError(data.message || "Unable to start retest");
+              setIsLoading(false);
+            }
+          } catch (err) {
+            console.error('Error starting retest:', err);
+            setError("Failed to start retest. Please try again.");
+            setIsLoading(false);
+          }
+        }}
+        disabled={isLoading}
+        className="w-full sm:w-auto px-8 md:px-10 py-3 md:py-4 bg-white text-black text-base md:text-lg font-normal rounded-xl transition-all flex items-center justify-center gap-2 md:gap-3 mx-auto disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+      >
+        {isLoading ? (
+          <>
+            <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
+            Loading...
+          </>
+        ) : (
+          <>
+            <RefreshCw className="w-4 h-4 md:w-5 md:h-5" />
+            Take Test Again
+          </>
+        )}
+      </motion.button>
+    </>
+  ) : (
+    // First time user - show "Take the Test" button
+    <motion.button
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      onClick={initializeTest}
+      disabled={isLoading}
+      className="w-full sm:w-auto px-8 md:px-10 py-3 md:py-4 bg-white text-black text-base md:text-lg font-normal rounded-xl transition-all flex items-center justify-center gap-2 md:gap-3 mx-auto disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+    >
+      {isLoading ? (
+        <>
+          <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
+          Loading...
+        </>
+      ) : (
+        <>
+          Take the Test
+          <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
+        </>
+      )}
+    </motion.button>
+  )}
+</motion.div>
             </div>
           </div>
         </motion.div>
@@ -937,27 +1029,28 @@ useEffect(() => {
                 </motion.div>
               )}
 
-              {/* <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.4 }}
-              className="bg-white/5 rounded-xl p-6 border border-white/5"
-            >
-              <h3 className="text-white font-normal text-lg mb-3">Want to track your progress?</h3>
-              <p className="text-[#cbd5e1] mb-4 leading-relaxed">
-                Take the test again to see how your emotional load changes over time. Understanding your patterns is the first step to managing them.
-              </p>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => router.push('/ELS-Test')}
-                className="w-full px-6 py-4 bg-white text-black rounded-xl font-normal transition-all flex items-center justify-center gap-2 text-lg"
-              >
-                <RefreshCw className="w-5 h-5" />
-                Take Test Again
-                <ChevronRight className="w-5 h-5" />
-              </motion.button>
-            </motion.div> */}
+         <motion.div
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ delay: 1.4 }}
+  className="bg-white/5 rounded-xl p-6 border border-white/5"
+>
+  <h3 className="text-white font-normal text-lg mb-3">Want to track your progress?</h3>
+  <p className="text-[#cbd5e1] mb-4 leading-relaxed">
+    Take the test again to see how your emotional load changes over time. Understanding your patterns is the first step to managing them.
+  </p>
+<motion.button
+  whileHover={{ scale: 1.02 }}
+  whileTap={{ scale: 0.98 }}
+  onClick={() => window.location.reload()}
+  className="w-full px-6 py-4 bg-white text-black rounded-xl font-normal transition-all flex items-center justify-center gap-2 text-lg"
+>
+  <RefreshCw className="w-5 h-5" />
+  Take Test Again
+  <ChevronRight className="w-5 h-5" />
+</motion.button>
+
+</motion.div>
           </motion.div>
 
 
