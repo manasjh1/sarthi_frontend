@@ -325,6 +325,26 @@ export async function isAuthenticated(): Promise<boolean> {
   return !!sessionToken
 }
 
+export async function setAuthCookies(accessToken: string, userId: string) {
+  const cookieStore = await cookies()
+  
+  cookieStore.set("sarthi_session", accessToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24 * 7, // 7 days
+    path: "/"
+  })
+  
+  cookieStore.set("sarthi_user_id", userId, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24 * 7,
+    path: "/"
+  })
+}
+
 export async function logout(): Promise<{ success: boolean; message: string }> {
   await deleteCookie("sarthi_session")
   await deleteCookie("sarthi_user_id")
