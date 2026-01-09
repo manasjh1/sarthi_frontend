@@ -6,7 +6,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { authFetch } from "@/lib/api";
 import { useRouter} from "next/navigation"
 import { SarthiOrb } from "@/components/sarthi-orb";
-
+import { RefreshCw } from "lucide-react";
+import { getCookie } from "../actions/auth";
 
 
 interface Message {
@@ -343,6 +344,17 @@ export default function EmotionalLoadTest() {
       default: return "bg-gray-500";
     }
   };
+
+
+useEffect(() => {
+  const checkAuth = async () => {
+    const token = await getCookie("sarthi_session");
+    if (!token) {
+      router.push("/els-login");
+    }
+  };
+  checkAuth();
+}, [router]);
 
   useEffect(() => {
     if (questionReady && messagesEndRef.current) {
@@ -926,27 +938,28 @@ export default function EmotionalLoadTest() {
               )}
 
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1.4 }}
-                className="bg-white/5 rounded-xl p-6 border border-white/5"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.4 }}
+              className="bg-white/5 rounded-xl p-6 border border-white/5"
+            >
+              <h3 className="text-white font-normal text-lg mb-3">Want to track your progress?</h3>
+              <p className="text-[#cbd5e1] mb-4 leading-relaxed">
+                Take the test again to see how your emotional load changes over time. Understanding your patterns is the first step to managing them.
+              </p>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => router.push('/ELS-Test')}
+                className="w-full px-6 py-4 bg-white text-black rounded-xl font-normal transition-all flex items-center justify-center gap-2 text-lg"
               >
-                <h3 className="text-white font-normal text-lg mb-3">That's where Sarthi can help</h3>
-                <p className="text-[#cbd5e1] mb-4 leading-relaxed">
-                  Sarthi is tuned to lighten this exact kind of weight. Let's express what feels unsaid - safely, clearly, and in your own way.
-                </p>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => router.push('/chat?from=els')}
-                  className="w-full px-6 py-4 bg-white text-black rounded-xl font-normal transition-all flex items-center justify-center gap-2 text-lg"
-                >
-                  <MessageCircle className="w-5 h-5" />
-                  Talk to Sarthi
-                  <ChevronRight className="w-5 h-5" />
-                </motion.button>
-              </motion.div>
+                <RefreshCw className="w-5 h-5" />
+                Take Test Again
+                <ChevronRight className="w-5 h-5" />
+              </motion.button>
             </motion.div>
+          </motion.div>
+
 
             <motion.div
               initial={{ opacity: 0 }}
